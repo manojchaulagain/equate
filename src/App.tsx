@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Plus, ListChecks, Users, Trophy, LogOut } from "lucide-react";
+import { Plus, ListChecks, Users, Trophy, LogOut, Shield } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
@@ -11,6 +11,10 @@ import {
   onSnapshot,
   addDoc,
   setLogLevel,
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 
 import {
@@ -21,11 +25,13 @@ import {
   Team,
   TeamResultsState,
 } from "./types/player";
+import { UserRole } from "./types/user";
 import { POSITIONS } from "./constants/player";
 import AuthUI from "./components/auth/AuthUI";
 import PlayerRegistrationForm from "./components/players/PlayerRegistrationForm";
 import WeeklyAvailabilityPoll from "./components/poll/WeeklyAvailabilityPoll";
 import TeamResults from "./components/teams/TeamResults";
+import UserManagement from "./components/admin/UserManagement";
 
 // --- GLOBAL CANVAS VARIABLES (Mandatory) ---
 declare const __app_id: string;
@@ -48,11 +54,12 @@ export default function App() {
   const [userId, setUserId] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole>("user");
 
   // Application State
   const [availability, setAvailability] = useState<PlayerAvailability[]>([]);
   const [teams, setTeams] = useState<TeamResultsState | null>(null);
-  const [view, setView] = useState<"register" | "poll" | "teams">("poll");
+  const [view, setView] = useState<"register" | "poll" | "teams" | "admin">("poll");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -79,7 +86,7 @@ export default function App() {
           setUserEmail(null);
         }
         setIsAuthReady(true);
-        // Note: The Email Link completion logic is inside AuthUI now, which is mounted when userId is null.
+        // Note: The email/password authentication UI is in AuthUI component, which is mounted when userId is null.
       });
 
       return () => unsubscribeAuth();
@@ -96,12 +103,70 @@ export default function App() {
     setError(null);
   };
 
+  // --- 3. FETCH USER ROLE FROM FIRESTORE ---
+  useEffect(() => {
+    if (!db || !userId) {
+      setUserRole("user"); // Default to regular user
+      return;
+    }
+
+    const fetchUserRole = async () => {
+      try {
+        const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+        const userDocPath = `artifacts/${appId}/public/data/users/${userId}`;
+        const userDocRef = doc(db, userDocPath);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          const role = userData.role === "admin" ? "admin" : "user";
+          setUserRole(role);
+        } else {
+          // User document doesn't exist, default to regular user
+          setUserRole("user");
+        }
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+        setUserRole("user"); // Default to regular user on error
+      }
+    };
+
+    fetchUserRole();
+  }, [db, userId]);
+
+  // Function to refresh user role (called after role update)
+  const refreshUserRole = () => {
+    if (!db || !userId) return;
+
+    const fetchUserRole = async () => {
+      try {
+        const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+        const userDocPath = `artifacts/${appId}/public/data/users/${userId}`;
+        const userDocRef = doc(db, userDocPath);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          const role = userData.role === "admin" ? "admin" : "user";
+          setUserRole(role);
+        } else {
+          setUserRole("user");
+        }
+      } catch (error) {
+        console.error("Error refreshing user role:", error);
+      }
+    };
+
+    fetchUserRole();
+  };
+
   // Sign Out function
   const handleSignOut = async () => {
     if (auth) {
       await signOut(auth);
       setUserId(null);
       setUserEmail(null);
+      setUserRole("user"); // Reset role on sign out
       setTeams(null); // Clear teams on sign out
       setView("poll");
     }
@@ -163,6 +228,35 @@ export default function App() {
     return () => unsubscribeSnapshot();
   }, [db]);
 
+  // --- 3. FIRESTORE TEAMS LISTENER (Real-time team loading) ---
+  useEffect(() => {
+    if (!db) return;
+
+    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+    const teamsDocPath = `artifacts/${appId}/public/data/teams/current`;
+    const teamsDocRef = doc(db, teamsDocPath);
+
+    const unsubscribeTeams = onSnapshot(
+      teamsDocRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          setTeams({
+            teamA: data.teamA as Team,
+            teamB: data.teamB as Team,
+          });
+        } else {
+          setTeams(null);
+        }
+      },
+      (error) => {
+        console.error("Firestore Teams Listener Error:", error);
+      }
+    );
+
+    return () => unsubscribeTeams();
+  }, [db]);
+
   // --- LOGIC FUNCTIONS (Unchanged) ---
 
   // Function to add a new player (writes to Firestore)
@@ -195,18 +289,38 @@ export default function App() {
         p.id === playerId ? { ...p, isAvailable: !p.isAvailable } : p
       )
     );
-    setTeams(null);
+    // Clear teams from Firestore when availability changes
+    clearTeamsFromFirestore();
     setError(null);
   };
 
-  // Team Generation Algorithm (Unchanged)
-  const generateBalancedTeams = () => {
+  // Function to clear teams from Firestore
+  const clearTeamsFromFirestore = async () => {
+    if (!db) return;
+
+    try {
+      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+      const teamsDocPath = `artifacts/${appId}/public/data/teams/current`;
+      const teamsDocRef = doc(db, teamsDocPath);
+      await deleteDoc(teamsDocRef);
+      // The real-time listener will update the state automatically
+    } catch (error) {
+      console.error("Error clearing teams:", error);
+    }
+  };
+
+  // Team Generation Algorithm - saves to Firestore for all users to see
+  const generateBalancedTeams = async () => {
     setError(null);
     const availablePlayers = availability.filter((p) => p.isAvailable);
 
     if (availablePlayers.length < 2) {
       setError("Need at least 2 available players to form teams!");
-      setTeams(null);
+      return;
+    }
+
+    if (!db) {
+      setError("Database connection not ready. Please wait.");
       return;
     }
 
@@ -251,8 +365,20 @@ export default function App() {
       }
     }
 
-    setTeams({ teamA, teamB });
-    setView("teams");
+    const teamsData: TeamResultsState = { teamA, teamB };
+
+    // Save teams to Firestore so all users can see them
+    try {
+      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+      const teamsDocPath = `artifacts/${appId}/public/data/teams/current`;
+      const teamsDocRef = doc(db, teamsDocPath);
+      await setDoc(teamsDocRef, teamsData);
+      // The real-time listener will update the state automatically
+      setView("teams");
+    } catch (error) {
+      console.error("Error saving teams:", error);
+      setError("Failed to save teams to database.");
+    }
   };
 
   const availableCount = useMemo(
@@ -284,6 +410,11 @@ export default function App() {
             <p className="text-sm font-medium text-gray-700">
               Logged in as:{" "}
               <span className="font-semibold text-indigo-600">{userEmail}</span>
+              {userRole === "admin" && (
+                <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-semibold">
+                  Admin
+                </span>
+              )}
             </p>
           )}
           {userId && (
@@ -341,7 +472,9 @@ export default function App() {
             <button
               onClick={() => setView("teams")}
               disabled={!teams}
-              className={`px-6 py-3 font-semibold rounded-r-xl transition-colors disabled:opacity-50 ${
+              className={`px-6 py-3 font-semibold transition-colors disabled:opacity-50 ${
+                userRole !== "admin" ? "rounded-r-xl" : ""
+              } ${
                 view === "teams"
                   ? "bg-yellow-500 text-white shadow-lg"
                   : "bg-white text-gray-600 hover:bg-gray-200"
@@ -349,6 +482,18 @@ export default function App() {
             >
               <Trophy className="inline w-4 h-4 mr-2" /> Teams
             </button>
+            {userRole === "admin" && (
+              <button
+                onClick={() => setView("admin")}
+                className={`px-6 py-3 font-semibold rounded-r-xl transition-colors ${
+                  view === "admin"
+                    ? "bg-purple-600 text-white shadow-lg"
+                    : "bg-white text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <Shield className="inline w-4 h-4 mr-2" /> Admin
+              </button>
+            )}
           </nav>
 
           {/* Content Area */}
@@ -368,6 +513,7 @@ export default function App() {
                 onGenerateTeams={generateBalancedTeams}
                 error={error}
                 disabled={!userId}
+                isAdmin={userRole === "admin"}
               />
             )}
             {view === "teams" && teams && (
@@ -375,6 +521,13 @@ export default function App() {
                 teamA={teams.teamA}
                 teamB={teams.teamB}
                 onBack={() => setView("poll")}
+              />
+            )}
+            {view === "admin" && userRole === "admin" && userId && (
+              <UserManagement
+                db={db}
+                currentUserId={userId}
+                onRoleUpdate={refreshUserRole}
               />
             )}
           </main>
