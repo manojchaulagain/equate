@@ -1,32 +1,31 @@
 import React, { useState, useMemo, useEffect } from "react";
-import {
-  Plus,
-  ListChecks,
-  Users,
-  XCircle,
-  ChevronDown,
-  CheckCircle,
-  Trophy,
-} from "lucide-react";
+import { Plus, ListChecks, Users, Trophy, LogOut } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import {
-  getAuth,
-  signInAnonymously,
-  signInWithCustomToken,
-  onAuthStateChanged,
-} from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
 import {
   getFirestore,
   collection,
   onSnapshot,
   addDoc,
-  doc,
-  setDoc,
   setLogLevel,
 } from "firebase/firestore";
+
+import {
+  Player,
+  PlayerAvailability,
+  Position,
+  SkillLevel,
+  Team,
+  TeamResultsState,
+} from "./types/player";
+import { POSITIONS } from "./constants/player";
+import AuthUI from "./components/auth/AuthUI";
+import PlayerRegistrationForm from "./components/players/PlayerRegistrationForm";
+import WeeklyAvailabilityPoll from "./components/poll/WeeklyAvailabilityPoll";
+import TeamResults from "./components/teams/TeamResults";
 
 // --- GLOBAL CANVAS VARIABLES (Mandatory) ---
 declare const __app_id: string;
@@ -40,101 +39,17 @@ const __firebase_config = {
   measurementId: "G-FL3HFEJYNE"
 };
 
-declare const __initial_auth_token: string;
-
-// --- TYPE DEFINITIONS ---
-
-// UPDATED: Specific soccer positions
-type Position =
-  | "GK"
-  | "LB"
-  | "RB"
-  | "CB"
-  | "CDM"
-  | "CM"
-  | "CAM"
-  | "ST"
-  | "LW"
-  | "RW";
-
-// Skill level from 1 to 10
-type SkillLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
-
-// Player interface - id is the Firestore Document ID
-interface Player {
-  id: string;
-  name: string;
-  position: Position;
-  skillLevel: SkillLevel;
-}
-
-// Availability status is local state (ephemeral/weekly status)
-interface PlayerAvailability extends Player {
-  isAvailable: boolean;
-}
-
-interface Team {
-  name: string;
-  players: PlayerAvailability[];
-  totalSkill: number;
-}
-
-interface TeamResultsState {
-  teamA: Team;
-  teamB: Team;
-}
-
-// UPDATED: Array of specific positions
-const POSITIONS: Position[] = [
-  "GK",
-  "LB",
-  "RB",
-  "CB",
-  "CDM",
-  "CM",
-  "CAM",
-  "ST",
-  "LW",
-  "RW",
-];
-
-const POSITION_LABELS: Record<Position, string> = {
-  GK: "Goalkeeper",
-  LB: "Left Back",
-  RB: "Right Back",
-  CB: "Center Back",
-  CDM: "Center Defensive Midfielder",
-  CM: "Center Midfielder",
-  CAM: "Center Attacking Midfielder",
-  ST: "Striker",
-  LW: "Left Winger",
-  RW: "Right Winger",
-};
-
-// Skill labels expanded for 1-10 scale
-const SKILL_LABELS: Record<SkillLevel, string> = {
-  1: "Newbie",
-  2: "Rookie",
-  3: "Beginner",
-  4: "Intermediate",
-  5: "Average",
-  6: "Solid",
-  7: "Advanced",
-  8: "Veteran",
-  9: "Elite",
-  10: "Legend",
-};
-
-// --- CORE APP COMPONENT ---
+// Type and constant definitions moved to dedicated modules for reuse.
 
 export default function App() {
   // Firebase State
+  const [auth, setAuth] = useState<any>(null);
   const [db, setDb] = useState<any>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // Application State
-  const [players, setPlayers] = useState<Player[]>([]);
   const [availability, setAvailability] = useState<PlayerAvailability[]>([]);
   const [teams, setTeams] = useState<TeamResultsState | null>(null);
   const [view, setView] = useState<"register" | "poll" | "teams">("poll");
@@ -148,28 +63,23 @@ export default function App() {
     try {
       const firebaseConfig = __firebase_config;
       const app = initializeApp(firebaseConfig);
-      const analytics = getAnalytics(app);
+      getAnalytics(app);
       const firestore = getFirestore(app);
-      const auth = getAuth(app);
+      const authInstance = getAuth(app);
 
       setDb(firestore);
+      setAuth(authInstance);
 
-      const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      const unsubscribeAuth = onAuthStateChanged(authInstance, (user) => {
         if (user) {
           setUserId(user.uid);
+          setUserEmail(user.email);
         } else {
-          // Sign in with token or anonymously
-          if (
-            typeof __initial_auth_token !== "undefined" &&
-            __initial_auth_token
-          ) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-            const anonymousUser = await signInAnonymously(auth);
-            setUserId(anonymousUser.user.uid);
-          }
+          setUserId(null);
+          setUserEmail(null);
         }
         setIsAuthReady(true);
+        // Note: The Email Link completion logic is inside AuthUI now, which is mounted when userId is null.
       });
 
       return () => unsubscribeAuth();
@@ -179,10 +89,28 @@ export default function App() {
     }
   }, []);
 
+  // Handler for successful sign-in from AuthUI
+  const handleSuccessfulSignIn = (user: User) => {
+    setUserId(user.uid);
+    setUserEmail(user.email);
+    setError(null);
+  };
+
+  // Sign Out function
+  const handleSignOut = async () => {
+    if (auth) {
+      await signOut(auth);
+      setUserId(null);
+      setUserEmail(null);
+      setTeams(null); // Clear teams on sign out
+      setView("poll");
+    }
+  };
+
   // --- 2. FIREBASE DATA LISTENER (Real-time player loading) ---
   useEffect(() => {
-    // We only need DB and Auth to be ready. userId is no longer part of the path dependency.
-    if (!db || !isAuthReady) return;
+    // Run only when Firestore is initialized
+    if (!db) return;
 
     setLoading(true);
 
@@ -196,30 +124,24 @@ export default function App() {
       (snapshot) => {
         const loadedPlayers: Player[] = snapshot.docs.map((doc) => {
           const data = doc.data();
-          // FIX: Spread the document data first to include 'name', then override/cast specific fields.
           return {
-            ...data, // 1. Includes 'name', 'position', 'skillLevel'
-            id: doc.id, // 2. Adds the unique Document ID
-            // 3. Overrides skillLevel with the clamped, correctly typed value (fallback to 5)
+            ...data,
+            id: doc.id,
             skillLevel: Math.max(
               1,
               Math.min(10, data.skillLevel || 5)
             ) as SkillLevel,
-            // 4. Overrides position with the validated, correctly typed value
             position: POSITIONS.includes(data.position as Position)
               ? (data.position as Position)
               : "CM",
-          } as Player; // 5. Final cast to Player
+          } as Player;
         });
-
-        setPlayers(loadedPlayers);
 
         // Update availability list, maintaining existing availability status if possible
         setAvailability((prevAvailability) => {
           const updatedAvailability: PlayerAvailability[] = loadedPlayers.map(
             (p) => {
               const existing = prevAvailability.find((ep) => ep.id === p.id);
-              // Default to available if new or use existing availability status
               return {
                 ...p,
                 isAvailable: existing ? existing.isAvailable : true,
@@ -238,11 +160,10 @@ export default function App() {
       }
     );
 
-    // userId removed from dependency array as the collection path is now public
     return () => unsubscribeSnapshot();
-  }, [db, isAuthReady]);
+  }, [db]);
 
-  // --- LOGIC FUNCTIONS ---
+  // --- LOGIC FUNCTIONS (Unchanged) ---
 
   // Function to add a new player (writes to Firestore)
   const addPlayer = async (playerData: Omit<Player, "id">) => {
@@ -256,13 +177,11 @@ export default function App() {
     const playersColRef = collection(db, playersCollectionPath);
 
     try {
-      // Firestore generates the ID
       await addDoc(playersColRef, {
         name: playerData.name,
         position: playerData.position,
         skillLevel: playerData.skillLevel,
       });
-      // The onSnapshot listener handles updating the local state (players and availability)
     } catch (e) {
       console.error("Error adding document: ", e);
       setError("Failed to save player to database.");
@@ -276,13 +195,11 @@ export default function App() {
         p.id === playerId ? { ...p, isAvailable: !p.isAvailable } : p
       )
     );
-    // Clear teams if availability changes
     setTeams(null);
     setError(null);
   };
 
-  // --- TEAM GENERATION ALGORITHM (Updated for Paired Randomization) ---
-
+  // Team Generation Algorithm (Unchanged)
   const generateBalancedTeams = () => {
     setError(null);
     const availablePlayers = availability.filter((p) => p.isAvailable);
@@ -293,8 +210,6 @@ export default function App() {
       return;
     }
 
-    // 1. Sort by Skill Level (Descending)
-    // Sorting is crucial for the paired randomization method to maintain balance.
     const sortedPlayers = [...availablePlayers].sort(
       (a, b) => b.skillLevel - a.skillLevel
     );
@@ -305,23 +220,17 @@ export default function App() {
     const numPlayers = sortedPlayers.length;
     const half = Math.floor(numPlayers / 2);
 
-    // 2. Paired Random Assignment
-    // Pair the highest skill player with the lowest skill player, and randomly assign
-    // the pair members to Team A and Team B. This ensures balance while introducing variety.
     for (let i = 0; i < half; i++) {
       const playerHigh = sortedPlayers[i];
       const playerLow = sortedPlayers[numPlayers - 1 - i];
 
-      // Randomly decide which team gets the high player
       if (Math.random() < 0.5) {
-        // Team A gets High, Team B gets Low
         teamA.players.push(playerHigh);
         teamA.totalSkill += playerHigh.skillLevel;
 
         teamB.players.push(playerLow);
         teamB.totalSkill += playerLow.skillLevel;
       } else {
-        // Team A gets Low, Team B gets High
         teamA.players.push(playerLow);
         teamA.totalSkill += playerLow.skillLevel;
 
@@ -330,12 +239,9 @@ export default function App() {
       }
     }
 
-    // 3. Handle Odd Number of Players
     if (numPlayers % 2 !== 0) {
       const middlePlayer = sortedPlayers[half];
 
-      // Assign the remaining middle player to the team with the currently lower skill total.
-      // This final greedy step ensures the best possible balance.
       if (teamA.totalSkill <= teamB.totalSkill) {
         teamA.players.push(middlePlayer);
         teamA.totalSkill += middlePlayer.skillLevel;
@@ -349,399 +255,138 @@ export default function App() {
     setView("teams");
   };
 
-  // Memoized available players count for UI display
   const availableCount = useMemo(
     () => availability.filter((p) => p.isAvailable).length,
     [availability]
   );
 
-  // --- UI COMPONENTS ---
-
-  // 1. Player Registration Form Component
-  const PlayerRegistrationForm: React.FC<{
-    onAddPlayer: (player: Omit<Player, "id">) => Promise<void>;
-  }> = ({ onAddPlayer }) => {
-    const [name, setName] = useState("");
-    // Default to Center Midfielder (CM)
-    const [position, setPosition] = useState<Position>("CM");
-    // Start at a mid-level for the 1-10 scale
-    const [skillLevel, setSkillLevel] = useState<SkillLevel>(5 as SkillLevel);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setIsSubmitting(true);
-
-      await onAddPlayer({ name: name.trim(), position, skillLevel });
-
-      setName("");
-      setSkillLevel(5 as SkillLevel); // Reset to mid-level
-      setPosition("CM"); // Reset to default position
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        setIsSubmitting(false);
-      }, 1000);
-    };
-
-    return (
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-xl shadow-lg space-y-4"
-      >
-        <h2 className="text-2xl font-bold text-gray-800 border-b pb-2 mb-4 flex items-center">
-          <Plus className="mr-2 text-green-600" size={20} /> Register New Player
-        </h2>
-        <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="Player Full Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-          />
-
-          <div className="relative">
-            <select
-              value={position}
-              onChange={(e) => setPosition(e.target.value as Position)}
-              className="w-full p-3 appearance-none border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-            >
-              <option disabled>Select Position</option>
-              {POSITIONS.map((pos) => (
-                <option key={pos} value={pos}>
-                  {pos} - {POSITION_LABELS[pos]}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-              size={18}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Skill Level:{" "}
-              <span className="font-semibold text-blue-600">
-                {skillLevel} ({SKILL_LABELS[skillLevel]})
-              </span>
-            </label>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={skillLevel}
-              onChange={(e) =>
-                setSkillLevel(parseInt(e.target.value) as SkillLevel)
-              }
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center pt-2">
-          <button
-            type="submit"
-            disabled={
-              name.trim().length === 0 ||
-              isSubmitting ||
-              !isAuthReady ||
-              loading
-            }
-            className="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-300 shadow-md disabled:bg-gray-400 flex items-center justify-center"
-          >
-            {isSubmitting ? "Saving..." : "Save Player"}
-          </button>
-          {showSuccess && (
-            <div className="flex items-center text-green-600 font-medium">
-              <CheckCircle className="mr-1" size={18} /> Player Registered!
-            </div>
-          )}
-        </div>
-      </form>
-    );
-  };
-
-  // 2. Weekly Availability Poll Component
-  const WeeklyAvailabilityPoll: React.FC = () => {
-    return (
-      <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold text-gray-800 border-b pb-2 mb-4 flex items-center">
-          <ListChecks className="mr-2 text-indigo-600" size={20} /> Weekly
-          Availability Poll
-        </h2>
-        <p className="text-sm text-gray-600 mb-4">
-          Toggle players who are available to play this week.
-        </p>
-
-        {loading && (
-          <div className="text-center p-8 text-indigo-600 font-semibold">
-            Loading players from Firestore...
-          </div>
-        )}
-
-        {!loading && availability.length === 0 ? (
-          <div className="text-center p-8 bg-gray-50 rounded-lg text-gray-500">
-            No players registered yet. Use the Register tab to add players.
-          </div>
-        ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-            {availability.map((player) => (
-              <div
-                key={player.id}
-                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition duration-200 ${
-                  player.isAvailable
-                    ? "bg-indigo-50 border-indigo-400 border-l-4"
-                    : "bg-gray-50 border-gray-300 border-l-4 opacity-70"
-                }`}
-                onClick={() => toggleAvailability(player.id)}
-              >
-                <div>
-                  <p className="font-semibold text-gray-800">{player.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {player.position} ({POSITION_LABELS[player.position]}) •
-                    Skill: {player.skillLevel} (
-                    {SKILL_LABELS[player.skillLevel]})
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {player.isAvailable ? (
-                    <span className="text-green-600 font-medium">Playing</span>
-                  ) : (
-                    <span className="text-red-500 font-medium">Out</span>
-                  )}
-                  <div
-                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                      player.isAvailable
-                        ? "bg-green-500 border-green-700"
-                        : "bg-red-500 border-red-700"
-                    }`}
-                  >
-                    {player.isAvailable ? (
-                      <CheckCircle className="text-white" size={12} />
-                    ) : (
-                      <XCircle className="text-white" size={12} />
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-6 pt-4 border-t flex justify-between items-center">
-          <p className="text-md font-semibold text-gray-700">
-            Total Available:{" "}
-            <span className="text-indigo-600 text-xl">{availableCount}</span>
-          </p>
-          <button
-            onClick={generateBalancedTeams}
-            disabled={availableCount < 2 || loading}
-            className="bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-md flex items-center disabled:bg-gray-400"
-          >
-            <Trophy className="mr-2" size={18} /> Generate Teams
-          </button>
-        </div>
-
-        {error && (
-          <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm font-medium">
-            {error}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // 3. Team Results Component
-  const TeamResults: React.FC<TeamResultsState> = ({ teamA, teamB }) => {
-    // Helper function to count positions
-    const countPositions = (players: PlayerAvailability[]) => {
-      return players.reduce((acc, player) => {
-        acc[player.position] = (acc[player.position] || 0) + 1;
-        return acc;
-      }, {} as Record<Position, number>);
-    };
-
-    const teamAPositions = countPositions(teamA.players);
-    const teamBPositions = countPositions(teamB.players);
-
-    // Calculate skill difference for display
-    const skillDiff = Math.abs(teamA.totalSkill - teamB.totalSkill);
-
-    return (
-      <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h2 className="text-3xl font-bold text-gray-800 border-b pb-3 mb-4 flex items-center justify-center">
-          <Trophy className="mr-3 text-yellow-500" size={28} /> Balanced Teams
-          Generated!
-        </h2>
-        <div
-          className={`p-3 text-center mb-4 rounded-lg font-medium ${
-            skillDiff === 0
-              ? "bg-green-100 text-green-700"
-              : "bg-yellow-100 text-yellow-700"
-          }`}
-        >
-          Skill Difference: {skillDiff} (Lower is better)
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Team A Card */}
-          <TeamCard team={teamA} positions={teamAPositions} color="blue" />
-          {/* Team B Card */}
-          <TeamCard team={teamB} positions={teamBPositions} color="red" />
-        </div>
-        <div className="mt-6 pt-4 border-t text-center">
-          <button
-            onClick={() => setView("poll")}
-            className="bg-gray-200 text-gray-800 font-semibold py-2 px-6 rounded-lg hover:bg-gray-300 transition duration-300"
-          >
-            Back to Poll
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  // Sub-component for Team Card
-  const TeamCard: React.FC<{
-    team: Team;
-    positions: Record<Position, number>;
-    color: "blue" | "red";
-  }> = ({ team, positions, color }) => (
-    <div
-      className={`p-5 rounded-xl shadow-lg transform hover:scale-[1.01] transition-transform duration-300 ${
-        color === "blue"
-          ? "bg-blue-600/10 border-blue-600 border"
-          : "bg-red-600/10 border-red-600 border"
-      }`}
-    >
-      <h3
-        className={`text-2xl font-extrabold ${
-          color === "blue" ? "text-blue-700" : "text-red-700"
-        } mb-2`}
-      >
-        {team.name} ({team.players.length} Players)
-      </h3>
-      <p className="text-lg font-bold text-gray-800 mb-4">
-        Total Skill Score:{" "}
-        <span
-          className={`text-3xl font-extrabold ${
-            color === "blue" ? "text-blue-700" : "text-red-700"
-          }`}
-        >
-          {team.totalSkill}
-        </span>
-      </p>
-
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-4 text-sm font-medium">
-        {POSITIONS.map((pos) => (
-          <div
-            key={pos}
-            className="flex justify-between items-center text-gray-600"
-          >
-            <span>
-              {pos} ({POSITION_LABELS[pos]}):
-            </span>
-            <span
-              className={`font-bold ${
-                positions[pos] ? "text-gray-800" : "text-gray-400"
-              }`}
-            >
-              {positions[pos] || 0}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <ul className="space-y-1 max-h-60 overflow-y-auto pr-1">
-        {team.players
-          .sort((a, b) => b.skillLevel - a.skillLevel)
-          .map((player) => (
-            <li
-              key={player.id}
-              className="flex justify-between items-center text-sm bg-white/70 p-2 rounded"
-            >
-              <span className="font-medium text-gray-800">{player.name}</span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-200">
-                {player.position} (S:{player.skillLevel})
-              </span>
-            </li>
-          ))}
-      </ul>
-    </div>
-  );
-
   // --- MAIN RENDER ---
+
+  const isAppReady = isAuthReady && db;
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-8 font-sans">
       <header className="text-center mb-8">
         <h1 className="text-4xl font-extrabold text-gray-900 flex items-center justify-center">
           <Users className="text-indigo-600 mr-3" size={32} /> Soccer Team
-          Balancer (Shared Roster)
+          Balancer
         </h1>
         <p className="text-gray-600 mt-2">
           Manage players, track availability, and generate fair teams.
           <span className="block text-xs font-semibold mt-1 text-green-700">
-            The Player Roster is now shared among all users of this app
-            instance.
+            The Player Roster is shared. Sign-in required for access.
           </span>
         </p>
-        {userId && (
-          <p className="text-xs text-gray-500 mt-1">
-            User ID: <span className="font-mono text-gray-700">{userId}</span>
-          </p>
-        )}
+
+        {/* User Info and Sign Out */}
+        <div className="mt-4 flex justify-center items-center space-x-4">
+          {userEmail && (
+            <p className="text-sm font-medium text-gray-700">
+              Logged in as:{" "}
+              <span className="font-semibold text-indigo-600">{userEmail}</span>
+            </p>
+          )}
+          {userId && (
+            <button
+              onClick={handleSignOut}
+              className="flex items-center text-sm text-red-600 hover:text-red-800 font-medium p-2 bg-red-100 rounded-lg transition duration-200"
+            >
+              <LogOut className="w-4 h-4 mr-1" /> Sign Out
+            </button>
+          )}
+        </div>
       </header>
 
-      {/* Navigation Tabs */}
-      <nav className="flex justify-center mb-8">
-        <button
-          onClick={() => setView("register")}
-          className={`px-6 py-3 font-semibold rounded-l-xl transition-colors ${
-            view === "register"
-              ? "bg-green-600 text-white shadow-lg"
-              : "bg-white text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          <Plus className="inline w-4 h-4 mr-2" /> Register
-        </button>
-        <button
-          onClick={() => setView("poll")}
-          className={`px-6 py-3 font-semibold transition-colors ${
-            view === "poll"
-              ? "bg-indigo-600 text-white shadow-lg"
-              : "bg-white text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          <ListChecks className="inline w-4 h-4 mr-2" /> Availability (
-          {availableCount})
-        </button>
-        <button
-          onClick={() => setView("teams")}
-          disabled={!teams}
-          className={`px-6 py-3 font-semibold rounded-r-xl transition-colors disabled:opacity-50 ${
-            view === "teams"
-              ? "bg-yellow-500 text-white shadow-lg"
-              : "bg-white text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          <Trophy className="inline w-4 h-4 mr-2" /> Teams
-        </button>
-      </nav>
+      {!isAppReady && (
+        <div className="text-center p-10 font-semibold text-xl text-gray-600">
+          Initializing application...
+        </div>
+      )}
 
-      {/* Content Area */}
-      <main className="max-w-4xl mx-auto">
-        {view === "register" && (
-          <PlayerRegistrationForm onAddPlayer={addPlayer} />
-        )}
-        {view === "poll" && <WeeklyAvailabilityPoll />}
-        {view === "teams" && teams && (
-          <TeamResults teamA={teams.teamA} teamB={teams.teamB} />
-        )}
-      </main>
+      {/* Conditional Rendering based on Auth Status */}
+      {isAppReady && !userId && auth && (
+        <AuthUI
+          auth={auth}
+          onSignIn={handleSuccessfulSignIn}
+          error={error}
+          setError={setError}
+        />
+      )}
+
+      {/* Main Application Tabs (Visible only when logged in) */}
+      {isAppReady && userId && (
+        <>
+          <nav className="flex justify-center mb-8">
+            <button
+              onClick={() => setView("register")}
+              className={`px-6 py-3 font-semibold rounded-l-xl transition-colors ${
+                view === "register"
+                  ? "bg-green-600 text-white shadow-lg"
+                  : "bg-white text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <Plus className="inline w-4 h-4 mr-2" /> Register
+            </button>
+            <button
+              onClick={() => setView("poll")}
+              className={`px-6 py-3 font-semibold transition-colors ${
+                view === "poll"
+                  ? "bg-indigo-600 text-white shadow-lg"
+                  : "bg-white text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <ListChecks className="inline w-4 h-4 mr-2" /> Availability (
+              {availableCount})
+            </button>
+            <button
+              onClick={() => setView("teams")}
+              disabled={!teams}
+              className={`px-6 py-3 font-semibold rounded-r-xl transition-colors disabled:opacity-50 ${
+                view === "teams"
+                  ? "bg-yellow-500 text-white shadow-lg"
+                  : "bg-white text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <Trophy className="inline w-4 h-4 mr-2" /> Teams
+            </button>
+          </nav>
+
+          {/* Content Area */}
+          <main className="max-w-4xl mx-auto">
+            {view === "register" && (
+              <PlayerRegistrationForm
+                onAddPlayer={addPlayer}
+                disabled={loading || !userId}
+              />
+            )}
+            {view === "poll" && (
+              <WeeklyAvailabilityPoll
+                availability={availability}
+                loading={loading}
+                availableCount={availableCount}
+                onToggleAvailability={toggleAvailability}
+                onGenerateTeams={generateBalancedTeams}
+                error={error}
+                disabled={!userId}
+              />
+            )}
+            {view === "teams" && teams && (
+              <TeamResults
+                teamA={teams.teamA}
+                teamB={teams.teamB}
+                onBack={() => setView("poll")}
+              />
+            )}
+          </main>
+        </>
+      )}
+
+      {/* General Error Display */}
+      {isAppReady && userId && error && (
+        <div className="max-w-4xl mx-auto mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm font-medium text-center">
+          {error}
+        </div>
+      )}
     </div>
   );
 }
