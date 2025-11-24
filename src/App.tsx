@@ -44,8 +44,21 @@ declare const __initial_auth_token: string;
 
 // --- TYPE DEFINITIONS ---
 
-type Position = "GK" | "DEF" | "MID" | "FWD";
-type SkillLevel = 1 | 2 | 3 | 4 | 5;
+// UPDATED: Specific soccer positions
+type Position =
+  | "GK"
+  | "LB"
+  | "RB"
+  | "CB"
+  | "CDM"
+  | "CM"
+  | "CAM"
+  | "ST"
+  | "LW"
+  | "RW";
+
+// Skill level from 1 to 10
+type SkillLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
 // Player interface - id is the Firestore Document ID
 interface Player {
@@ -71,13 +84,45 @@ interface TeamResultsState {
   teamB: Team;
 }
 
-const POSITIONS: Position[] = ["GK", "DEF", "MID", "FWD"];
+// UPDATED: Array of specific positions
+const POSITIONS: Position[] = [
+  "GK",
+  "LB",
+  "RB",
+  "CB",
+  "CDM",
+  "CM",
+  "CAM",
+  "ST",
+  "LW",
+  "RW",
+];
+
+const POSITION_LABELS: Record<Position, string> = {
+  GK: "Goalkeeper",
+  LB: "Left Back",
+  RB: "Right Back",
+  CB: "Center Back",
+  CDM: "Center Defensive Midfielder",
+  CM: "Center Midfielder",
+  CAM: "Center Attacking Midfielder",
+  ST: "Striker",
+  LW: "Left Winger",
+  RW: "Right Winger",
+};
+
+// Skill labels expanded for 1-10 scale
 const SKILL_LABELS: Record<SkillLevel, string> = {
-  1: "Rookie",
-  2: "Beginner",
-  3: "Intermediate",
-  4: "Advanced",
-  5: "Expert",
+  1: "Newbie",
+  2: "Rookie",
+  3: "Beginner",
+  4: "Intermediate",
+  5: "Average",
+  6: "Solid",
+  7: "Advanced",
+  8: "Veteran",
+  9: "Elite",
+  10: "Legend",
 };
 
 // --- CORE APP COMPONENT ---
@@ -136,25 +181,36 @@ export default function App() {
 
   // --- 2. FIREBASE DATA LISTENER (Real-time player loading) ---
   useEffect(() => {
-    if (!db || !userId || !isAuthReady) return;
+    // We only need DB and Auth to be ready. userId is no longer part of the path dependency.
+    if (!db || !isAuthReady) return;
 
     setLoading(true);
 
-    // Collection path: /artifacts/{appId}/users/{userId}/soccer_players
+    // Collection path: /artifacts/{appId}/public/data/soccer_players
     const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-    const playersCollectionPath = `artifacts/${appId}/users/${userId}/soccer_players`;
+    const playersCollectionPath = `artifacts/${appId}/public/data/soccer_players`;
     const playersColRef = collection(db, playersCollectionPath);
 
     const unsubscribeSnapshot = onSnapshot(
       playersColRef,
       (snapshot) => {
-        const loadedPlayers: Player[] = snapshot.docs.map(
-          (doc) =>
-            ({
-              id: doc.id,
-              ...doc.data(),
-            } as Player)
-        );
+        const loadedPlayers: Player[] = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          // FIX: Spread the document data first to include 'name', then override/cast specific fields.
+          return {
+            ...data, // 1. Includes 'name', 'position', 'skillLevel'
+            id: doc.id, // 2. Adds the unique Document ID
+            // 3. Overrides skillLevel with the clamped, correctly typed value (fallback to 5)
+            skillLevel: Math.max(
+              1,
+              Math.min(10, data.skillLevel || 5)
+            ) as SkillLevel,
+            // 4. Overrides position with the validated, correctly typed value
+            position: POSITIONS.includes(data.position as Position)
+              ? (data.position as Position)
+              : "CM",
+          } as Player; // 5. Final cast to Player
+        });
 
         setPlayers(loadedPlayers);
 
@@ -182,20 +238,21 @@ export default function App() {
       }
     );
 
+    // userId removed from dependency array as the collection path is now public
     return () => unsubscribeSnapshot();
-  }, [db, userId, isAuthReady]);
+  }, [db, isAuthReady]);
 
   // --- LOGIC FUNCTIONS ---
 
   // Function to add a new player (writes to Firestore)
   const addPlayer = async (playerData: Omit<Player, "id">) => {
-    if (!db || !userId) {
+    if (!db) {
       setError("Database connection not ready. Please wait.");
       return;
     }
 
     const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-    const playersCollectionPath = `artifacts/${appId}/users/${userId}/soccer_players`;
+    const playersCollectionPath = `artifacts/${appId}/public/data/soccer_players`;
     const playersColRef = collection(db, playersCollectionPath);
 
     try {
@@ -224,7 +281,7 @@ export default function App() {
     setError(null);
   };
 
-  // --- TEAM GENERATION ALGORITHM (Unchanged) ---
+  // --- TEAM GENERATION ALGORITHM (Updated for Paired Randomization) ---
 
   const generateBalancedTeams = () => {
     setError(null);
@@ -237,6 +294,7 @@ export default function App() {
     }
 
     // 1. Sort by Skill Level (Descending)
+    // Sorting is crucial for the paired randomization method to maintain balance.
     const sortedPlayers = [...availablePlayers].sort(
       (a, b) => b.skillLevel - a.skillLevel
     );
@@ -244,16 +302,48 @@ export default function App() {
     let teamA: Team = { name: "Team A (Blue)", players: [], totalSkill: 0 };
     let teamB: Team = { name: "Team B (Red)", players: [], totalSkill: 0 };
 
-    // 2. Greedy Assignment
-    sortedPlayers.forEach((player) => {
-      if (teamA.totalSkill <= teamB.totalSkill) {
-        teamA.players.push(player);
-        teamA.totalSkill += player.skillLevel;
+    const numPlayers = sortedPlayers.length;
+    const half = Math.floor(numPlayers / 2);
+
+    // 2. Paired Random Assignment
+    // Pair the highest skill player with the lowest skill player, and randomly assign
+    // the pair members to Team A and Team B. This ensures balance while introducing variety.
+    for (let i = 0; i < half; i++) {
+      const playerHigh = sortedPlayers[i];
+      const playerLow = sortedPlayers[numPlayers - 1 - i];
+
+      // Randomly decide which team gets the high player
+      if (Math.random() < 0.5) {
+        // Team A gets High, Team B gets Low
+        teamA.players.push(playerHigh);
+        teamA.totalSkill += playerHigh.skillLevel;
+
+        teamB.players.push(playerLow);
+        teamB.totalSkill += playerLow.skillLevel;
       } else {
-        teamB.players.push(player);
-        teamB.totalSkill += player.skillLevel;
+        // Team A gets Low, Team B gets High
+        teamA.players.push(playerLow);
+        teamA.totalSkill += playerLow.skillLevel;
+
+        teamB.players.push(playerHigh);
+        teamB.totalSkill += playerHigh.skillLevel;
       }
-    });
+    }
+
+    // 3. Handle Odd Number of Players
+    if (numPlayers % 2 !== 0) {
+      const middlePlayer = sortedPlayers[half];
+
+      // Assign the remaining middle player to the team with the currently lower skill total.
+      // This final greedy step ensures the best possible balance.
+      if (teamA.totalSkill <= teamB.totalSkill) {
+        teamA.players.push(middlePlayer);
+        teamA.totalSkill += middlePlayer.skillLevel;
+      } else {
+        teamB.players.push(middlePlayer);
+        teamB.totalSkill += middlePlayer.skillLevel;
+      }
+    }
 
     setTeams({ teamA, teamB });
     setView("teams");
@@ -272,8 +362,10 @@ export default function App() {
     onAddPlayer: (player: Omit<Player, "id">) => Promise<void>;
   }> = ({ onAddPlayer }) => {
     const [name, setName] = useState("");
-    const [position, setPosition] = useState<Position>("FWD");
-    const [skillLevel, setSkillLevel] = useState<SkillLevel>(3);
+    // Default to Center Midfielder (CM)
+    const [position, setPosition] = useState<Position>("CM");
+    // Start at a mid-level for the 1-10 scale
+    const [skillLevel, setSkillLevel] = useState<SkillLevel>(5 as SkillLevel);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
 
@@ -284,8 +376,8 @@ export default function App() {
       await onAddPlayer({ name: name.trim(), position, skillLevel });
 
       setName("");
-      setSkillLevel(3);
-      setPosition("FWD");
+      setSkillLevel(5 as SkillLevel); // Reset to mid-level
+      setPosition("CM"); // Reset to default position
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
@@ -320,15 +412,7 @@ export default function App() {
               <option disabled>Select Position</option>
               {POSITIONS.map((pos) => (
                 <option key={pos} value={pos}>
-                  {pos} -{" "}
-                  {
-                    {
-                      GK: "Goalkeeper",
-                      DEF: "Defender",
-                      MID: "Midfielder",
-                      FWD: "Forward",
-                    }[pos]
-                  }
+                  {pos} - {POSITION_LABELS[pos]}
                 </option>
               ))}
             </select>
@@ -348,7 +432,7 @@ export default function App() {
             <input
               type="range"
               min="1"
-              max="5"
+              max="10"
               value={skillLevel}
               onChange={(e) =>
                 setSkillLevel(parseInt(e.target.value) as SkillLevel)
@@ -418,7 +502,9 @@ export default function App() {
                 <div>
                   <p className="font-semibold text-gray-800">{player.name}</p>
                   <p className="text-xs text-gray-500">
-                    {player.position} • Skill: {player.skillLevel}
+                    {player.position} ({POSITION_LABELS[player.position]}) •
+                    Skill: {player.skillLevel} (
+                    {SKILL_LABELS[player.skillLevel]})
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -555,7 +641,9 @@ export default function App() {
             key={pos}
             className="flex justify-between items-center text-gray-600"
           >
-            <span>{pos}:</span>
+            <span>
+              {pos} ({POSITION_LABELS[pos]}):
+            </span>
             <span
               className={`font-bold ${
                 positions[pos] ? "text-gray-800" : "text-gray-400"
@@ -591,13 +679,15 @@ export default function App() {
     <div className="min-h-screen bg-gray-100 p-4 sm:p-8 font-sans">
       <header className="text-center mb-8">
         <h1 className="text-4xl font-extrabold text-gray-900 flex items-center justify-center">
-          <Users className="text-indigo-600 mr-3" size={32} /> Sagarmatha FC Roaster
+          <Users className="text-indigo-600 mr-3" size={32} /> Soccer Team
+          Balancer (Shared Roster)
         </h1>
         <p className="text-gray-600 mt-2">
           Manage players, track availability, and generate fair teams.
-          {/* <span className="block text-xs font-semibold mt-1">
-            Data is saved securely to Firebase Firestore.
-          </span> */}
+          <span className="block text-xs font-semibold mt-1 text-green-700">
+            The Player Roster is now shared among all users of this app
+            instance.
+          </span>
         </p>
         {userId && (
           <p className="text-xs text-gray-500 mt-1">
