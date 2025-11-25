@@ -17,20 +17,33 @@ export interface Player {
   name: string;
   position: Position;
   skillLevel: SkillLevel;
+  isAvailable?: boolean;
 }
 
 export interface PlayerAvailability extends Player {
   isAvailable: boolean;
 }
 
+export type TeamColorKey =
+  | "blue"
+  | "red"
+  | "emerald"
+  | "purple"
+  | "orange"
+  | "teal"
+  | "amber"
+  | "slate"
+  | "pink";
+
 export interface Team {
   name: string;
   players: PlayerAvailability[];
   totalSkill: number;
+  colorKey?: TeamColorKey;
 }
 
 export interface TeamResultsState {
-  teamA: Team;
-  teamB: Team;
+  teams: Team[];
+  generatedAt?: string;
 }
 

@@ -5,17 +5,23 @@ import { POSITION_LABELS, SKILL_LABELS } from "../../constants/player";
 import EditPlayerModal from "../players/EditPlayerModal";
 import AddPlayerModal from "../players/AddPlayerModal";
 
+const TEAM_COUNT_OPTIONS = [2, 3, 4, 5, 6];
+
 interface WeeklyAvailabilityPollProps {
   availability: PlayerAvailability[];
   loading: boolean;
   availableCount: number;
-  onToggleAvailability: (playerId: string) => void;
+  onToggleAvailability: (playerId: string) => void | Promise<void>;
   onGenerateTeams: () => void;
   onUpdatePlayer: (playerId: string, updates: { position?: any; skillLevel?: any }) => Promise<void>;
   onAddPlayer: (player: Omit<Player, "id">) => Promise<void>;
   error: string | null;
   disabled?: boolean;
   isAdmin?: boolean;
+  teamCount: number;
+  onTeamCountChange: (count: number) => void;
+  minPlayersRequired: number;
+  canGenerateTeams: boolean;
 }
 
 const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
@@ -29,6 +35,10 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   error,
   disabled = false,
   isAdmin = false,
+  teamCount,
+  onTeamCountChange,
+  minPlayersRequired,
+  canGenerateTeams,
 }) => {
   const [editingPlayer, setEditingPlayer] = useState<PlayerAvailability | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -149,25 +159,59 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
         </div>
       )}
 
-      <div className="mt-4 sm:mt-6 pt-4 sm:pt-5 border-t-2 border-indigo-200 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 bg-gradient-to-r from-slate-50 to-blue-50 -mx-4 sm:-mx-6 px-4 sm:px-6 pb-3 sm:pb-2 rounded-b-xl sm:rounded-b-2xl">
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          <p className="text-sm sm:text-base md:text-lg font-bold text-slate-700">
-            Total Available:
-          </p>
-          <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xl sm:text-2xl font-extrabold px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl shadow-lg">
-            {availableCount}
-          </span>
+      <div className="mt-4 sm:mt-6 pt-4 sm:pt-5 border-t-2 border-indigo-200 flex flex-col gap-4 bg-gradient-to-r from-slate-50 to-blue-50 -mx-4 sm:-mx-6 px-4 sm:px-6 pb-3 sm:pb-2 rounded-b-xl sm:rounded-b-2xl">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <p className="text-sm sm:text-base md:text-lg font-bold text-slate-700">
+              Total Available:
+            </p>
+            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xl sm:text-2xl font-extrabold px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl shadow-lg">
+              {availableCount}
+            </span>
+          </div>
+          {isAdmin && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <label className="text-xs sm:text-sm font-semibold text-slate-600 uppercase tracking-wide">
+                Teams to Generate
+              </label>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                <select
+                  value={teamCount}
+                  onChange={(e) => onTeamCountChange(Number(e.target.value))}
+                  className="border-2 border-indigo-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 bg-white shadow-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200"
+                  disabled={disabled}
+                >
+                  {TEAM_COUNT_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option} Teams
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                  Red & Blue when set to 2
+                </span>
+                </div>
+                <span className="text-[11px] text-slate-500 font-semibold">
+                  Need at least {minPlayersRequired} players •{" "}
+                  {canGenerateTeams
+                    ? "Ready to generate"
+                    : `${Math.max(minPlayersRequired - availableCount, 0)} more needed`}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
         {isAdmin ? (
           <button
             onClick={onGenerateTeams}
-            disabled={availableCount < 2 || loading || disabled}
-            className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white font-bold py-2.5 sm:py-3.5 px-4 sm:px-6 md:px-8 rounded-xl hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 transition-all duration-300 shadow-xl hover:shadow-2xl flex items-center justify-center disabled:bg-gray-400 disabled:shadow-none transform hover:scale-105 disabled:transform-none w-full sm:w-auto text-sm sm:text-base"
+            disabled={!canGenerateTeams || loading || disabled}
+            className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white font-bold py-2.5 sm:py-3.5 px-4 sm:px-6 md:px-8 rounded-xl hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 transition-all duration-300 shadow-xl hover:shadow-2xl flex items-center justify-center disabled:bg-gray-400 disabled:shadow-none transform hover:scale-105 disabled:transform-none w-full text-sm sm:text-base"
           >
             <Trophy className="mr-2" size={18} /> <span>Generate Teams</span>
           </button>
         ) : (
-          <p className="text-xs sm:text-sm text-slate-500 italic font-medium bg-slate-100 px-3 sm:px-4 py-2 rounded-lg text-center sm:text-left w-full sm:w-auto">
+          <p className="text-xs sm:text-sm text-slate-500 italic font-medium bg-slate-100 px-3 sm:px-4 py-2 rounded-lg text-center sm:text-left w-full">
             Only admins can generate teams
           </p>
         )}

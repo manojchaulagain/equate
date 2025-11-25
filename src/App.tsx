@@ -31,6 +31,7 @@ import {
 } from "./types/player";
 import { UserRole } from "./types/user";
 import { POSITIONS } from "./constants/player";
+import { TEAM_COLOR_SEQUENCE, getTeamColorLabel } from "./constants/teamColors";
 import AuthUI from "./components/auth/AuthUI";
 import WeeklyAvailabilityPoll from "./components/poll/WeeklyAvailabilityPoll";
 import TeamResults from "./components/teams/TeamResults";
@@ -65,11 +66,30 @@ export default function App() {
   // Application State
   const [availability, setAvailability] = useState<PlayerAvailability[]>([]);
   const [teams, setTeams] = useState<TeamResultsState | null>(null);
+  const [teamCount, setTeamCount] = useState<number>(2);
   const [view, setView] = useState<"poll" | "teams" | "admin">("poll");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUserRegistered, setIsUserRegistered] = useState<boolean | null>(null);
   const [checkingRegistration, setCheckingRegistration] = useState(true);
+
+  // Persist preferred team count for admins
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = localStorage.getItem("preferredTeamCount");
+    if (stored) {
+      const parsed = parseInt(stored, 10);
+      if (!Number.isNaN(parsed)) {
+        const clamped = Math.min(Math.max(parsed, 2), 6);
+        setTeamCount(clamped);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("preferredTeamCount", teamCount.toString());
+  }, [teamCount]);
 
   // --- 1. FIREBASE INITIALIZATION AND AUTHENTICATION ---
   useEffect(() => {
@@ -130,6 +150,11 @@ export default function App() {
       setCheckingRegistration(true);
     }
     // Note: The registration check useEffect will run automatically when userId changes
+  };
+
+  const handleTeamCountChange = (count: number) => {
+    setTeamCount(count);
+    setError(null);
   };
 
   // --- 3. FETCH USER ROLE FROM FIRESTORE ---
@@ -221,35 +246,28 @@ export default function App() {
     const unsubscribeSnapshot = onSnapshot(
       playersColRef,
       (snapshot) => {
-        const loadedPlayers: Player[] = snapshot.docs.map((doc) => {
+        const loadedPlayers: PlayerAvailability[] = snapshot.docs.map((doc) => {
           const data = doc.data();
-          return {
-            ...data,
-            id: doc.id,
-            skillLevel: Math.max(
+          const normalizedSkill = Math.max(
               1,
               Math.min(10, data.skillLevel || 5)
-            ) as SkillLevel,
-            position: POSITIONS.includes(data.position as Position)
+          ) as SkillLevel;
+          const normalizedPosition = POSITIONS.includes(data.position as Position)
               ? (data.position as Position)
-              : "CM",
-          } as Player;
-        });
+            : "CM";
+          const isAvailable =
+            typeof data.isAvailable === "boolean" ? data.isAvailable : true;
 
-        // Update availability list, maintaining existing availability status if possible
-        setAvailability((prevAvailability) => {
-          const updatedAvailability: PlayerAvailability[] = loadedPlayers.map(
-            (p) => {
-              const existing = prevAvailability.find((ep) => ep.id === p.id);
               return {
-                ...p,
-                isAvailable: existing ? existing.isAvailable : true,
-              };
-            }
-          );
-
-          return updatedAvailability;
+            id: doc.id,
+            name: data.name || "",
+            skillLevel: normalizedSkill,
+            position: normalizedPosition,
+            isAvailable,
+          } as PlayerAvailability;
         });
+
+        setAvailability(loadedPlayers);
 
         setLoading(false);
       },
@@ -273,11 +291,44 @@ export default function App() {
     const unsubscribeTeams = onSnapshot(
       teamsDocRef,
       (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.data();
+        if (!snapshot.exists()) {
+          setTeams(null);
+          return;
+        }
+
+        const data = snapshot.data() as Partial<TeamResultsState> & {
+          teamA?: Team;
+          teamB?: Team;
+        };
+
+        if (Array.isArray(data.teams)) {
+          const normalizedTeams = data.teams.map((team, index) => {
+            const fallbackColor =
+              data.teams && data.teams.length === 2
+                ? (index === 0 ? "blue" : "red")
+                : TEAM_COLOR_SEQUENCE[index % TEAM_COLOR_SEQUENCE.length];
+
+            return {
+              ...team,
+              players: team.players || [],
+              colorKey: team.colorKey || fallbackColor,
+            };
+          });
+
           setTeams({
-            teamA: data.teamA as Team,
-            teamB: data.teamB as Team,
+            teams: normalizedTeams,
+            generatedAt: data.generatedAt,
+          });
+          return;
+        }
+
+        if (data.teamA && data.teamB) {
+          setTeams({
+            teams: [
+              { ...data.teamA, colorKey: data.teamA.colorKey || "blue" },
+              { ...data.teamB, colorKey: data.teamB.colorKey || "red" },
+            ],
+            generatedAt: data.generatedAt,
           });
         } else {
           setTeams(null);
@@ -346,6 +397,7 @@ export default function App() {
         name: playerData.name.trim(),
         position: playerData.position,
         skillLevel: playerData.skillLevel,
+        isAvailable: true,
       };
 
       // If self-registration, add userId to link player to user
@@ -356,7 +408,7 @@ export default function App() {
       await addDoc(playersColRef, playerDoc);
 
       // Clear any previous errors on success
-      setError(null);
+    setError(null);
 
       // If self-registration, mark user as registered immediately
       // This prevents the modal from reappearing on page reload
@@ -383,8 +435,8 @@ export default function App() {
       if (!db || !userId) {
         setIsUserRegistered(null);
         setCheckingRegistration(false);
-        return;
-      }
+      return;
+    }
 
       setCheckingRegistration(true);
 
@@ -447,15 +499,32 @@ export default function App() {
   };
 
   // Function to update availability (updates local state only - ephemeral for the week)
-  const toggleAvailability = (playerId: string) => {
+  const toggleAvailability = async (playerId: string) => {
+    const player = availability.find((p) => p.id === playerId);
+    if (!player) return;
+
+    const newStatus = !player.isAvailable;
+
     setAvailability((prev) =>
       prev.map((p) =>
-        p.id === playerId ? { ...p, isAvailable: !p.isAvailable } : p
+        p.id === playerId ? { ...p, isAvailable: newStatus } : p
       )
     );
     // Clear teams from Firestore when availability changes
     clearTeamsFromFirestore();
     setError(null);
+
+    if (!db) return;
+
+    try {
+      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+      const playerDocPath = `artifacts/${appId}/public/data/soccer_players/${playerId}`;
+      const playerDocRef = doc(db, playerDocPath);
+      await updateDoc(playerDocRef, { isAvailable: newStatus });
+    } catch (e) {
+      console.error("Error updating availability: ", e);
+      setError("Failed to update availability.");
+    }
   };
 
   // Function to clear teams from Firestore
@@ -473,6 +542,14 @@ export default function App() {
     }
   };
 
+  const availablePlayers = useMemo(
+    () => availability.filter((p) => p.isAvailable),
+    [availability]
+  );
+  const availableCount = availablePlayers.length;
+  const minPlayersRequired = Math.max(teamCount, 2);
+  const canGenerateTeams = availableCount >= minPlayersRequired;
+
   // Team Generation Algorithm - saves to Firestore for all users to see
   const generateBalancedTeams = async () => {
     // Security check: Only admins can generate teams
@@ -482,10 +559,14 @@ export default function App() {
     }
 
     setError(null);
-    const availablePlayers = availability.filter((p) => p.isAvailable);
+    const normalizedTeamCount = Math.min(Math.max(teamCount, 2), 6);
+    if (normalizedTeamCount !== teamCount) {
+      setTeamCount(normalizedTeamCount);
+    }
 
-    if (availablePlayers.length < 2) {
-      setError("Need at least 2 available players to form teams!");
+    const minimumPlayersNeeded = Math.max(normalizedTeamCount, 2);
+    if (availablePlayers.length < minimumPlayersNeeded) {
+      setError(`Need at least ${minimumPlayersNeeded} available players to create ${normalizedTeamCount} team(s).`);
       return;
     }
 
@@ -494,48 +575,51 @@ export default function App() {
       return;
     }
 
-    const sortedPlayers = [...availablePlayers].sort(
-      (a, b) => b.skillLevel - a.skillLevel
-    );
+    const sortedPlayers = [...availablePlayers].sort((a, b) => b.skillLevel - a.skillLevel);
 
-    let teamA: Team = { name: "Team A (Blue)", players: [], totalSkill: 0 };
-    let teamB: Team = { name: "Team B (Red)", players: [], totalSkill: 0 };
-
-    const numPlayers = sortedPlayers.length;
-    const half = Math.floor(numPlayers / 2);
-
-    for (let i = 0; i < half; i++) {
-      const playerHigh = sortedPlayers[i];
-      const playerLow = sortedPlayers[numPlayers - 1 - i];
-
-      if (Math.random() < 0.5) {
-        teamA.players.push(playerHigh);
-        teamA.totalSkill += playerHigh.skillLevel;
-
-        teamB.players.push(playerLow);
-        teamB.totalSkill += playerLow.skillLevel;
-      } else {
-        teamA.players.push(playerLow);
-        teamA.totalSkill += playerLow.skillLevel;
-
-        teamB.players.push(playerHigh);
-        teamB.totalSkill += playerHigh.skillLevel;
+    const resolveColor = (index: number): Team["colorKey"] => {
+      if (normalizedTeamCount === 2) {
+        return index === 0 ? "red" : "blue";
       }
-    }
+      return TEAM_COLOR_SEQUENCE[index % TEAM_COLOR_SEQUENCE.length];
+    };
 
-    if (numPlayers % 2 !== 0) {
-      const middlePlayer = sortedPlayers[half];
+    const createdTeams: Team[] = Array.from({ length: normalizedTeamCount }, (_, index) => {
+      const colorKey = resolveColor(index);
+      const label = getTeamColorLabel(colorKey);
+      return {
+        name: `${label} Team`,
+        players: [],
+        totalSkill: 0,
+        colorKey,
+      };
+    });
 
-      if (teamA.totalSkill <= teamB.totalSkill) {
-        teamA.players.push(middlePlayer);
-        teamA.totalSkill += middlePlayer.skillLevel;
-      } else {
-        teamB.players.push(middlePlayer);
-        teamB.totalSkill += middlePlayer.skillLevel;
+    sortedPlayers.forEach((player) => {
+      let targetIndex = 0;
+      for (let i = 1; i < createdTeams.length; i++) {
+        const contender = createdTeams[i];
+        const currentBest = createdTeams[targetIndex];
+        if (
+          contender.totalSkill < currentBest.totalSkill ||
+          (contender.totalSkill === currentBest.totalSkill &&
+            contender.players.length < currentBest.players.length)
+        ) {
+          targetIndex = i;
+        }
       }
-    }
 
-    const teamsData: TeamResultsState = { teamA, teamB };
+      createdTeams[targetIndex].players.push(player);
+      createdTeams[targetIndex].totalSkill += player.skillLevel;
+    });
+
+    const teamsData: TeamResultsState = {
+      teams: createdTeams.map((team) => ({
+        ...team,
+        players: [...team.players],
+      })),
+      generatedAt: new Date().toISOString(),
+    };
 
     // Save teams to Firestore so all users can see them
     try {
@@ -550,11 +634,6 @@ export default function App() {
       setError("Failed to save teams to database.");
     }
   };
-
-  const availableCount = useMemo(
-    () => availability.filter((p) => p.isAvailable).length,
-    [availability]
-  );
 
   // --- MAIN RENDER ---
 
@@ -606,7 +685,7 @@ export default function App() {
       {!isAppReady && (
         <div className="text-center p-10 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-2xl border border-indigo-200 shadow-lg">
           <p className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Initializing application...
+          Initializing application...
           </p>
         </div>
       )}
@@ -642,7 +721,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setView("teams")}
-              disabled={!teams}
+              disabled={!teams || !teams.teams || teams.teams.length === 0}
               className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-bold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm md:text-base rounded-lg sm:rounded-none ${
                 userRole !== "admin" ? "sm:rounded-r-xl" : ""
               } ${
@@ -687,12 +766,16 @@ export default function App() {
                 error={error}
                 disabled={!userId}
                 isAdmin={userRole === "admin"}
+                teamCount={teamCount}
+                onTeamCountChange={handleTeamCountChange}
+                minPlayersRequired={minPlayersRequired}
+                canGenerateTeams={canGenerateTeams}
               />
             )}
-            {view === "teams" && teams && (
+            {view === "teams" && teams && teams.teams?.length > 0 && (
               <TeamResults
-                teamA={teams.teamA}
-                teamB={teams.teamB}
+                teams={teams.teams}
+                generatedAt={teams.generatedAt}
                 onBack={() => setView("poll")}
               />
             )}
