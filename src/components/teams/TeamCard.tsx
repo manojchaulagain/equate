@@ -10,39 +10,45 @@ interface TeamCardProps {
 
 const TeamCard: React.FC<TeamCardProps> = ({ team, positions, color }) => (
   <div
-    className={`p-5 rounded-xl shadow-lg transform hover:scale-[1.01] transition-transform duration-300 ${
+    className={`p-6 rounded-2xl shadow-xl transform hover:scale-[1.02] transition-all duration-300 border-2 ${
       color === "blue"
-        ? "bg-blue-600/10 border-blue-600 border"
-        : "bg-red-600/10 border-red-600 border"
+        ? "bg-gradient-to-br from-blue-50 via-cyan-50 to-indigo-50 border-blue-400 hover:shadow-2xl"
+        : "bg-gradient-to-br from-red-50 via-rose-50 to-pink-50 border-red-400 hover:shadow-2xl"
     }`}
   >
     <h3
-      className={`text-2xl font-extrabold ${
-        color === "blue" ? "text-blue-700" : "text-red-700"
-      } mb-2`}
+      className={`text-3xl font-extrabold mb-3 ${
+        color === "blue" 
+          ? "bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent" 
+          : "bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent"
+      }`}
     >
       {team.name} ({team.players.length} Players)
     </h3>
-    <p className="text-lg font-bold text-gray-800 mb-4">
+    <p className="text-lg font-bold text-slate-800 mb-4">
       Total Skill Score:{" "}
       <span
-        className={`text-3xl font-extrabold ${
-          color === "blue" ? "text-blue-700" : "text-red-700"
+        className={`text-4xl font-extrabold ${
+          color === "blue" 
+            ? "bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent" 
+            : "bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent"
         }`}
       >
         {team.totalSkill}
       </span>
     </p>
 
-    <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-4 text-sm font-medium">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-5 text-sm font-semibold bg-white/60 p-3 rounded-xl">
       {POSITIONS.map((pos) => (
-        <div key={pos} className="flex justify-between items-center text-gray-600">
-          <span>
+        <div key={pos} className="flex justify-between items-center">
+          <span className="text-slate-700">
             {pos} ({POSITION_LABELS[pos]}):
           </span>
           <span
-            className={`font-bold ${
-              positions[pos] ? "text-gray-800" : "text-gray-400"
+            className={`font-extrabold text-lg ${
+              positions[pos] 
+                ? color === "blue" ? "text-blue-600" : "text-red-600"
+                : "text-slate-400"
             }`}
           >
             {positions[pos] || 0}
@@ -51,16 +57,24 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, positions, color }) => (
       ))}
     </div>
 
-    <ul className="space-y-1 max-h-60 overflow-y-auto pr-1">
+    <ul className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
       {team.players
         .sort((a, b) => b.skillLevel - a.skillLevel)
         .map((player: PlayerAvailability) => (
           <li
             key={player.id}
-            className="flex justify-between items-center text-sm bg-white/70 p-2 rounded"
+            className={`flex justify-between items-center text-sm p-3 rounded-lg shadow-sm ${
+              color === "blue"
+                ? "bg-gradient-to-r from-blue-100/80 to-cyan-100/80 border border-blue-200"
+                : "bg-gradient-to-r from-red-100/80 to-rose-100/80 border border-red-200"
+            }`}
           >
-            <span className="font-medium text-gray-800">{player.name}</span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-200">
+            <span className="font-bold text-slate-800">{player.name}</span>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+              color === "blue"
+                ? "bg-blue-500 text-white"
+                : "bg-red-500 text-white"
+            }`}>
               {player.position} (S:{player.skillLevel})
             </span>
           </li>

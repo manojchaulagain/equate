@@ -19,26 +19,28 @@ const TeamResults: React.FC<TeamResultsProps> = ({ teamA, teamB, onBack }) => {
   const skillDiff = Math.abs(teamA.totalSkill - teamB.totalSkill);
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg">
-      <h2 className="text-3xl font-bold text-gray-800 border-b pb-3 mb-4 flex items-center justify-center">
-        <Trophy className="mr-3 text-yellow-500" size={28} /> Balanced Teams
+    <div className="bg-gradient-to-br from-white via-amber-50/50 to-orange-50/50 p-8 rounded-2xl shadow-2xl border-2 border-amber-200">
+      <h2 className="text-4xl font-extrabold bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 bg-clip-text text-transparent border-b-2 border-amber-200 pb-4 mb-6 flex items-center justify-center">
+        <Trophy className="mr-4 text-amber-500" size={36} /> Balanced Teams
         Generated!
       </h2>
       <div
-        className={`p-3 text-center mb-4 rounded-lg font-medium ${
-          skillDiff === 0 ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+        className={`p-4 text-center mb-6 rounded-xl font-bold text-lg shadow-md ${
+          skillDiff === 0 
+            ? "bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border-2 border-emerald-300" 
+            : "bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-2 border-amber-300"
         }`}
       >
-        Skill Difference: {skillDiff} (Lower is better)
+        Skill Difference: <span className="text-2xl">{skillDiff}</span> (Lower is better)
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <TeamCard team={teamA} positions={teamAPositions} color="blue" />
         <TeamCard team={teamB} positions={teamBPositions} color="red" />
       </div>
-      <div className="mt-6 pt-4 border-t text-center">
+      <div className="mt-8 pt-6 border-t-2 border-amber-200 text-center">
         <button
           onClick={onBack}
-          className="bg-gray-200 text-gray-800 font-semibold py-2 px-6 rounded-lg hover:bg-gray-300 transition duration-300"
+          className="bg-gradient-to-r from-slate-500 to-slate-600 text-white font-bold py-3 px-8 rounded-xl hover:from-slate-600 hover:to-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
         >
           Back to Poll
         </button>

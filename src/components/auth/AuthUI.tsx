@@ -110,28 +110,28 @@ const AuthUI: React.FC<AuthUIProps> = ({ auth, onSignIn, error, setError }) => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white p-6 rounded-xl shadow-lg max-w-md mx-auto mt-10 space-y-4"
+      className="bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/50 p-8 rounded-2xl shadow-2xl max-w-md mx-auto mt-10 space-y-5 border-2 border-indigo-100 backdrop-blur-sm"
     >
-      <h2 className="text-2xl font-bold text-gray-800 border-b pb-2 mb-4 flex items-center justify-center">
+      <h2 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent pb-3 mb-4 flex items-center justify-center border-b-2 border-indigo-200">
         {isSignUp ? (
           <>
-            <UserPlus className="mr-2 text-indigo-600" size={24} /> Sign Up
+            <UserPlus className="mr-3 text-indigo-600" size={28} /> Sign Up
           </>
         ) : (
           <>
-            <LogIn className="mr-2 text-indigo-600" size={24} /> Sign In
+            <LogIn className="mr-3 text-indigo-600" size={28} /> Sign In
           </>
         )}
       </h2>
       
-      <p className="text-sm text-gray-600 text-center">
+      <p className="text-sm text-slate-700 text-center font-medium bg-slate-100/50 px-4 py-2 rounded-lg">
         {isSignUp
           ? "Create a new account to get started"
           : "Enter your credentials to sign in"}
       </p>
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="email" className="block text-sm font-bold text-slate-700 mb-2">
           Email Address
         </label>
         <input
@@ -141,12 +141,12 @@ const AuthUI: React.FC<AuthUIProps> = ({ auth, onSignIn, error, setError }) => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+          className="w-full p-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white/80 shadow-sm"
         />
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="password" className="block text-sm font-bold text-slate-700 mb-2">
           Password
         </label>
         <div className="relative">
@@ -157,21 +157,21 @@ const AuthUI: React.FC<AuthUIProps> = ({ auth, onSignIn, error, setError }) => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 pr-10"
+            className="w-full p-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 pr-12 bg-white/80 shadow-sm"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
           >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
       </div>
 
       {isSignUp && (
         <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="confirmPassword" className="block text-sm font-bold text-slate-700 mb-2">
             Confirm Password
           </label>
           <div className="relative">
@@ -182,21 +182,21 @@ const AuthUI: React.FC<AuthUIProps> = ({ auth, onSignIn, error, setError }) => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 pr-10"
+              className="w-full p-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 pr-12 bg-white/80 shadow-sm"
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
             >
-              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm font-medium">
+        <div className="p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-xl text-sm font-semibold shadow-md">
           {error}
         </div>
       )}
@@ -204,7 +204,7 @@ const AuthUI: React.FC<AuthUIProps> = ({ auth, onSignIn, error, setError }) => {
       <button
         type="submit"
         disabled={isProcessing || email.trim().length === 0 || password.trim().length === 0 || (isSignUp && confirmPassword.trim().length === 0)}
-        className="w-full bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-md disabled:bg-gray-400 flex items-center justify-center"
+        className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold py-4 px-6 rounded-xl hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center transform hover:scale-105 disabled:transform-none"
       >
         {isProcessing
           ? isSignUp
@@ -215,13 +215,13 @@ const AuthUI: React.FC<AuthUIProps> = ({ auth, onSignIn, error, setError }) => {
           : "Sign In"}
       </button>
 
-      <div className="text-center pt-2 border-t">
-        <p className="text-sm text-gray-600">
+      <div className="text-center pt-4 border-t-2 border-indigo-200">
+        <p className="text-sm text-slate-600 font-medium">
           {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
           <button
             type="button"
             onClick={toggleMode}
-            className="text-indigo-600 hover:text-indigo-800 font-semibold"
+            className="text-indigo-600 hover:text-purple-600 font-bold bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition-all duration-200"
           >
             {isSignUp ? "Sign In" : "Sign Up"}
           </button>

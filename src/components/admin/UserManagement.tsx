@@ -129,12 +129,12 @@ const UserManagement: React.FC<UserManagementProps> = ({
   );
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg">
-      <h2 className="text-2xl font-bold text-gray-800 border-b pb-2 mb-4 flex items-center">
-        <Shield className="mr-2 text-purple-600" size={20} /> User Role Management
+    <div className="bg-gradient-to-br from-white via-purple-50/50 to-pink-50/50 p-8 rounded-2xl shadow-2xl border-2 border-purple-200">
+      <h2 className="text-3xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent border-b-2 border-purple-200 pb-3 mb-6 flex items-center">
+        <Shield className="mr-3 text-purple-600" size={28} /> User Role Management
       </h2>
 
-      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="mb-6 p-5 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-xl shadow-md">
         <p className="text-sm text-blue-800 font-medium mb-2">
           How to set user roles:
         </p>
@@ -153,8 +153,8 @@ const UserManagement: React.FC<UserManagementProps> = ({
       </div>
 
       {/* Add User by User ID Form */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-700 mb-3">
+      <div className="mb-6 p-5 bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl border-2 border-slate-300 shadow-md">
+        <h3 className="text-xl font-bold text-slate-800 mb-4">
           Set Role by User ID
         </h3>
         <form
@@ -176,26 +176,26 @@ const UserManagement: React.FC<UserManagementProps> = ({
             name="userId"
             placeholder="Firebase User ID (UID)"
             required
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+            className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white/80 shadow-sm"
           />
           <input
             type="email"
             name="email"
             placeholder="User Email"
             required
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+            className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white/80 shadow-sm"
           />
           <select
             name="role"
             required
-            className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:ring-purple-500 focus:border-purple-500"
+            className="w-full p-3 border-2 border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 shadow-sm"
           >
             <option value="user">Regular User</option>
             <option value="admin">Admin</option>
           </select>
           <button
             type="submit"
-            className="w-full bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-purple-700 transition duration-300"
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 px-4 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             Set User Role
           </button>
@@ -203,14 +203,14 @@ const UserManagement: React.FC<UserManagementProps> = ({
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm font-medium">
+        <div className="mb-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-xl text-sm font-semibold shadow-md">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm font-medium flex items-center">
-          <CheckCircle className="mr-2" size={16} />
+        <div className="mb-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 text-emerald-700 rounded-xl text-sm font-semibold flex items-center shadow-md">
+          <CheckCircle className="mr-2" size={18} />
           {success}
         </div>
       )}
@@ -220,40 +220,44 @@ const UserManagement: React.FC<UserManagementProps> = ({
         <>
           <div className="mb-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input
                 type="text"
                 placeholder="Search by email..."
                 value={searchEmail}
                 onChange={(e) => setSearchEmail(e.target.value)}
-                className="w-full pl-10 p-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+                className="w-full pl-12 p-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white/80 shadow-sm"
               />
             </div>
           </div>
 
-          <div className="space-y-2 max-h-96 overflow-y-auto">
+          <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
             {filteredUsers.map((user) => (
               <div
                 key={user.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                className="flex items-center justify-between p-4 bg-gradient-to-r from-white to-slate-50 rounded-xl border-2 border-slate-200 shadow-md hover:shadow-lg transition-all duration-200"
               >
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-4">
                   {user.role === "admin" ? (
-                    <Shield className="text-purple-600" size={20} />
+                    <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg shadow-md">
+                      <Shield className="text-white" size={24} />
+                    </div>
                   ) : (
-                    <User className="text-gray-400" size={20} />
+                    <div className="p-2 bg-slate-200 rounded-lg">
+                      <User className="text-slate-600" size={24} />
+                    </div>
                   )}
                   <div>
-                    <p className="font-semibold text-gray-800">{user.email}</p>
-                    <p className="text-xs text-gray-500">ID: {user.id}</p>
+                    <p className="font-bold text-slate-800 text-lg">{user.email}</p>
+                    <p className="text-xs text-slate-500 font-medium">ID: {user.id}</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    className={`px-4 py-2 rounded-full text-xs font-bold shadow-md ${
                       user.role === "admin"
-                        ? "bg-purple-100 text-purple-700"
-                        : "bg-gray-200 text-gray-600"
+                        ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white"
+                        : "bg-slate-200 text-slate-700"
                     }`}
                   >
                     {user.role}
@@ -267,7 +271,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
                         )
                       }
                       disabled={updatingUserId === user.id}
-                      className="px-3 py-1 bg-purple-600 text-white text-xs font-semibold rounded hover:bg-purple-700 disabled:bg-gray-400 transition duration-200"
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-xl hover:from-purple-700 hover:to-pink-700 disabled:bg-gray-400 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 disabled:transform-none"
                     >
                       {updatingUserId === user.id
                         ? "Updating..."
@@ -284,15 +288,15 @@ const UserManagement: React.FC<UserManagementProps> = ({
       )}
 
       {users.length === 0 && !loading && (
-        <div className="text-center p-8 bg-gray-50 rounded-lg text-gray-500">
-          <Users className="mx-auto mb-2 text-gray-400" size={32} />
-          <p>No users found. Use the form above to set user roles.</p>
+        <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-gray-100 rounded-xl border-2 border-dashed border-slate-300">
+          <Users className="mx-auto mb-3 text-slate-400" size={40} />
+          <p className="text-slate-600 font-semibold">No users found. Use the form above to set user roles.</p>
         </div>
       )}
 
       {loading && (
-        <div className="text-center p-8 text-purple-600 font-semibold">
-          Loading users...
+        <div className="text-center p-8 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl border border-purple-200">
+          <p className="text-purple-700 font-bold text-lg">Loading users...</p>
         </div>
       )}
     </div>

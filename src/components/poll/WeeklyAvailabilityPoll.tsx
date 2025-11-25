@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ListChecks, CheckCircle, XCircle, Trophy, Edit2, UserPlus } from "lucide-react";
+import { ListChecks, Trophy, Edit2, UserPlus } from "lucide-react";
 import { PlayerAvailability, Player } from "../../types/player";
 import { POSITION_LABELS, SKILL_LABELS } from "../../constants/player";
 import EditPlayerModal from "../players/EditPlayerModal";
@@ -43,89 +43,105 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     setEditingPlayer(null);
   };
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 border-b pb-2 flex items-center">
-            <ListChecks className="mr-2 text-indigo-600" size={20} /> Weekly
-            Availability Poll
+    <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-2xl border border-indigo-100">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+        <div className="flex-1">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent pb-2 flex flex-col sm:flex-row items-start sm:items-center gap-2">
+            <span className="flex items-center">
+              <ListChecks className="mr-2 sm:mr-3 text-indigo-600" size={20} /> 
+              <span className="whitespace-nowrap">Weekly Availability</span>
+            </span>
+            <span className="sm:ml-2">Poll</span>
           </h2>
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
             Toggle players who are available to play this week.
           </p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
           disabled={disabled}
-          className="bg-green-600 text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-green-700 transition duration-300 shadow-md disabled:bg-gray-400 flex items-center whitespace-nowrap ml-4"
+          className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center whitespace-nowrap w-full sm:w-auto transform hover:scale-105 text-sm sm:text-base"
         >
-          <UserPlus className="mr-2" size={18} /> Register Player
+          <UserPlus className="mr-2" size={16} /> <span className="sm:inline">Register Player</span>
         </button>
       </div>
 
       {loading && (
-        <div className="text-center p-8 text-indigo-600 font-semibold">
-          Loading players from Firestore...
+        <div className="text-center p-8 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-xl border border-indigo-200">
+          <p className="text-indigo-700 font-semibold text-lg">Loading players from Firestore...</p>
         </div>
       )}
 
       {!loading && availability.length === 0 ? (
-        <div className="text-center p-8 bg-gray-50 rounded-lg">
-          <p className="text-gray-500 mb-4">No players registered yet.</p>
+        <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-blue-50 rounded-xl border-2 border-dashed border-indigo-200">
+          <p className="text-slate-600 mb-4 font-medium">No players registered yet.</p>
           <button
             onClick={() => setShowAddModal(true)}
             disabled={disabled}
-            className="bg-green-600 text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-green-700 transition duration-300 shadow-md disabled:bg-gray-400 flex items-center mx-auto"
+            className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:shadow-none flex items-center mx-auto transform hover:scale-105"
           >
             <UserPlus className="mr-2" size={18} /> Register Player
           </button>
         </div>
       ) : (
-        <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+        <div className="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
           {availability.map((player) => (
             <div
               key={player.id}
-              className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition duration-200 ${
+              className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all duration-300 transform hover:scale-[1.02] ${
                 player.isAvailable
-                  ? "bg-indigo-50 border-indigo-400 border-l-4"
-                  : "bg-gray-50 border-gray-300 border-l-4 opacity-70"
+                  ? "bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border-2 border-emerald-300 shadow-md hover:shadow-lg"
+                  : "bg-gradient-to-r from-slate-100 to-gray-100 border-2 border-slate-300 shadow-sm opacity-75 hover:opacity-90"
               }`}
               onClick={() => onToggleAvailability(player.id)}
             >
-              <div className="flex-1">
-                <p className="font-semibold text-gray-800">{player.name}</p>
-                <p className="text-xs text-gray-500">
-                  {player.position} ({POSITION_LABELS[player.position]}) • Skill:{" "}
-                  {player.skillLevel} ({SKILL_LABELS[player.skillLevel]})
+              <div className="flex-1 min-w-0 pr-2">
+                <p className={`font-bold text-base sm:text-lg ${player.isAvailable ? "text-slate-800" : "text-slate-600"} truncate`}>
+                  {player.name}
+                </p>
+                <p className={`text-xs mt-1 ${player.isAvailable ? "text-slate-600" : "text-slate-500"} break-words`}>
+                  <span className="hidden sm:inline">{player.position} ({POSITION_LABELS[player.position]}) • </span>
+                  <span className="sm:hidden">{player.position} • </span>
+                  Skill: {player.skillLevel} ({SKILL_LABELS[player.skillLevel]})
                 </p>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3 flex-shrink-0">
                 {isAdmin && (
                   <button
                     onClick={(e) => handleEditClick(e, player)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-2 sm:p-2.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
                     title="Edit player"
                   >
-                    <Edit2 size={16} />
+                    <Edit2 size={14} className="sm:w-4 sm:h-4" />
                   </button>
                 )}
-                {player.isAvailable ? (
-                  <span className="text-green-600 font-medium">Playing</span>
-                ) : (
-                  <span className="text-red-500 font-medium">Out</span>
-                )}
-                <div
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    player.isAvailable
-                      ? "bg-green-500 border-green-700"
-                      : "bg-red-500 border-red-700"
-                  }`}
-                >
-                  {player.isAvailable ? (
-                    <CheckCircle className="text-white" size={12} />
-                  ) : (
-                    <XCircle className="text-white" size={12} />
-                  )}
+                <div className="flex items-center bg-gradient-to-r from-slate-200 to-slate-300 rounded-lg sm:rounded-xl p-1 sm:p-1.5 shadow-inner border-2 border-slate-400">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleAvailability(player.id);
+                    }}
+                    className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-md sm:rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
+                      !player.isAvailable
+                        ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg border-2 border-red-700 transform scale-105"
+                        : "text-red-700 hover:bg-red-50 border-2 border-transparent hover:border-red-200"
+                    }`}
+                  >
+                    Out
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleAvailability(player.id);
+                    }}
+                    className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-md sm:rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
+                      player.isAvailable
+                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg border-2 border-emerald-700 transform scale-105"
+                        : "text-emerald-700 hover:bg-emerald-50 border-2 border-transparent hover:border-emerald-200"
+                    }`}
+                  >
+                    Playing
+                  </button>
                 </div>
               </div>
             </div>
@@ -133,28 +149,32 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
         </div>
       )}
 
-      <div className="mt-6 pt-4 border-t flex justify-between items-center">
-        <p className="text-md font-semibold text-gray-700">
-          Total Available:{" "}
-          <span className="text-indigo-600 text-xl">{availableCount}</span>
-        </p>
+      <div className="mt-4 sm:mt-6 pt-4 sm:pt-5 border-t-2 border-indigo-200 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 bg-gradient-to-r from-slate-50 to-blue-50 -mx-4 sm:-mx-6 px-4 sm:px-6 pb-3 sm:pb-2 rounded-b-xl sm:rounded-b-2xl">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <p className="text-sm sm:text-base md:text-lg font-bold text-slate-700">
+            Total Available:
+          </p>
+          <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xl sm:text-2xl font-extrabold px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl shadow-lg">
+            {availableCount}
+          </span>
+        </div>
         {isAdmin ? (
           <button
             onClick={onGenerateTeams}
             disabled={availableCount < 2 || loading || disabled}
-            className="bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-md flex items-center disabled:bg-gray-400"
+            className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white font-bold py-2.5 sm:py-3.5 px-4 sm:px-6 md:px-8 rounded-xl hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 transition-all duration-300 shadow-xl hover:shadow-2xl flex items-center justify-center disabled:bg-gray-400 disabled:shadow-none transform hover:scale-105 disabled:transform-none w-full sm:w-auto text-sm sm:text-base"
           >
-            <Trophy className="mr-2" size={18} /> Generate Teams
+            <Trophy className="mr-2" size={18} /> <span>Generate Teams</span>
           </button>
         ) : (
-          <p className="text-sm text-gray-500 italic">
+          <p className="text-xs sm:text-sm text-slate-500 italic font-medium bg-slate-100 px-3 sm:px-4 py-2 rounded-lg text-center sm:text-left w-full sm:w-auto">
             Only admins can generate teams
           </p>
         )}
       </div>
 
       {error && (
-        <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm font-medium">
+        <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-xl text-sm font-semibold shadow-md">
           {error}
         </div>
       )}
