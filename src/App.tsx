@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Plus, ListChecks, Users, Trophy, LogOut, Shield } from "lucide-react";
+import { ListChecks, Users, Trophy, LogOut, Shield } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
@@ -14,6 +14,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
   deleteDoc,
 } from "firebase/firestore";
 
@@ -28,7 +29,6 @@ import {
 import { UserRole } from "./types/user";
 import { POSITIONS } from "./constants/player";
 import AuthUI from "./components/auth/AuthUI";
-import PlayerRegistrationForm from "./components/players/PlayerRegistrationForm";
 import WeeklyAvailabilityPoll from "./components/poll/WeeklyAvailabilityPoll";
 import TeamResults from "./components/teams/TeamResults";
 import UserManagement from "./components/admin/UserManagement";
@@ -61,7 +61,7 @@ export default function App() {
   // Application State
   const [availability, setAvailability] = useState<PlayerAvailability[]>([]);
   const [teams, setTeams] = useState<TeamResultsState | null>(null);
-  const [view, setView] = useState<"register" | "poll" | "teams" | "admin">("poll");
+  const [view, setView] = useState<"poll" | "teams" | "admin">("poll");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -284,6 +284,33 @@ export default function App() {
     }
   };
 
+  // Function to update a player's position and skill level (writes to Firestore)
+  const updatePlayer = async (playerId: string, updates: { position?: Position; skillLevel?: SkillLevel }) => {
+    if (!db) {
+      setError("Database connection not ready. Please wait.");
+      return;
+    }
+
+    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+    const playerDocPath = `artifacts/${appId}/public/data/soccer_players/${playerId}`;
+    const playerDocRef = doc(db, playerDocPath);
+
+    try {
+      const updateData: any = {};
+      if (updates.position !== undefined) {
+        updateData.position = updates.position;
+      }
+      if (updates.skillLevel !== undefined) {
+        updateData.skillLevel = updates.skillLevel;
+      }
+
+      await updateDoc(playerDocRef, updateData);
+    } catch (e) {
+      console.error("Error updating document: ", e);
+      setError("Failed to update player in database.");
+    }
+  };
+
   // Function to update availability (updates local state only - ephemeral for the week)
   const toggleAvailability = (playerId: string) => {
     setAvailability((prev) =>
@@ -451,18 +478,8 @@ export default function App() {
         <>
           <nav className="flex justify-center mb-8">
             <button
-              onClick={() => setView("register")}
-              className={`px-6 py-3 font-semibold rounded-l-xl transition-colors ${
-                view === "register"
-                  ? "bg-green-600 text-white shadow-lg"
-                  : "bg-white text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              <Plus className="inline w-4 h-4 mr-2" /> Register
-            </button>
-            <button
               onClick={() => setView("poll")}
-              className={`px-6 py-3 font-semibold transition-colors ${
+              className={`px-6 py-3 font-semibold rounded-l-xl transition-colors ${
                 view === "poll"
                   ? "bg-indigo-600 text-white shadow-lg"
                   : "bg-white text-gray-600 hover:bg-gray-200"
@@ -500,12 +517,6 @@ export default function App() {
 
           {/* Content Area */}
           <main className="max-w-4xl mx-auto">
-            {view === "register" && (
-              <PlayerRegistrationForm
-                onAddPlayer={addPlayer}
-                disabled={loading || !userId}
-              />
-            )}
             {view === "poll" && (
               <WeeklyAvailabilityPoll
                 availability={availability}
@@ -513,6 +524,8 @@ export default function App() {
                 availableCount={availableCount}
                 onToggleAvailability={toggleAvailability}
                 onGenerateTeams={generateBalancedTeams}
+                onUpdatePlayer={updatePlayer}
+                onAddPlayer={addPlayer}
                 error={error}
                 disabled={!userId}
                 isAdmin={userRole === "admin"}

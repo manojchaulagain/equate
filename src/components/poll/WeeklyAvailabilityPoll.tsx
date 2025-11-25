@@ -1,7 +1,9 @@
-import React from "react";
-import { ListChecks, CheckCircle, XCircle, Trophy } from "lucide-react";
-import { PlayerAvailability } from "../../types/player";
+import React, { useState } from "react";
+import { ListChecks, CheckCircle, XCircle, Trophy, Edit2, UserPlus } from "lucide-react";
+import { PlayerAvailability, Player } from "../../types/player";
 import { POSITION_LABELS, SKILL_LABELS } from "../../constants/player";
+import EditPlayerModal from "../players/EditPlayerModal";
+import AddPlayerModal from "../players/AddPlayerModal";
 
 interface WeeklyAvailabilityPollProps {
   availability: PlayerAvailability[];
@@ -9,6 +11,8 @@ interface WeeklyAvailabilityPollProps {
   availableCount: number;
   onToggleAvailability: (playerId: string) => void;
   onGenerateTeams: () => void;
+  onUpdatePlayer: (playerId: string, updates: { position?: any; skillLevel?: any }) => Promise<void>;
+  onAddPlayer: (player: Omit<Player, "id">) => Promise<void>;
   error: string | null;
   disabled?: boolean;
   isAdmin?: boolean;
@@ -20,19 +24,44 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   availableCount,
   onToggleAvailability,
   onGenerateTeams,
+  onUpdatePlayer,
+  onAddPlayer,
   error,
   disabled = false,
   isAdmin = false,
 }) => {
+  const [editingPlayer, setEditingPlayer] = useState<PlayerAvailability | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const handleEditClick = (e: React.MouseEvent, player: PlayerAvailability) => {
+    e.stopPropagation(); // Prevent toggling availability when clicking edit
+    setEditingPlayer(player);
+  };
+
+  const handleSaveEdit = async (playerId: string, updates: { position: any; skillLevel: any }) => {
+    await onUpdatePlayer(playerId, updates);
+    setEditingPlayer(null);
+  };
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg">
-      <h2 className="text-2xl font-bold text-gray-800 border-b pb-2 mb-4 flex items-center">
-        <ListChecks className="mr-2 text-indigo-600" size={20} /> Weekly
-        Availability Poll
-      </h2>
-      <p className="text-sm text-gray-600 mb-4">
-        Toggle players who are available to play this week.
-      </p>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 border-b pb-2 flex items-center">
+            <ListChecks className="mr-2 text-indigo-600" size={20} /> Weekly
+            Availability Poll
+          </h2>
+          <p className="text-sm text-gray-600 mt-2">
+            Toggle players who are available to play this week.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          disabled={disabled}
+          className="bg-green-600 text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-green-700 transition duration-300 shadow-md disabled:bg-gray-400 flex items-center whitespace-nowrap ml-4"
+        >
+          <UserPlus className="mr-2" size={18} /> Register Player
+        </button>
+      </div>
 
       {loading && (
         <div className="text-center p-8 text-indigo-600 font-semibold">
@@ -41,8 +70,15 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
       )}
 
       {!loading && availability.length === 0 ? (
-        <div className="text-center p-8 bg-gray-50 rounded-lg text-gray-500">
-          No players registered yet. Use the Register tab to add players.
+        <div className="text-center p-8 bg-gray-50 rounded-lg">
+          <p className="text-gray-500 mb-4">No players registered yet.</p>
+          <button
+            onClick={() => setShowAddModal(true)}
+            disabled={disabled}
+            className="bg-green-600 text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-green-700 transition duration-300 shadow-md disabled:bg-gray-400 flex items-center mx-auto"
+          >
+            <UserPlus className="mr-2" size={18} /> Register Player
+          </button>
         </div>
       ) : (
         <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
@@ -56,7 +92,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
               }`}
               onClick={() => onToggleAvailability(player.id)}
             >
-              <div>
+              <div className="flex-1">
                 <p className="font-semibold text-gray-800">{player.name}</p>
                 <p className="text-xs text-gray-500">
                   {player.position} ({POSITION_LABELS[player.position]}) • Skill:{" "}
@@ -64,6 +100,15 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                 </p>
               </div>
               <div className="flex items-center space-x-2">
+                {isAdmin && (
+                  <button
+                    onClick={(e) => handleEditClick(e, player)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Edit player"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                )}
                 {player.isAvailable ? (
                   <span className="text-green-600 font-medium">Playing</span>
                 ) : (
@@ -112,6 +157,21 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
         <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm font-medium">
           {error}
         </div>
+      )}
+
+      {editingPlayer && (
+        <EditPlayerModal
+          player={editingPlayer}
+          onClose={() => setEditingPlayer(null)}
+          onSave={handleSaveEdit}
+        />
+      )}
+
+      {showAddModal && (
+        <AddPlayerModal
+          onClose={() => setShowAddModal(false)}
+          onAddPlayer={onAddPlayer}
+        />
       )}
     </div>
   );
