@@ -99,7 +99,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
           </button>
         </div>
       ) : (
-        <div className="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+        <div className="space-y-3 max-h-96 overflow-y-auto p-4 custom-scrollbar">
           {availability.map((player) => (
             <div
               key={player.id}
