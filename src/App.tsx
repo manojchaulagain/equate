@@ -16,6 +16,9 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 
 import {
@@ -32,6 +35,7 @@ import AuthUI from "./components/auth/AuthUI";
 import WeeklyAvailabilityPoll from "./components/poll/WeeklyAvailabilityPoll";
 import TeamResults from "./components/teams/TeamResults";
 import UserManagement from "./components/admin/UserManagement";
+import SelfRegistrationModal from "./components/players/SelfRegistrationModal";
 
 // --- GLOBAL CANVAS VARIABLES (Mandatory) ---
 declare const __app_id: string;
@@ -64,6 +68,8 @@ export default function App() {
   const [view, setView] = useState<"poll" | "teams" | "admin">("poll");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isUserRegistered, setIsUserRegistered] = useState<boolean | null>(null);
+  const [checkingRegistration, setCheckingRegistration] = useState(true);
 
   // --- 1. FIREBASE INITIALIZATION AND AUTHENTICATION ---
   useEffect(() => {
@@ -83,9 +89,20 @@ export default function App() {
         if (user) {
           setUserId(user.uid);
           setUserEmail(user.email);
+          // Check localStorage for registration status on auth state change
+          const stored = localStorage.getItem(`userRegistered_${user.uid}`);
+          if (stored === "true") {
+            setIsUserRegistered(true);
+            setCheckingRegistration(false);
+          } else {
+            setIsUserRegistered(null);
+            setCheckingRegistration(true);
+          }
         } else {
           setUserId(null);
           setUserEmail(null);
+          setIsUserRegistered(null);
+          setCheckingRegistration(false);
         }
         setIsAuthReady(true);
         // Note: The email/password authentication UI is in AuthUI component, which is mounted when userId is null.
@@ -103,6 +120,16 @@ export default function App() {
     setUserId(user.uid);
     setUserEmail(user.email);
     setError(null);
+    // Check localStorage first, then trigger check if not found
+    const stored = localStorage.getItem(`userRegistered_${user.uid}`);
+    if (stored === "true") {
+      setIsUserRegistered(true);
+      setCheckingRegistration(false);
+    } else {
+      setIsUserRegistered(null);
+      setCheckingRegistration(true);
+    }
+    // Note: The registration check useEffect will run automatically when userId changes
   };
 
   // --- 3. FETCH USER ROLE FROM FIRESTORE ---
@@ -166,10 +193,15 @@ export default function App() {
   const handleSignOut = async () => {
     if (auth) {
       await signOut(auth);
+      // Clear localStorage registration status
+      if (userId) {
+        localStorage.removeItem(`userRegistered_${userId}`);
+      }
       setUserId(null);
       setUserEmail(null);
       setUserRole("user"); // Reset role on sign out
       setTeams(null); // Clear teams on sign out
+      setIsUserRegistered(null); // Reset registration status on sign out
       setView("poll");
     }
   };
@@ -261,28 +293,126 @@ export default function App() {
 
   // --- LOGIC FUNCTIONS (Unchanged) ---
 
+  // Function to check if a player name already exists (case-insensitive)
+  const checkPlayerNameExists = async (playerName: string): Promise<boolean> => {
+    if (!db) {
+      return false;
+    }
+
+    try {
+      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+      const playersCollectionPath = `artifacts/${appId}/public/data/soccer_players`;
+      const playersColRef = collection(db, playersCollectionPath);
+
+      // Get all players and check for case-insensitive name match
+      const querySnapshot = await getDocs(playersColRef);
+      const normalizedInputName = playerName.trim().toLowerCase();
+
+      return querySnapshot.docs.some((doc) => {
+        const playerData = doc.data();
+        const existingName = playerData.name?.toLowerCase() || "";
+        return existingName === normalizedInputName;
+      });
+    } catch (error) {
+      console.error("Error checking player name:", error);
+      return false; // If check fails, allow registration (fail open)
+    }
+  };
+
   // Function to add a new player (writes to Firestore)
-  const addPlayer = async (playerData: Omit<Player, "id">) => {
+  const addPlayer = async (playerData: Omit<Player, "id">, isSelfRegistration = false) => {
     if (!db) {
       setError("Database connection not ready. Please wait.");
-      return;
+      throw new Error("Database connection not ready. Please wait.");
     }
+
+    // Check if player name already exists
+    const nameExists = await checkPlayerNameExists(playerData.name);
+    if (nameExists) {
+      const errorMessage = `A player with the name "${playerData.name}" is already registered. Please use a different name.`;
+      // Don't set global error here, let the modal handle it
+      throw new Error(errorMessage);
+    }
+
+    // Clear any previous errors when starting a new registration
+    setError(null);
 
     const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
     const playersCollectionPath = `artifacts/${appId}/public/data/soccer_players`;
     const playersColRef = collection(db, playersCollectionPath);
 
     try {
-      await addDoc(playersColRef, {
-        name: playerData.name,
+      const playerDoc = {
+        name: playerData.name.trim(),
         position: playerData.position,
         skillLevel: playerData.skillLevel,
-      });
+      };
+
+      // If self-registration, add userId to link player to user
+      if (isSelfRegistration && userId) {
+        (playerDoc as any).userId = userId;
+      }
+
+      await addDoc(playersColRef, playerDoc);
+
+      // Clear any previous errors on success
+      setError(null);
+
+      // If self-registration, mark user as registered immediately
+      // This prevents the modal from reappearing on page reload
+      if (isSelfRegistration) {
+        setIsUserRegistered(true);
+        setCheckingRegistration(false);
+        setError(null); // Clear any errors on successful registration
+        // Persist registration status in localStorage
+        if (userId) {
+          localStorage.setItem(`userRegistered_${userId}`, "true");
+        }
+      }
     } catch (e) {
       console.error("Error adding document: ", e);
-      setError("Failed to save player to database.");
+      const errorMessage = "Failed to save player to database.";
+      setError(errorMessage);
+      throw e; // Re-throw for error handling in modal
     }
   };
+
+  // Check user registration when userId or db changes
+  useEffect(() => {
+    const performCheck = async () => {
+      if (!db || !userId) {
+        setIsUserRegistered(null);
+        setCheckingRegistration(false);
+        return;
+      }
+
+      setCheckingRegistration(true);
+
+      try {
+        const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+        const playersCollectionPath = `artifacts/${appId}/public/data/soccer_players`;
+        const playersColRef = collection(db, playersCollectionPath);
+
+        // Query players by userId
+        const q = query(playersColRef, where("userId", "==", userId));
+        const querySnapshot = await getDocs(q);
+
+        const registered = !querySnapshot.empty;
+        setIsUserRegistered(registered);
+        // Persist registration status in localStorage
+        if (userId) {
+          localStorage.setItem(`userRegistered_${userId}`, registered.toString());
+        }
+      } catch (error) {
+        console.error("Error checking user registration:", error);
+        setIsUserRegistered(false); // Default to false on error
+      } finally {
+        setCheckingRegistration(false);
+      }
+    };
+
+    performCheck();
+  }, [userId, db]); // Only check when userId or db changes
 
   // Function to update a player's position and skill level (writes to Firestore)
   const updatePlayer = async (playerId: string, updates: { position?: Position; skillLevel?: SkillLevel }) => {
@@ -290,6 +420,9 @@ export default function App() {
       setError("Database connection not ready. Please wait.");
       return;
     }
+
+    // Clear any previous errors
+    setError(null);
 
     const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
     const playerDocPath = `artifacts/${appId}/public/data/soccer_players/${playerId}`;
@@ -305,6 +438,8 @@ export default function App() {
       }
 
       await updateDoc(playerDocRef, updateData);
+      // Clear error on success
+      setError(null);
     } catch (e) {
       console.error("Error updating document: ", e);
       setError("Failed to update player in database.");
@@ -340,6 +475,12 @@ export default function App() {
 
   // Team Generation Algorithm - saves to Firestore for all users to see
   const generateBalancedTeams = async () => {
+    // Security check: Only admins can generate teams
+    if (userRole !== "admin") {
+      setError("Only administrators can generate teams.");
+      return;
+    }
+
     setError(null);
     const availablePlayers = availability.filter((p) => p.isAvailable);
 
@@ -525,7 +666,7 @@ export default function App() {
                 onToggleAvailability={toggleAvailability}
                 onGenerateTeams={generateBalancedTeams}
                 onUpdatePlayer={updatePlayer}
-                onAddPlayer={addPlayer}
+                onAddPlayer={(player) => addPlayer(player, false)}
                 error={error}
                 disabled={!userId}
                 isAdmin={userRole === "admin"}
@@ -553,6 +694,23 @@ export default function App() {
       {isAppReady && userId && error && (
         <div className="max-w-4xl mx-auto mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm font-medium text-center">
           {error}
+        </div>
+      )}
+
+      {/* Self-Registration Modal (shown when user is not registered) */}
+      {isAppReady && userId && !checkingRegistration && !isUserRegistered && userEmail && (
+        <SelfRegistrationModal
+          userEmail={userEmail}
+          onRegister={async (player) => {
+            await addPlayer(player, true);
+          }}
+        />
+      )}
+
+      {/* Loading state while checking registration */}
+      {isAppReady && userId && checkingRegistration && (
+        <div className="text-center p-10 font-semibold text-xl text-gray-600">
+          Checking registration...
         </div>
       )}
     </div>

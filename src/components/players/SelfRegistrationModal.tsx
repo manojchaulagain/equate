@@ -1,16 +1,16 @@
 import React, { useState } from "react";
-import { X, Save, ChevronDown, UserPlus } from "lucide-react";
+import { X, Save, ChevronDown, UserPlus, AlertCircle } from "lucide-react";
 import { Position, SkillLevel } from "../../types/player";
 import { POSITIONS, POSITION_LABELS, SKILL_LABELS } from "../../constants/player";
 
-interface AddPlayerModalProps {
-  onClose: () => void;
-  onAddPlayer: (player: { name: string; position: Position; skillLevel: SkillLevel }) => Promise<void>;
+interface SelfRegistrationModalProps {
+  userEmail: string;
+  onRegister: (player: { name: string; position: Position; skillLevel: SkillLevel }) => Promise<void>;
 }
 
-const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
-  onClose,
-  onAddPlayer,
+const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
+  userEmail,
+  onRegister,
 }) => {
   const [name, setName] = useState("");
   const [position, setPosition] = useState<Position>("CM");
@@ -23,7 +23,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
     setError(null);
 
     if (!name.trim()) {
-      setError("Please enter a player name.");
+      setError("Please enter your name.");
       return;
     }
 
@@ -31,20 +31,15 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
     setError(null); // Clear error when starting new submission
 
     try {
-      await onAddPlayer({
+      await onRegister({
         name: name.trim(),
         position,
         skillLevel,
       });
-      // Reset form and close
-      setName("");
-      setPosition("CM");
-      setSkillLevel(5);
+      // Modal will be closed by parent after successful registration
       setError(null); // Clear error on success
-      onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to add player.");
-    } finally {
+      setError(err.message || "Failed to register. Please try again.");
       setIsSaving(false);
     }
   };
@@ -52,25 +47,34 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <X size={24} />
-        </button>
+        <div className="flex items-start mb-4">
+          <div className="flex-shrink-0">
+            <AlertCircle className="text-yellow-500" size={24} />
+          </div>
+          <div className="ml-3 flex-1">
+            <h2 className="text-2xl font-bold text-gray-800">
+              Welcome! Please Register
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              You need to register as a player before accessing the dashboard.
+            </p>
+          </div>
+        </div>
 
-        <h2 className="text-2xl font-bold text-gray-800 border-b pb-2 mb-4 flex items-center">
-          <UserPlus className="mr-2 text-green-600" size={24} /> Register New Player
-        </h2>
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-xs text-blue-800">
+            <strong>Email:</strong> {userEmail}
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Player Name
+              Your Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              placeholder="Enter player full name"
+              placeholder="Enter your full name"
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
@@ -134,25 +138,17 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
             </div>
           )}
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSaving}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-200 disabled:opacity-50"
-            >
-              Cancel
-            </button>
+          <div className="flex justify-end pt-4">
             <button
               type="submit"
               disabled={isSaving || !name.trim()}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 disabled:bg-gray-400 flex items-center"
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 disabled:bg-gray-400 flex items-center font-semibold"
             >
               {isSaving ? (
-                "Saving..."
+                "Registering..."
               ) : (
                 <>
-                  <Save className="mr-2" size={16} /> Save Player
+                  <UserPlus className="mr-2" size={18} /> Complete Registration
                 </>
               )}
             </button>
@@ -163,5 +159,5 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
   );
 };
 
-export default AddPlayerModal;
+export default SelfRegistrationModal;
 
