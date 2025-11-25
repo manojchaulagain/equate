@@ -266,7 +266,45 @@ equate/
 
 ## 🚢 Deployment
 
-### Deploy to GitHub Pages
+### Automatic Deployment with GitHub Actions
+
+The repository includes GitHub Actions workflows for automatic deployment. Choose one of the following methods:
+
+#### Option 1: Deploy to gh-pages Branch (Recommended for existing setup)
+
+This workflow deploys to the `gh-pages` branch, matching your current setup.
+
+**Setup:**
+1. The workflow file `.github/workflows/deploy-gh-pages-branch.yml` is already configured
+2. Ensure GitHub Pages is set to deploy from the `gh-pages` branch:
+   - Go to Repository Settings → Pages
+   - Source: Deploy from a branch
+   - Branch: `gh-pages` / `/(root)`
+
+**How it works:**
+- Automatically triggers on every push to `main` branch
+- Builds the React app
+- Deploys to `gh-pages` branch
+- Your site updates automatically
+
+#### Option 2: Modern GitHub Pages Deployment
+
+This uses GitHub's newer Pages deployment method (no gh-pages branch needed).
+
+**Setup:**
+1. Use the workflow file `.github/workflows/deploy.yml`
+2. Enable GitHub Pages with GitHub Actions source:
+   - Go to Repository Settings → Pages
+   - Source: GitHub Actions
+
+**How it works:**
+- Automatically triggers on every push to `main` branch
+- Builds and deploys directly via GitHub Actions
+- No separate branch needed
+
+### Manual Deployment
+
+If you prefer manual deployment:
 
 1. **Build the project**
    ```bash
@@ -285,15 +323,38 @@ equate/
 
 ### Environment Variables
 
-If you need to use environment variables, create a `.env` file:
+The app uses environment variables for Firebase configuration. The app will fall back to default values if environment variables are not set.
+
+#### For Local Development
+
+Create a `.env` file in the root directory:
 
 ```env
 REACT_APP_FIREBASE_API_KEY=your_api_key
 REACT_APP_FIREBASE_AUTH_DOMAIN=your_auth_domain
 REACT_APP_FIREBASE_PROJECT_ID=your_project_id
+REACT_APP_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+REACT_APP_FIREBASE_APP_ID=your_app_id
+REACT_APP_FIREBASE_MEASUREMENT_ID=your_measurement_id
 ```
 
-Then update `App.tsx` to use these variables instead of hardcoded values.
+**Note:** The `.env` file is already in `.gitignore` and will not be committed.
+
+#### For GitHub Actions Deployment
+
+Configure GitHub Secrets for automatic deployment. See [GitHub Secrets Setup Guide](./docs/GITHUB_SECRETS_SETUP.md) for detailed instructions.
+
+**Required Secrets:**
+- `REACT_APP_FIREBASE_API_KEY`
+- `REACT_APP_FIREBASE_AUTH_DOMAIN`
+- `REACT_APP_FIREBASE_PROJECT_ID`
+- `REACT_APP_FIREBASE_STORAGE_BUCKET`
+- `REACT_APP_FIREBASE_MESSAGING_SENDER_ID`
+- `REACT_APP_FIREBASE_APP_ID`
+- `REACT_APP_FIREBASE_MEASUREMENT_ID`
+
+The GitHub Actions workflows are already configured to inject these secrets during the build process.
 
 ## 🧪 Available Scripts
 
