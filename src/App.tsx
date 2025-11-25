@@ -39,12 +39,12 @@ declare const __app_id: string;
 // Firebase configuration from environment variables
 const __firebase_config = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "team-balancer-f196a.firebaseapp.com",
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "team-balancer-f196a",
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "team-balancer-f196a.firebasestorage.app",
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "203717528050",
-  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:203717528050:web:b44ab600e2255cdea3836b",
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-FL3HFEJYNE"
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
 
 // Type and constant definitions moved to dedicated modules for reuse.
