@@ -640,17 +640,27 @@ export default function App() {
   const isAppReady = isAuthReady && db;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-50 p-3 sm:p-6 md:p-8 font-sans">
-      <header className="text-center mb-4 sm:mb-6 md:mb-8 bg-gradient-to-r from-white/80 to-indigo-50/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl border border-indigo-100">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-          <div className="flex items-center">
-            <Users className="text-indigo-600 mr-2 sm:mr-3" size={28} /> 
-            <span className="whitespace-nowrap">Soccer Team</span>
-          </div>
-          <span className="whitespace-nowrap">Balancer</span>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 font-sans">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-24 -right-16 w-72 sm:w-96 h-72 sm:h-96 bg-pink-500/30 blur-[130px] opacity-70" />
+        <div className="absolute top-1/3 -left-24 w-80 h-80 bg-indigo-500/20 blur-[140px]" />
+        <div className="absolute bottom-0 right-1/3 w-96 h-96 bg-blue-500/10 blur-[160px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.02)_25%,transparent_25%)]" />
+      </div>
+
+      <div className="relative z-10 px-3 sm:px-6 lg:px-10 py-6 space-y-6">
+        <header className="max-w-5xl mx-auto text-center bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-[0_20px_60px_rgba(15,23,42,0.18)] border border-white/60">
+        <h1 className="flex flex-col items-center gap-2 text-center mb-2 sm:mb-3">
+          <span className="inline-flex items-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <Users className="text-indigo-600 mr-2 sm:mr-3" size={28} />
+            Sagarmatha FC
+          </span>
+          <span className="uppercase tracking-[0.3em] text-xs sm:text-sm text-slate-500 font-semibold">
+            Squad Balancer
+          </span>
         </h1>
-        <p className="text-slate-700 mt-2 text-sm sm:text-base md:text-lg font-medium px-2">
-          Manage players, track availability, and generate fair teams.
+        <p className="text-slate-700 mt-1 sm:mt-2 text-sm sm:text-base md:text-lg font-medium px-2">
+          Manage Sagarmatha FC players, track availability, and generate fair teams.
           <span className="block text-xs sm:text-sm font-semibold mt-2 text-emerald-700 bg-emerald-50 px-2 sm:px-3 py-1 rounded-full inline-block">
             The Player Roster is shared. Sign-in required for access.
           </span>
@@ -680,36 +690,36 @@ export default function App() {
             </button>
           )}
         </div>
-      </header>
+        </header>
 
-      {!isAppReady && (
-        <div className="text-center p-10 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-2xl border border-indigo-200 shadow-lg">
-          <p className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-          Initializing application...
-          </p>
-        </div>
-      )}
+        {!isAppReady && (
+          <div className="max-w-4xl mx-auto text-center p-10 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/60 shadow-[0_20px_50px_rgba(15,23,42,0.2)]">
+            <p className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Initializing application...
+            </p>
+          </div>
+        )}
 
-      {/* Conditional Rendering based on Auth Status */}
-      {isAppReady && !userId && auth && (
-        <AuthUI
-          auth={auth}
-          onSignIn={handleSuccessfulSignIn}
-          error={error}
-          setError={setError}
-        />
-      )}
+        {/* Conditional Rendering based on Auth Status */}
+        {isAppReady && !userId && auth && (
+          <AuthUI
+            auth={auth}
+            onSignIn={handleSuccessfulSignIn}
+            error={error}
+            setError={setError}
+          />
+        )}
 
-      {/* Main Application Tabs (Visible only when logged in) */}
-      {isAppReady && userId && (
-        <>
-          <nav className="flex flex-col sm:flex-row justify-center mb-4 sm:mb-6 md:mb-8 bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-1.5 sm:p-2 shadow-xl border border-indigo-100 w-full sm:w-auto sm:inline-flex mx-auto gap-1 sm:gap-0">
+        {/* Main Application Tabs (Visible only when logged in) */}
+        {isAppReady && userId && (
+          <>
+            <nav className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-center mb-4 sm:mb-6 md:mb-8 bg-white/80 backdrop-blur-xl rounded-2xl p-1.5 sm:p-2 shadow-[0_15px_40px_rgba(15,23,42,0.15)] border border-white/60 gap-1 sm:gap-0">
             <button
               onClick={() => setView("poll")}
-              className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-bold rounded-lg sm:rounded-l-xl sm:rounded-r-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
+              className={`px-3 sm:px-5 md:px-6 py-2.5 sm:py-3 font-semibold rounded-xl sm:rounded-l-xl sm:rounded-r-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
                 view === "poll"
-                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg transform scale-[1.02] sm:scale-105"
-                  : "bg-transparent text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
+                  : "bg-transparent text-slate-600 hover:bg-indigo-50/60 hover:text-indigo-700"
               }`}
             >
               <span className="flex items-center justify-center">
@@ -722,12 +732,12 @@ export default function App() {
             <button
               onClick={() => setView("teams")}
               disabled={!teams || !teams.teams || teams.teams.length === 0}
-              className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-bold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm md:text-base rounded-lg sm:rounded-none ${
+              className={`px-3 sm:px-5 md:px-6 py-2.5 sm:py-3 font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed text-xs sm:text-sm md:text-base rounded-xl sm:rounded-none ${
                 userRole !== "admin" ? "sm:rounded-r-xl" : ""
               } ${
                 view === "teams"
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg transform scale-[1.02] sm:scale-105"
-                  : "bg-transparent text-slate-600 hover:bg-amber-50 hover:text-amber-700"
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
+                  : "bg-transparent text-slate-600 hover:bg-amber-50/60 hover:text-amber-700"
               }`}
             >
               <span className="flex items-center justify-center">
@@ -738,10 +748,10 @@ export default function App() {
             {userRole === "admin" && (
               <button
                 onClick={() => setView("admin")}
-                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-bold rounded-lg sm:rounded-r-xl sm:rounded-l-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
+                className={`px-3 sm:px-5 md:px-6 py-2.5 sm:py-3 font-semibold rounded-xl sm:rounded-r-xl sm:rounded-l-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
                   view === "admin"
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg transform scale-[1.02] sm:scale-105"
-                    : "bg-transparent text-slate-600 hover:bg-purple-50 hover:text-purple-700"
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
+                    : "bg-transparent text-slate-600 hover:bg-purple-50/60 hover:text-purple-700"
                 }`}
               >
                 <span className="flex items-center justify-center">
@@ -753,7 +763,7 @@ export default function App() {
           </nav>
 
           {/* Content Area */}
-          <main className="max-w-4xl mx-auto px-2 sm:px-4">
+          <main className="max-w-5xl mx-auto px-2 sm:px-4">
             {view === "poll" && (
               <WeeklyAvailabilityPoll
                 availability={availability}
@@ -788,31 +798,32 @@ export default function App() {
             )}
           </main>
         </>
-      )}
+        )}
 
-      {/* General Error Display */}
-      {isAppReady && userId && error && (
-        <div className="max-w-4xl mx-auto mt-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-xl text-sm font-semibold text-center shadow-lg">
-          {error}
-        </div>
-      )}
+        {/* General Error Display */}
+        {isAppReady && userId && error && (
+          <div className="max-w-4xl mx-auto mt-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-xl text-sm font-semibold text-center shadow-lg">
+            {error}
+          </div>
+        )}
 
-      {/* Self-Registration Modal (shown when user is not registered) */}
-      {isAppReady && userId && !checkingRegistration && !isUserRegistered && userEmail && (
-        <SelfRegistrationModal
-          userEmail={userEmail}
-          onRegister={async (player) => {
-            await addPlayer(player, true);
-          }}
-        />
-      )}
+        {/* Self-Registration Modal (shown when user is not registered) */}
+        {isAppReady && userId && !checkingRegistration && !isUserRegistered && userEmail && (
+          <SelfRegistrationModal
+            userEmail={userEmail}
+            onRegister={async (player) => {
+              await addPlayer(player, true);
+            }}
+          />
+        )}
 
-      {/* Loading state while checking registration */}
-      {isAppReady && userId && checkingRegistration && (
-        <div className="text-center p-10 font-semibold text-xl text-gray-600">
-          Checking registration...
-        </div>
-      )}
+        {/* Loading state while checking registration */}
+        {isAppReady && userId && checkingRegistration && (
+          <div className="text-center p-10 font-semibold text-xl text-gray-200">
+            Checking registration...
+          </div>
+        )}
+      </div>
     </div>
   );
 }

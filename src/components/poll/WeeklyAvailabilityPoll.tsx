@@ -53,7 +53,12 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     setEditingPlayer(null);
   };
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-2xl border border-indigo-100">
+    <div className="relative overflow-hidden bg-white/90 backdrop-blur-xl p-4 sm:p-6 rounded-2xl shadow-[0_20px_60px_rgba(15,23,42,0.15)] border border-white/70">
+      <div className="pointer-events-none absolute inset-0 opacity-70">
+        <div className="absolute -top-16 -right-10 w-48 h-48 bg-cyan-200/50 blur-[90px]" />
+        <div className="absolute bottom-0 left-0 w-40 h-40 bg-indigo-200/50 blur-[80px]" />
+      </div>
+      <div className="relative z-10">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
         <div className="flex-1">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent pb-2 flex flex-col sm:flex-row items-start sm:items-center gap-2">
@@ -237,6 +242,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
           onAddPlayer={onAddPlayer}
         />
       )}
+      </div>
     </div>
   );
 };
