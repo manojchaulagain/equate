@@ -554,7 +554,7 @@ export default function App() {
   const generateBalancedTeams = async () => {
     // Security check: Only admins can generate teams
     if (userRole !== "admin") {
-      setError("Only administrators can generate teams.");
+      setError("Only adminS can generate teams.");
       return;
     }
 
