@@ -1,0 +1,53 @@
+# Define the environment for the GitHub Pages deployment
+environment:
+  name: github-pages
+  url: ${{ steps.deployment.outputs.page_url }}
+
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
+
+  - name: Set up Node.js
+    uses: actions/setup-node@v4
+    with:
+      node-version: '20'
+
+  - name: Install dependencies
+    run: npm install
+
+  # IMPORTANT: Build step with Environment Variable Injection
+  # --------------------------------------------------------
+  # We define the environment variable VITE_APP_MESSAGE here using a GitHub Secret.
+  - name: Build production app and inject secrets
+    run: |
+      # 1. Get the repository name for the GitHub Pages path
+      REPO_NAME=$(echo "${{ github.repository }}" | awk -F '/' '{print $2}')
+      
+      # 2. Inject the VITE_SECRET_MESSAGE from the GitHub Secrets into the build command
+      # The variable is passed as VITE_APP_MESSAGE (the name expected by the React app's process.env)
+      # PUBLIC_URL is set to ensure asset paths are correct for GitHub Pages
+      REACT_APP_FIREBASE_API_KEY="${{ secrets.REACT_APP_FIREBASE_API_KEY }}" REACT_APP_FIREBASE_AUTH_DOMAIN="${{ secrets.REACT_APP_FIREBASE_AUTH_DOMAIN }}" REACT_APP_FIREBASE_PROJECT_ID="${{ secrets.REACT_APP_FIREBASE_PROJECT_ID }}" REACT_APP_FIREBASE_STORAGE_BUCKET="${{ secrets.REACT_APP_FIREBASE_STORAGE_BUCKET }}" REACT_APP_FIREBASE_MESSAGING_SENDER_ID="${{ secrets.REACT_APP_FIREBASE_MESSAGING_SENDER_ID }}" REACT_APP_FIREBASE_APP_ID="${{ secrets.REACT_APP_FIREBASE_APP_ID }}" REACT_APP_FIREBASE_MEASUREMENT_ID="${{ secrets.REACT_APP_FIREBASE_MEASUREMENT_ID }}" PUBLIC_URL="/$REPO_NAME/" npm run build
+      
+    env:
+      # This variable MUST be set as a Secret in your GitHub repository settings.
+      REACT_APP_FIREBASE_API_KEY: ${{ secrets.REACT_APP_FIREBASE_API_KEY }}
+      REACT_APP_FIREBASE_AUTH_DOMAIN: ${{ secrets.REACT_APP_FIREBASE_AUTH_DOMAIN }}
+      REACT_APP_FIREBASE_PROJECT_ID: ${{ secrets.REACT_APP_FIREBASE_PROJECT_ID }}
+      REACT_APP_FIREBASE_STORAGE_BUCKET: ${{ secrets.REACT_APP_FIREBASE_STORAGE_BUCKET }}
+      REACT_APP_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.REACT_APP_FIREBASE_MESSAGING_SENDER_ID }}
+      REACT_APP_FIREBASE_APP_ID: ${{ secrets.REACT_APP_FIREBASE_APP_ID }}
+      REACT_APP_FIREBASE_MEASUREMENT_ID: ${{ secrets.REACT_APP_FIREBASE_MEASUREMENT_ID }}
+      CI: false # Recommended for CRA/Vite to ignore warnings as errors
+
+  - name: Setup Pages
+    uses: actions/configure-pages@v5
+
+  - name: Upload artifact
+    # The default build output directory for Vite and similar tools is 'dist'
+    uses: actions/upload-pages-artifact@v3
+    with:
+      path: './build' 
+
+  - name: Deploy to GitHub Pages
+    id: deployment
+    uses: actions/deploy-pages@v4
