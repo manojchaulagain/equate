@@ -46,7 +46,7 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto max-h-[90vh] overflow-y-auto">
         <div className="flex items-start mb-4">
           <div className="flex-shrink-0">
             <AlertCircle className="text-yellow-500" size={24} />
@@ -61,7 +61,7 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
           </div>
         </div>
 
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
           <p className="text-xs text-blue-800">
             <strong>Email:</strong> {userEmail}
           </p>
@@ -81,7 +81,7 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
                 setError(null); // Clear error when user starts typing
               }}
               required
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+              className="w-full p-3 border border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition duration-150"
               disabled={isSaving}
             />
           </div>
@@ -94,7 +94,7 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
               <select
                 value={position}
                 onChange={(e) => setPosition(e.target.value as Position)}
-                className="w-full p-3 appearance-none border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                className="w-full p-3 appearance-none border border-gray-300 rounded-xl bg-white focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                 disabled={isSaving}
               >
                 {POSITIONS.map((pos) => (
@@ -123,7 +123,7 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
               max="10"
               value={skillLevel}
               onChange={(e) => setSkillLevel(parseInt(e.target.value) as SkillLevel)}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg"
+              className="w-full h-2 bg-gray-200 rounded-xl appearance-none cursor-pointer range-lg"
               disabled={isSaving}
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -133,7 +133,7 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
           </div>
 
           {error && (
-            <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm font-medium">
+            <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-xl text-sm font-medium">
               {error}
             </div>
           )}
@@ -142,7 +142,7 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
             <button
               type="submit"
               disabled={isSaving || !name.trim()}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 disabled:bg-gray-400 flex items-center font-semibold"
+              className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition duration-200 disabled:bg-gray-400 flex items-center font-semibold"
             >
               {isSaving ? (
                 "Registering..."

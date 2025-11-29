@@ -48,7 +48,7 @@ const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
@@ -69,7 +69,7 @@ const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
               <select
                 value={position}
                 onChange={(e) => setPosition(e.target.value as Position)}
-                className="w-full p-3 appearance-none border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                className="w-full p-3 appearance-none border border-gray-300 rounded-xl bg-white focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                 disabled={isSaving}
               >
                 {POSITIONS.map((pos) => (
@@ -98,7 +98,7 @@ const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
               max="10"
               value={skillLevel}
               onChange={(e) => setSkillLevel(parseInt(e.target.value) as SkillLevel)}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg"
+              className="w-full h-2 bg-gray-200 rounded-xl appearance-none cursor-pointer range-lg"
               disabled={isSaving}
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -108,7 +108,7 @@ const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
           </div>
 
           {error && (
-            <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm font-medium">
+            <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-xl text-sm font-medium">
               {error}
             </div>
           )}
@@ -118,14 +118,14 @@ const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-200 disabled:opacity-50"
+              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300 transition duration-200 disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 disabled:bg-gray-400 flex items-center"
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition duration-200 disabled:bg-gray-400 flex items-center"
             >
               {isSaving ? (
                 "Saving..."

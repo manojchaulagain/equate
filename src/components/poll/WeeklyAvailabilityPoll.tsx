@@ -97,7 +97,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     setEditingPlayer(null);
   };
   return (
-    <div className={`relative overflow-hidden backdrop-blur-xl p-4 sm:p-6 rounded-b-2xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.15)] -mt-[1px] ${
+    <div className={`relative overflow-hidden backdrop-blur-xl p-4 sm:p-6 rounded-b-3xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.15)] -mt-[1px] ${
       isActive 
         ? "bg-gradient-to-br from-indigo-50/95 via-purple-50/95 to-indigo-50/95 border-l-2 border-r-2 border-b-2 border-indigo-500/70" 
         : "bg-white/90 border border-white/70 border-t-0"
@@ -123,25 +123,25 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
         <button
           onClick={() => setShowAddModal(true)}
           disabled={disabled}
-          className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center whitespace-nowrap w-full sm:w-auto transform hover:scale-105 text-sm sm:text-base"
+          className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-2.5 sm:py-3 px-4 sm:px-6 rounded-2xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center whitespace-nowrap w-full sm:w-auto transform hover:scale-105 text-sm sm:text-base"
         >
           <UserPlus className="mr-2" size={16} /> <span className="sm:inline">Register Player</span>
         </button>
       </div>
 
       {loading && (
-        <div className="text-center p-8 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-xl border border-indigo-200">
+        <div className="text-center p-8 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-2xl border border-indigo-200">
           <p className="text-indigo-700 font-semibold text-lg">Loading players from Firestore...</p>
         </div>
       )}
 
       {!loading && availability.length === 0 ? (
-        <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-blue-50 rounded-xl border-2 border-dashed border-indigo-200">
+        <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-blue-50 rounded-2xl border-2 border-dashed border-indigo-200">
           <p className="text-slate-600 mb-4 font-medium">No players registered yet.</p>
           <button
             onClick={() => setShowAddModal(true)}
             disabled={disabled}
-            className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:shadow-none flex items-center mx-auto transform hover:scale-105"
+            className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-3 px-6 rounded-2xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:shadow-none flex items-center mx-auto transform hover:scale-105"
           >
             <UserPlus className="mr-2" size={18} /> Register Player
           </button>
@@ -151,7 +151,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
           {sortedAvailability.map((player) => (
             <div
               key={player.id}
-              className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all duration-300 transform hover:scale-[1.02] ${
+              className={`flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-[1.02] ${
                 player.isAvailable
                   ? "bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border-2 border-emerald-300 shadow-md hover:shadow-lg"
                   : "bg-gradient-to-r from-slate-100 to-gray-100 border-2 border-slate-300 shadow-sm opacity-75 hover:opacity-90"
@@ -173,27 +173,27 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                   <>
                     <button
                       onClick={(e) => handleEditClick(e, player)}
-                      className="p-2 sm:p-2.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
+                      className="p-2 sm:p-2.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
                       title="Edit player"
                     >
                       <Edit2 size={14} className="sm:w-4 sm:h-4" />
                     </button>
                     <button
                       onClick={(e) => handleDeleteClick(e, player)}
-                      className="p-2 sm:p-2.5 bg-gradient-to-br from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
+                      className="p-2 sm:p-2.5 bg-gradient-to-br from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
                       title="Delete player"
                     >
                       <Trash2 size={14} className="sm:w-4 sm:h-4" />
                     </button>
                   </>
                 )}
-                <div className="flex items-center bg-gradient-to-r from-slate-200 to-slate-300 rounded-lg sm:rounded-xl p-1 sm:p-1.5 shadow-inner border-2 border-slate-400">
+                <div className="flex items-center bg-gradient-to-r from-slate-200 to-slate-300 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-inner border-2 border-slate-400">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onToggleAvailability(player.id);
                     }}
-                    className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-md sm:rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
+                    className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
                       !player.isAvailable
                         ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg border-2 border-red-700 transform scale-105"
                         : "text-red-700 hover:bg-red-50 border-2 border-transparent hover:border-red-200"
@@ -206,7 +206,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                       e.stopPropagation();
                       onToggleAvailability(player.id);
                     }}
-                    className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-md sm:rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
+                    className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
                       player.isAvailable
                         ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg border-2 border-emerald-700 transform scale-105"
                         : "text-emerald-700 hover:bg-emerald-50 border-2 border-transparent hover:border-emerald-200"
@@ -227,7 +227,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
             <p className="text-sm sm:text-base md:text-lg font-bold text-slate-700">
               Total Available:
             </p>
-            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xl sm:text-2xl font-extrabold px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl shadow-lg">
+            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xl sm:text-2xl font-extrabold px-3 sm:px-4 py-1 sm:py-1.5 rounded-2xl shadow-lg">
               {availableCount}
             </span>
           </div>
@@ -241,7 +241,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                 <select
                   value={teamCount}
                   onChange={(e) => onTeamCountChange(Number(e.target.value))}
-                  className="border-2 border-indigo-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 bg-white shadow-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200"
+                  className="border-2 border-indigo-200 rounded-2xl px-3 py-2 text-sm font-semibold text-slate-700 bg-white shadow-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200"
                   disabled={disabled}
                 >
                   {TEAM_COUNT_OPTIONS.map((option) => (
@@ -268,19 +268,19 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
           <button
             onClick={onGenerateTeams}
             disabled={!canGenerateTeams || loading || disabled}
-            className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white font-bold py-2.5 sm:py-3.5 px-4 sm:px-6 md:px-8 rounded-xl hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 transition-all duration-300 shadow-xl hover:shadow-2xl flex items-center justify-center disabled:bg-gray-400 disabled:shadow-none transform hover:scale-105 disabled:transform-none w-full text-sm sm:text-base"
+            className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white font-bold py-2.5 sm:py-3.5 px-4 sm:px-6 md:px-8 rounded-2xl hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 transition-all duration-300 shadow-xl hover:shadow-2xl flex items-center justify-center disabled:bg-gray-400 disabled:shadow-none transform hover:scale-105 disabled:transform-none w-full text-sm sm:text-base"
           >
             <Trophy className="mr-2" size={18} /> <span>Generate Teams</span>
           </button>
         ) : (
-          <p className="text-xs sm:text-sm text-slate-500 italic font-medium bg-slate-100 px-3 sm:px-4 py-2 rounded-lg text-center sm:text-left w-full">
+          <p className="text-xs sm:text-sm text-slate-500 italic font-medium bg-slate-100 px-3 sm:px-4 py-2 rounded-xl text-center sm:text-left w-full">
             Only admins can generate teams
           </p>
         )}
       </div>
 
       {error && (
-        <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-xl text-sm font-semibold shadow-md">
+        <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-2xl text-sm font-semibold shadow-md">
           {error}
         </div>
       )}
@@ -303,7 +303,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
       {/* Delete Confirmation Modal */}
       {playerToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
               Delete Player?
             </h2>
@@ -313,13 +313,13 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:justify-end">
               <button
                 onClick={() => setPlayerToDelete(null)}
-                className="px-4 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-all duration-200"
+                className="px-4 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="px-4 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                className="px-4 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 Delete Player
               </button>

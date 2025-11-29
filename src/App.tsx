@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { ListChecks, Trophy, LogOut, Shield, Info } from "lucide-react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
+import { ListChecks, Trophy, LogOut, Shield, Info, MessageCircle, AlertTriangle, X } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
@@ -19,6 +19,7 @@ import {
   query,
   where,
   getDocs,
+  orderBy,
 } from "firebase/firestore";
 
 import {
@@ -37,6 +38,8 @@ import WeeklyAvailabilityPoll from "./components/poll/WeeklyAvailabilityPoll";
 import TeamResults from "./components/teams/TeamResults";
 import UserManagement from "./components/admin/UserManagement";
 import SelfRegistrationModal from "./components/players/SelfRegistrationModal";
+import QuestionsConcerns from "./components/questions/QuestionsConcerns";
+import Notifications from "./components/notifications/Notifications";
 
 // --- GLOBAL CANVAS VARIABLES (Mandatory) ---
 declare const __app_id: string;
@@ -64,6 +67,8 @@ interface ProfileMenuProps {
 
 const ProfileMenu: React.FC<ProfileMenuProps> = ({ userEmail, userRole, playerName, onSignOut }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Get user's initials from name (first and last) or email fallback
   const getInitials = (name?: string, email?: string): string => {
@@ -102,9 +107,23 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ userEmail, userRole, playerNa
 
   const gradientClass = getGradientColor(userEmail);
 
+  // Calculate menu position when opening
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    } else {
+      setMenuPosition(null);
+    }
+  }, [isOpen]);
+
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={`relative w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 border-2 border-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2`}
         aria-label="User menu"
@@ -124,24 +143,31 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ userEmail, userRole, playerNa
             className="fixed inset-0 z-[90]"
             onClick={() => setIsOpen(false)}
           />
-          {/* Dropdown Menu */}
-          <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white/98 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200/60 z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* Dropdown Menu - Fixed positioning to escape header bounds */}
+          {menuPosition && (
+            <div 
+              className="fixed w-[280px] sm:w-[320px] md:w-[360px] max-w-[calc(100vw-1rem)] bg-white/98 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-200/60 z-[100] overflow-visible animate-in fade-in slide-in-from-top-2 duration-200"
+              style={{
+                top: `${menuPosition.top}px`,
+                right: `${Math.max(menuPosition.right, 8)}px`,
+              }}
+            >
             {/* Header Section */}
-            <div className={`bg-gradient-to-br ${gradientClass} p-6 text-white relative overflow-hidden`}>
-              <div className="absolute inset-0 bg-black/10"></div>
-              <div className="relative flex items-center gap-4">
-                <div className={`w-16 h-16 rounded-full bg-white/25 backdrop-blur-sm flex items-center justify-center text-white font-bold text-2xl border-[3px] border-white/40 shadow-xl ring-2 ring-white/20`}>
+            <div className={`bg-gradient-to-br ${gradientClass} p-4 sm:p-5 md:p-6 text-white relative overflow-hidden rounded-t-3xl`}>
+              <div className="absolute inset-0 bg-black/10 rounded-t-3xl"></div>
+              <div className="relative flex items-center gap-3 sm:gap-4">
+                <div className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-white/25 backdrop-blur-sm flex items-center justify-center text-white font-bold text-xl sm:text-2xl border-[3px] border-white/40 shadow-xl ring-2 ring-white/20 flex-shrink-0`}>
                   {getInitials(playerName, userEmail)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-base sm:text-lg truncate drop-shadow-md mb-1">{userEmail}</p>
+                  <p className="font-bold text-sm sm:text-base md:text-lg truncate drop-shadow-md mb-1">{userEmail}</p>
                   {playerName && (
                     <p className="text-xs sm:text-sm text-white/90 truncate font-medium mb-1.5">{playerName}</p>
                   )}
                   {userRole === "admin" && (
-                    <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-white/20 backdrop-blur-sm rounded-full border border-white/30 w-fit">
-                      <Shield className="w-3.5 h-3.5" />
-                      <span className="text-xs font-bold">Administrator</span>
+                    <div className="flex items-center gap-1.5 mt-2 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-white/20 backdrop-blur-sm rounded-full border border-white/30 w-fit">
+                      <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+                      <span className="text-[10px] sm:text-xs font-bold">Administrator</span>
                     </div>
                   )}
                 </div>
@@ -149,21 +175,161 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ userEmail, userRole, playerNa
             </div>
             
             {/* Actions Section */}
-            <div className="p-4 bg-gradient-to-b from-slate-50/50 to-white border-t border-slate-200/50">
+            <div className="p-3 sm:p-4 bg-gradient-to-b from-slate-50/50 to-white border-t border-slate-200/50 rounded-b-3xl">
               <button
                 onClick={() => {
                   setIsOpen(false);
                   onSignOut();
                 }}
-                className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 text-sm font-bold text-white bg-gradient-to-r from-red-500 via-red-600 to-rose-600 hover:from-red-600 hover:via-red-700 hover:to-rose-700 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] border border-red-400/30"
+                className="w-full flex items-center justify-center gap-2 sm:gap-2.5 px-4 sm:px-5 py-3 sm:py-3.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-red-500 via-red-600 to-rose-600 hover:from-red-600 hover:via-red-700 hover:to-rose-700 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] border border-red-400/30 min-h-[44px]"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 flex-shrink-0" />
                 <span>Sign Out</span>
               </button>
             </div>
           </div>
+          )}
         </>
       )}
+    </div>
+  );
+};
+
+// Info Tooltip Component - Shows app description
+const InfoTooltip: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState<{ top: number; right: number } | null>(null);
+  const iconRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && iconRef.current) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        if (iconRef.current) {
+          const rect = iconRef.current.getBoundingClientRect();
+          setTooltipPosition({
+            top: rect.bottom + 12,
+            right: window.innerWidth - rect.right,
+          });
+        }
+      }, 10);
+    } else {
+      setTooltipPosition(null);
+    }
+  }, [isOpen]);
+
+  return (
+    <div className="relative flex-shrink-0" ref={iconRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/20 transition-all duration-300 hover:scale-110 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/50"
+        aria-label="App information"
+      >
+        <Info className="w-4 h-4 sm:w-5 sm:h-5" />
+      </button>
+
+      {isOpen && (
+        <>
+          {/* Backdrop to close tooltip */}
+          <div
+            className="fixed inset-0 z-[90]"
+            onClick={() => setIsOpen(false)}
+          />
+          {/* Tooltip */}
+          {tooltipPosition && (
+            <div
+              className="fixed w-[min(calc(100vw-2rem),400px)] sm:w-[420px] bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-xl text-white text-xs sm:text-sm rounded-3xl shadow-2xl pointer-events-auto z-[100] border border-slate-700/60 p-4 sm:p-5 transition-all duration-200"
+              style={{
+                top: `${tooltipPosition.top}px`,
+                right: `${Math.max(tooltipPosition.right, 8)}px`,
+              }}
+            >
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 flex-shrink-0" />
+                  <h3 className="font-bold text-sm sm:text-base text-amber-300">About Sagarmatha FC</h3>
+                </div>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-slate-400 hover:text-white transition-colors flex-shrink-0"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="leading-relaxed text-slate-200 whitespace-normal break-words">
+                Manage Sagarmatha FC players, track availability, and generate fair teams. The Player Roster is shared. Sign-in required for access.
+              </p>
+              <div className="absolute right-6 -top-2 w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-transparent border-b-slate-900"></div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+// Notifications Banner Component - Shows critical notifications at top
+const NotificationsBanner: React.FC<{ db: any }> = ({ db }) => {
+  const [criticalNotifications, setCriticalNotifications] = useState<any[]>([]);
+  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!db) return;
+
+    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+    const notificationsPath = `artifacts/${appId}/public/data/notifications`;
+    const notificationsRef = collection(db, notificationsPath);
+    const q = query(notificationsRef, orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const notifications = snapshot.docs
+          .map((docSnapshot) => ({
+            id: docSnapshot.id,
+            ...docSnapshot.data(),
+          }))
+          .filter((n: any) => n.isCritical && !dismissedIds.includes(n.id));
+        setCriticalNotifications(notifications.slice(0, 3)); // Show max 3
+      },
+      (err) => {
+        console.error("Error fetching notifications:", err);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [db, dismissedIds]);
+
+  const handleDismiss = (id: string) => {
+    setDismissedIds((prev) => [...prev, id]);
+  };
+
+  if (criticalNotifications.length === 0) return null;
+
+  return (
+    <div className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 mb-4 space-y-2">
+      {criticalNotifications.map((notification) => (
+        <div
+          key={notification.id}
+          className="bg-gradient-to-r from-red-500 via-orange-500 to-red-600 text-white p-3 sm:p-4 rounded-2xl shadow-lg border-2 border-red-400 flex items-start justify-between gap-3 animate-in fade-in slide-in-from-top duration-300"
+        >
+          <div className="flex items-start gap-3 flex-1">
+            <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-sm sm:text-base mb-1">{notification.title}</h3>
+              <p className="text-xs sm:text-sm text-white/95 whitespace-pre-wrap">{notification.message}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => handleDismiss(notification.id)}
+            className="text-white/80 hover:text-white transition-colors flex-shrink-0"
+            aria-label="Dismiss notification"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      ))}
     </div>
   );
 };
@@ -181,16 +347,16 @@ export default function App() {
   const [availability, setAvailability] = useState<PlayerAvailability[]>([]);
   const [teams, setTeams] = useState<TeamResultsState | null>(null);
   const [teamCount, setTeamCount] = useState<number>(2);
-  const [view, setView] = useState<"poll" | "teams" | "admin">("poll");
+  const [view, setView] = useState<"poll" | "teams" | "questions" | "admin">("poll");
   const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   // Helper to determine slide direction based on tab order
-  const getTabOrder = (tab: "poll" | "teams" | "admin"): number => {
-    return tab === "poll" ? 0 : tab === "teams" ? 1 : 2;
+  const getTabOrder = (tab: "poll" | "teams" | "questions" | "admin"): number => {
+    return tab === "poll" ? 0 : tab === "teams" ? 1 : tab === "questions" ? 2 : 3;
   };
   
-  const handleViewChange = (newView: "poll" | "teams" | "admin") => {
+  const handleViewChange = (newView: "poll" | "teams" | "questions" | "admin") => {
     if (view !== newView) {
       const currentOrder = getTabOrder(view);
       const newOrder = getTabOrder(newView);
@@ -845,7 +1011,7 @@ export default function App() {
       </div>
 
       <div className="relative z-10 px-2 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        <header className="max-w-5xl mx-auto relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl border border-slate-700/50 z-20 overflow-hidden">
+        <header className="max-w-5xl mx-auto relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl sm:rounded-[2rem] p-4 sm:p-6 md:p-8 shadow-2xl border border-slate-700/50 z-20 overflow-hidden">
           {/* Elegant Background with Mountains */}
           <div className="absolute inset-0">
             {/* Subtle gradient overlay */}
@@ -884,15 +1050,7 @@ export default function App() {
                 playerName={availability.find(p => p.userId === userId)?.name}
                 onSignOut={handleSignOut}
               />
-              <div className="relative group flex-shrink-0">
-                <Info className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300 cursor-help hover:text-white transition-all duration-300 hover:scale-110" />
-                <div className="absolute right-0 sm:right-0 bottom-full mb-2 w-[min(calc(100vw-3rem),420px)] p-4 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 text-white text-xs sm:text-sm rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none z-50 border border-slate-700/50 backdrop-blur-sm">
-                  <p className="leading-relaxed text-slate-100 whitespace-normal break-words">
-                    Manage Sagarmatha FC players, track availability, and generate fair teams. The Player Roster is shared. Sign-in required for access.
-                  </p>
-                  <div className="absolute right-6 top-full w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-transparent border-t-slate-900"></div>
-                </div>
-              </div>
+              <InfoTooltip />
             </div>
           )}
 
@@ -937,7 +1095,7 @@ export default function App() {
         </header>
 
         {!isAppReady && (
-          <div className="max-w-4xl mx-auto text-center p-10 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/60 shadow-[0_20px_50px_rgba(15,23,42,0.2)]">
+          <div className="max-w-4xl mx-auto text-center p-10 bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 shadow-[0_20px_50px_rgba(15,23,42,0.2)]">
             <p className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Initializing application...
             </p>
@@ -957,10 +1115,12 @@ export default function App() {
         {/* Main Application Tabs (Visible only when logged in) */}
         {isAppReady && userId && (
           <>
-            <nav className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-center bg-white/80 backdrop-blur-xl rounded-t-xl sm:rounded-t-2xl rounded-b-none p-1 sm:p-1.5 md:p-2 shadow-[0_15px_40px_rgba(15,23,42,0.15)] border border-white/60 border-b-0 gap-1 sm:gap-0 mb-0 relative z-10">
+            {/* Notifications Banner - Show critical notifications at top */}
+            {db && <NotificationsBanner db={db} />}
+            <nav className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-center bg-white/80 backdrop-blur-xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-1 sm:p-1.5 md:p-2 shadow-[0_15px_40px_rgba(15,23,42,0.15)] border border-white/60 border-b-0 gap-1 sm:gap-0 mb-0 relative z-10">
             <button
               onClick={() => handleViewChange("poll")}
-              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-lg sm:rounded-xl sm:rounded-l-xl sm:rounded-r-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
+              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-2xl sm:rounded-l-2xl sm:rounded-r-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
                 view === "poll"
                   ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
                   : "bg-transparent text-slate-600 hover:bg-indigo-50/60 hover:text-indigo-700"
@@ -976,9 +1136,7 @@ export default function App() {
             <button
               onClick={() => handleViewChange("teams")}
               disabled={!teams || !teams.teams || teams.teams.length === 0}
-              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed text-xs sm:text-sm md:text-base rounded-lg sm:rounded-none ${
-                userRole !== "admin" ? "sm:rounded-r-xl" : ""
-              } ${
+              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed text-xs sm:text-sm md:text-base rounded-xl sm:rounded-none ${
                 view === "teams"
                   ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
                   : "bg-transparent text-slate-600 hover:bg-amber-50/60 hover:text-amber-700"
@@ -989,10 +1147,24 @@ export default function App() {
                 <span>Teams</span>
               </span>
             </button>
+            <button
+              onClick={() => handleViewChange("questions")}
+              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
+                view === "questions"
+                  ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
+                  : "bg-transparent text-slate-600 hover:bg-blue-50/60 hover:text-blue-700"
+              }`}
+            >
+              <span className="flex items-center justify-center">
+                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" /> 
+                <span className="hidden sm:inline">Questions</span>
+                <span className="sm:hidden">Q&A</span>
+              </span>
+            </button>
             {userRole === "admin" && (
               <button
                 onClick={() => handleViewChange("admin")}
-                className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-lg sm:rounded-r-xl sm:rounded-l-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
+                className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-r-2xl sm:rounded-l-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
                   view === "admin"
                     ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
                     : "bg-transparent text-slate-600 hover:bg-purple-50/60 hover:text-purple-700"
@@ -1046,13 +1218,31 @@ export default function App() {
                   isActive={view === "teams"}
                 />
               )}
-              {view === "admin" && userRole === "admin" && userId && (
-                <UserManagement
+              {view === "questions" && userId && (
+                <QuestionsConcerns
                   db={db}
-                  currentUserId={userId}
-                  onRoleUpdate={refreshUserRole}
-                  isActive={view === "admin"}
+                  userId={userId}
+                  userEmail={userEmail || ""}
+                  userRole={userRole}
+                  isActive={view === "questions"}
                 />
+              )}
+              {view === "admin" && userRole === "admin" && userId && (
+                <div className="space-y-6">
+                  <Notifications
+                    db={db}
+                    userId={userId}
+                    userEmail={userEmail || ""}
+                    userRole={userRole}
+                    isActive={view === "admin"}
+                  />
+                  <UserManagement
+                    db={db}
+                    currentUserId={userId}
+                    onRoleUpdate={refreshUserRole}
+                    isActive={view === "admin"}
+                  />
+                </div>
               )}
             </div>
           </main>
@@ -1061,7 +1251,7 @@ export default function App() {
 
         {/* General Error Display */}
         {isAppReady && userId && error && (
-          <div className="max-w-4xl mx-auto mt-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-xl text-sm font-semibold text-center shadow-lg">
+          <div className="max-w-4xl mx-auto mt-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-2xl text-sm font-semibold text-center shadow-lg">
             {error}
           </div>
         )}
