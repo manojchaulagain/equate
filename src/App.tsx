@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { ListChecks, Trophy, LogOut, Shield, Info, MessageCircle, AlertTriangle, X, Award } from "lucide-react";
+import { ListChecks, Trophy, LogOut, Shield, Info, MessageCircle, AlertTriangle, X, Award, Menu } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
@@ -356,6 +356,7 @@ export default function App() {
   const [view, setView] = useState<"poll" | "teams" | "questions" | "admin" | "leaderboard">("poll");
   const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Helper to determine slide direction based on tab order
   const getTabOrder = (tab: "poll" | "teams" | "questions" | "admin" | "leaderboard"): number => {
@@ -1186,7 +1187,139 @@ export default function App() {
         <>
             {/* Notifications Banner - Show critical notifications at top */}
             {db && <NotificationsBanner db={db} />}
-            <nav className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-center bg-white/80 backdrop-blur-xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-1 sm:p-1.5 md:p-2 shadow-[0_15px_40px_rgba(15,23,42,0.15)] border border-white/60 border-b-0 gap-1 sm:gap-0 mb-0 relative z-10">
+            
+            {/* Mobile Hamburger Menu Button */}
+            <div className="max-w-5xl mx-auto sm:hidden mb-2 px-2">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className={`w-full flex items-center justify-between p-3 backdrop-blur-xl rounded-2xl shadow-lg border transition-all duration-200 ${
+                  view === "poll"
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-500/50"
+                    : view === "leaderboard"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-500/50"
+                    : view === "teams"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-500/50"
+                    : view === "questions"
+                    ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white border-blue-500/50"
+                    : view === "admin"
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-500/50"
+                    : "bg-white/80 text-slate-700 border-white/60"
+                }`}
+              >
+                <span className="font-semibold flex items-center gap-2">
+                  {view === "poll" && <ListChecks className="w-4 h-4" />}
+                  {view === "leaderboard" && <Award className="w-4 h-4" />}
+                  {view === "teams" && <Trophy className="w-4 h-4" />}
+                  {view === "questions" && <MessageCircle className="w-4 h-4" />}
+                  {view === "admin" && <Shield className="w-4 h-4" />}
+                  {view === "poll" && "Availability"}
+                  {view === "leaderboard" && "Leaderboard"}
+                  {view === "teams" && "Teams"}
+                  {view === "questions" && "Questions"}
+                  {view === "admin" && "Admin"}
+                </span>
+                <Menu className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mobile Menu Dropdown */}
+            {mobileMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
+                  onClick={() => setMobileMenuOpen(false)}
+                />
+                <div className="fixed top-0 left-0 right-0 bg-white rounded-b-3xl shadow-2xl z-50 sm:hidden max-h-[80vh] overflow-y-auto">
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
+                      <h2 className="font-bold text-lg text-slate-800">Menu</h2>
+                      <button
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                      >
+                        <X className="w-5 h-5 text-slate-600" />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => {
+                        handleViewChange("poll");
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 ${
+                        view === "poll"
+                          ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg"
+                          : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <ListChecks className="w-5 h-5" />
+                      <span className="font-semibold">Availability ({availableCount})</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleViewChange("leaderboard");
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 ${
+                        view === "leaderboard"
+                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
+                          : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <Award className="w-5 h-5" />
+                      <span className="font-semibold">Leaderboard</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleViewChange("teams");
+                        setMobileMenuOpen(false);
+                      }}
+                      disabled={!teams || !teams.teams || teams.teams.length === 0}
+                      className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${
+                        view === "teams"
+                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
+                          : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <Trophy className="w-5 h-5" />
+                      <span className="font-semibold">Teams</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleViewChange("questions");
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 ${
+                        view === "questions"
+                          ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg"
+                          : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      <span className="font-semibold">Questions</span>
+                    </button>
+                    {userRole === "admin" && (
+                      <button
+                        onClick={() => {
+                          handleViewChange("admin");
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 ${
+                          view === "admin"
+                            ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
+                            : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <Shield className="w-5 h-5" />
+                        <span className="font-semibold">Admin</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Desktop Tabs - Hidden on mobile */}
+            <nav className="max-w-5xl mx-auto hidden sm:flex flex-row justify-center bg-white/80 backdrop-blur-xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-1 sm:p-1.5 md:p-2 shadow-[0_15px_40px_rgba(15,23,42,0.15)] border border-white/60 border-b-0 gap-1 sm:gap-0 mb-0 relative z-10">
             <button
               onClick={() => handleViewChange("poll")}
               className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-2xl sm:rounded-l-2xl sm:rounded-r-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
