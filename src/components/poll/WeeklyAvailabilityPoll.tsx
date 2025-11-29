@@ -87,6 +87,17 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     return () => unsubscribe();
   }, [db]);
 
+  // Check if user can toggle availability for a player
+  const canToggleAvailability = (player: PlayerAvailability): boolean => {
+    if (isAdmin) return true; // Admins can toggle all players
+    if (!currentUserId) return false; // Must be logged in
+    
+    // User can toggle if:
+    // 1. Player is themselves (userId matches)
+    // 2. Player was registered by them (registeredBy matches)
+    return player.userId === currentUserId || player.registeredBy === currentUserId;
+  };
+
   // Sort availability: logged-in user's player first, then players registered by them, then others sorted by name
   const sortedAvailability = useMemo(() => {
     if (!currentUserId) {
@@ -207,12 +218,20 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
           {sortedAvailability.map((player) => (
             <div
               key={player.id}
-              className={`flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-[1.02] ${
+              className={`flex items-center justify-between p-4 rounded-2xl transition-all duration-300 ${
+                canToggleAvailability(player)
+                  ? "cursor-pointer transform hover:scale-[1.02]"
+                  : "cursor-not-allowed opacity-75"
+              } ${
                 player.isAvailable
-                  ? "bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border-2 border-emerald-300 shadow-md hover:shadow-lg"
-                  : "bg-gradient-to-r from-slate-100 to-gray-100 border-2 border-slate-300 shadow-sm opacity-75 hover:opacity-90"
-              }`}
-              onClick={() => onToggleAvailability(player.id)}
+                  ? "bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border-2 border-emerald-300 shadow-md"
+                  : "bg-gradient-to-r from-slate-100 to-gray-100 border-2 border-slate-300 shadow-sm"
+              } ${canToggleAvailability(player) && player.isAvailable ? "hover:shadow-lg" : ""} ${canToggleAvailability(player) && !player.isAvailable ? "hover:opacity-90" : ""}`}
+              onClick={() => {
+                if (canToggleAvailability(player)) {
+                  onToggleAvailability(player.id);
+                }
+              }}
             >
               <div className="flex-1 min-w-0 pr-2">
                 <p className={`font-bold text-base sm:text-lg ${player.isAvailable ? "text-slate-800" : "text-slate-600"} truncate`}>
@@ -243,34 +262,46 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                     </button>
                   </>
                 )}
-                <div className="flex items-center bg-gradient-to-r from-slate-200 to-slate-300 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-inner border-2 border-slate-400">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleAvailability(player.id);
-                    }}
-                    className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
-                      !player.isAvailable
-                        ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg border-2 border-red-700 transform scale-105"
-                        : "text-red-700 hover:bg-red-50 border-2 border-transparent hover:border-red-200"
-                    }`}
-                  >
-                    Out
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleAvailability(player.id);
-                    }}
-                    className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
+                {canToggleAvailability(player) ? (
+                  <div className="flex items-center bg-gradient-to-r from-slate-200 to-slate-300 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-inner border-2 border-slate-400">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleAvailability(player.id);
+                      }}
+                      className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
+                        !player.isAvailable
+                          ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg border-2 border-red-700 transform scale-105"
+                          : "text-red-700 hover:bg-red-50 border-2 border-transparent hover:border-red-200"
+                      }`}
+                    >
+                      Out
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleAvailability(player.id);
+                      }}
+                      className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
+                        player.isAvailable
+                          ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg border-2 border-emerald-700 transform scale-105"
+                          : "text-emerald-700 hover:bg-emerald-50 border-2 border-transparent hover:border-emerald-200"
+                      }`}
+                    >
+                      Playing
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center bg-gradient-to-r from-slate-200 to-slate-300 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-inner border-2 border-slate-400 opacity-75">
+                    <div className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold min-w-[55px] sm:min-w-[70px] md:min-w-[75px] text-center ${
                       player.isAvailable
-                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg border-2 border-emerald-700 transform scale-105"
-                        : "text-emerald-700 hover:bg-emerald-50 border-2 border-transparent hover:border-emerald-200"
-                    }`}
-                  >
-                    Playing
-                  </button>
-                </div>
+                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg border-2 border-emerald-700"
+                        : "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg border-2 border-red-700"
+                    }`}>
+                      {player.isAvailable ? "Playing" : "Out"}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}

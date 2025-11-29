@@ -906,6 +906,17 @@ export default function App() {
     const player = availability.find((p) => p.id === playerId);
     if (!player) return;
 
+    // Check if user has permission to toggle this player's availability
+    // Admins can toggle all players
+    // Regular users can only toggle their own player or players they registered
+    if (userRole !== "admin" && userId) {
+      const canToggle = player.userId === userId || player.registeredBy === userId;
+      if (!canToggle) {
+        setError("You can only change availability for your own player or players you registered.");
+        return;
+      }
+    }
+
     const newStatus = !player.isAvailable;
 
     setAvailability((prev) =>
