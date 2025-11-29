@@ -1271,7 +1271,11 @@ export default function App() {
                   {view === "teams" && <Trophy className="w-4 h-4" />}
                   {view === "questions" && <MessageCircle className="w-4 h-4" />}
                   {view === "admin" && <Shield className="w-4 h-4" />}
-                  {view === "poll" && "Availability"}
+                  {view === "poll" && (
+                    <>
+                      Availability <span className="ml-1">({availableCount})</span>
+                    </>
+                  )}
                   {view === "leaderboard" && "Leaderboard"}
                   {view === "teams" && "Teams"}
                   {view === "questions" && "Questions"}
@@ -1328,10 +1332,9 @@ export default function App() {
                         <div className={`p-2 rounded-xl ${view === "poll" ? "bg-white/20" : "bg-indigo-100"}`}>
                           <ListChecks className={`w-5 h-5 ${view === "poll" ? "text-white" : "text-indigo-600"}`} />
                         </div>
-                        <span className="font-semibold flex-1 text-left">Availability</span>
-                        {view === "poll" && (
-                          <span className="bg-white/20 text-white text-xs font-bold px-2.5 py-1 rounded-full">{availableCount}</span>
-                        )}
+                        <span className="font-semibold flex-1 text-left">
+                          Availability <span className="ml-1">({availableCount})</span>
+                        </span>
                       </button>
                       
                       <button
