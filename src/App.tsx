@@ -117,9 +117,30 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ userEmail, userRole, playerNa
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
+      const popupWidth = Math.min(360, window.innerWidth - 16); // Max width with 8px margin on each side
+      const rightEdge = window.innerWidth - rect.right;
+      const leftEdge = rect.left;
+      
+      // Ensure popup stays within viewport
+      // If there's not enough space on the right, position from left instead
+      let right = rightEdge;
+      if (rightEdge < 8) {
+        right = window.innerWidth - leftEdge - popupWidth;
+      }
+      right = Math.max(8, Math.min(right, window.innerWidth - popupWidth - 8));
+      
+      // Check if popup would go below viewport
+      const estimatedHeight = 200; // Approximate height
+      const spaceBelow = window.innerHeight - rect.bottom;
+      let top = rect.bottom + 8;
+      if (spaceBelow < estimatedHeight && rect.top > estimatedHeight) {
+        // Position above button if not enough space below
+        top = rect.top - estimatedHeight - 8;
+      }
+      
       setMenuPosition({
-        top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
+        top: Math.max(8, top),
+        right: right,
       });
     } else {
       setMenuPosition(null);
@@ -155,7 +176,10 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ userEmail, userRole, playerNa
               className="fixed w-[280px] sm:w-[320px] md:w-[360px] max-w-[calc(100vw-1rem)] bg-white/98 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-200/60 z-[100] overflow-visible animate-in fade-in slide-in-from-top-2 duration-200"
               style={{
                 top: `${menuPosition.top}px`,
-                right: `${Math.max(menuPosition.right, 8)}px`,
+                right: `${menuPosition.right}px`,
+                left: 'auto',
+                maxHeight: 'calc(100vh - 16px)',
+                overflowY: 'auto',
               }}
             >
             {/* Header Section */}
@@ -213,9 +237,30 @@ const InfoTooltip: React.FC = () => {
       setTimeout(() => {
         if (iconRef.current) {
           const rect = iconRef.current.getBoundingClientRect();
+          const popupWidth = Math.min(420, window.innerWidth - 32); // Max width with 16px margin on each side
+          const rightEdge = window.innerWidth - rect.right;
+          const leftEdge = rect.left;
+          
+          // Ensure popup stays within viewport
+          // If there's not enough space on the right, position from left instead
+          let right = rightEdge;
+          if (rightEdge < 16) {
+            right = window.innerWidth - leftEdge - popupWidth;
+          }
+          right = Math.max(16, Math.min(right, window.innerWidth - popupWidth - 16));
+          
+          // Check if popup would go below viewport
+          const estimatedHeight = 150; // Approximate height
+          const spaceBelow = window.innerHeight - rect.bottom;
+          let top = rect.bottom + 12;
+          if (spaceBelow < estimatedHeight && rect.top > estimatedHeight) {
+            // Position above button if not enough space below
+            top = rect.top - estimatedHeight - 12;
+          }
+          
           setTooltipPosition({
-            top: rect.bottom + 12,
-            right: window.innerWidth - rect.right,
+            top: Math.max(16, top),
+            right: right,
           });
         }
       }, 10);
@@ -247,7 +292,10 @@ const InfoTooltip: React.FC = () => {
               className="fixed w-[min(calc(100vw-2rem),400px)] sm:w-[420px] bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-xl text-white text-xs sm:text-sm rounded-3xl shadow-2xl pointer-events-auto z-[100] border border-slate-700/60 p-4 sm:p-5 transition-all duration-200"
               style={{
                 top: `${tooltipPosition.top}px`,
-                right: `${Math.max(tooltipPosition.right, 8)}px`,
+                right: `${tooltipPosition.right}px`,
+                left: 'auto',
+                maxHeight: 'calc(100vh - 32px)',
+                overflowY: 'auto',
               }}
             >
               <div className="flex items-start justify-between gap-3 mb-2">
@@ -1237,93 +1285,126 @@ export default function App() {
             {mobileMenuOpen && (
               <>
                 <div
-                  className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 sm:hidden transition-opacity duration-300"
                   onClick={() => setMobileMenuOpen(false)}
                 />
-                <div className="fixed top-0 left-0 right-0 bg-white rounded-b-3xl shadow-2xl z-50 sm:hidden max-h-[80vh] overflow-y-auto">
-                  <div className="p-4 space-y-2">
-                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
-                      <h2 className="font-bold text-lg text-slate-800">Menu</h2>
+                <div className="fixed top-0 left-0 right-0 bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-b-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-b-2 border-slate-200/60 z-50 sm:hidden max-h-[85vh] overflow-y-auto animate-in slide-in-from-top duration-300">
+                  {/* Decorative background elements */}
+                  <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-b-3xl">
+                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-200/30 rounded-full blur-3xl"></div>
+                    <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-purple-200/30 rounded-full blur-3xl"></div>
+                  </div>
+                  
+                  <div className="relative p-5 sm:p-6 space-y-3">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-2 pb-4 border-b-2 border-gradient-to-r from-slate-200 to-slate-300">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                          <Menu className="w-5 h-5 text-white" />
+                        </div>
+                        <h2 className="font-bold text-xl bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Navigation</h2>
+                      </div>
                       <button
                         onClick={() => setMobileMenuOpen(false)}
-                        className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                        className="p-2 hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95"
                       >
                         <X className="w-5 h-5 text-slate-600" />
                       </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        handleViewChange("poll");
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 ${
-                        view === "poll"
-                          ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg"
-                          : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      <ListChecks className="w-5 h-5" />
-                      <span className="font-semibold">Availability ({availableCount})</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleViewChange("leaderboard");
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 ${
-                        view === "leaderboard"
-                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
-                          : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      <Award className="w-5 h-5" />
-                      <span className="font-semibold">Leaderboard</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleViewChange("teams");
-                        setMobileMenuOpen(false);
-                      }}
-                      disabled={!teams || !teams.teams || teams.teams.length === 0}
-                      className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${
-                        view === "teams"
-                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
-                          : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      <Trophy className="w-5 h-5" />
-                      <span className="font-semibold">Teams</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleViewChange("questions");
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 ${
-                        view === "questions"
-                          ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg"
-                          : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      <MessageCircle className="w-5 h-5" />
-                      <span className="font-semibold">Questions</span>
-                    </button>
-                    {userRole === "admin" && (
+                    
+                    {/* Menu Items */}
+                    <div className="space-y-2.5">
                       <button
                         onClick={() => {
-                          handleViewChange("admin");
+                          handleViewChange("poll");
                           setMobileMenuOpen(false);
                         }}
-                        className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 ${
-                          view === "admin"
-                            ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
-                            : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                        className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 transform ${
+                          view === "poll"
+                            ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl scale-[1.02] border-2 border-indigo-500/50"
+                            : "bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-indigo-50/80 hover:scale-[1.01] border border-slate-200/60 shadow-md hover:shadow-lg"
                         }`}
                       >
-                        <Shield className="w-5 h-5" />
-                        <span className="font-semibold">Admin</span>
+                        <div className={`p-2 rounded-xl ${view === "poll" ? "bg-white/20" : "bg-indigo-100"}`}>
+                          <ListChecks className={`w-5 h-5 ${view === "poll" ? "text-white" : "text-indigo-600"}`} />
+                        </div>
+                        <span className="font-semibold flex-1 text-left">Availability</span>
+                        {view === "poll" && (
+                          <span className="bg-white/20 text-white text-xs font-bold px-2.5 py-1 rounded-full">{availableCount}</span>
+                        )}
                       </button>
-                    )}
+                      
+                      <button
+                        onClick={() => {
+                          handleViewChange("leaderboard");
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 transform ${
+                          view === "leaderboard"
+                            ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xl scale-[1.02] border-2 border-amber-500/50"
+                            : "bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-amber-50/80 hover:scale-[1.01] border border-slate-200/60 shadow-md hover:shadow-lg"
+                        }`}
+                      >
+                        <div className={`p-2 rounded-xl ${view === "leaderboard" ? "bg-white/20" : "bg-amber-100"}`}>
+                          <Award className={`w-5 h-5 ${view === "leaderboard" ? "text-white" : "text-amber-600"}`} />
+                        </div>
+                        <span className="font-semibold flex-1 text-left">Leaderboard</span>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          handleViewChange("teams");
+                          setMobileMenuOpen(false);
+                        }}
+                        disabled={!teams || !teams.teams || teams.teams.length === 0}
+                        className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 transform disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 ${
+                          view === "teams"
+                            ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xl scale-[1.02] border-2 border-amber-500/50"
+                            : "bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-amber-50/80 hover:scale-[1.01] border border-slate-200/60 shadow-md hover:shadow-lg"
+                        }`}
+                      >
+                        <div className={`p-2 rounded-xl ${view === "teams" ? "bg-white/20" : "bg-amber-100"}`}>
+                          <Trophy className={`w-5 h-5 ${view === "teams" ? "text-white" : "text-amber-600"}`} />
+                        </div>
+                        <span className="font-semibold flex-1 text-left">Teams</span>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          handleViewChange("questions");
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 transform ${
+                          view === "questions"
+                            ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-xl scale-[1.02] border-2 border-blue-500/50"
+                            : "bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-blue-50/80 hover:scale-[1.01] border border-slate-200/60 shadow-md hover:shadow-lg"
+                        }`}
+                      >
+                        <div className={`p-2 rounded-xl ${view === "questions" ? "bg-white/20" : "bg-blue-100"}`}>
+                          <MessageCircle className={`w-5 h-5 ${view === "questions" ? "text-white" : "text-blue-600"}`} />
+                        </div>
+                        <span className="font-semibold flex-1 text-left">Questions</span>
+                      </button>
+                      
+                      {userRole === "admin" && (
+                        <button
+                          onClick={() => {
+                            handleViewChange("admin");
+                            setMobileMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 transform ${
+                            view === "admin"
+                              ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-xl scale-[1.02] border-2 border-purple-500/50"
+                              : "bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-purple-50/80 hover:scale-[1.01] border border-slate-200/60 shadow-md hover:shadow-lg"
+                          }`}
+                        >
+                          <div className={`p-2 rounded-xl ${view === "admin" ? "bg-white/20" : "bg-purple-100"}`}>
+                            <Shield className={`w-5 h-5 ${view === "admin" ? "text-white" : "text-purple-600"}`} />
+                          </div>
+                          <span className="font-semibold flex-1 text-left">Admin</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </>

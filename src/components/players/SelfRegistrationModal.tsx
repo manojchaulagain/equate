@@ -45,27 +45,34 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto max-h-[90vh] overflow-y-auto">
-        <div className="flex items-start mb-4">
-          <div className="flex-shrink-0">
-            <AlertCircle className="text-yellow-500" size={24} />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+      <div className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-slate-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
+        {/* Decorative background elements */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+          <div className="absolute -top-16 -right-16 w-32 h-32 bg-amber-200/30 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-yellow-200/30 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="relative z-10">
+          <div className="flex items-start gap-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center shadow-lg flex-shrink-0">
+              <AlertCircle className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                Welcome! Please Register
+              </h2>
+              <p className="text-sm text-slate-600 mt-1 font-medium">
+                You need to register as a player before accessing the dashboard.
+              </p>
+            </div>
           </div>
-          <div className="ml-3 flex-1">
-            <h2 className="text-2xl font-bold text-gray-800">
-              Welcome! Please Register
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              You need to register as a player before accessing the dashboard.
+
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200/60 rounded-xl shadow-sm">
+            <p className="text-sm text-blue-800 font-semibold">
+              <span className="font-bold">Email:</span> {userEmail}
             </p>
           </div>
-        </div>
-
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-          <p className="text-xs text-blue-800">
-            <strong>Email:</strong> {userEmail}
-          </p>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -81,7 +88,7 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
                 setError(null); // Clear error when user starts typing
               }}
               required
-              className="w-full p-3 border border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+              className="w-full p-3 border-2 border-slate-300 rounded-xl bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition duration-150 shadow-sm hover:shadow-md"
               disabled={isSaving}
             />
           </div>
@@ -94,7 +101,7 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
               <select
                 value={position}
                 onChange={(e) => setPosition(e.target.value as Position)}
-                className="w-full p-3 appearance-none border border-gray-300 rounded-xl bg-white focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                className="w-full p-3 appearance-none border-2 border-slate-300 rounded-xl bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition duration-150 shadow-sm hover:shadow-md"
                 disabled={isSaving}
               >
                 {POSITIONS.map((pos) => (
@@ -123,7 +130,7 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
               max="10"
               value={skillLevel}
               onChange={(e) => setSkillLevel(parseInt(e.target.value) as SkillLevel)}
-              className="w-full h-2 bg-gray-200 rounded-xl appearance-none cursor-pointer range-lg"
+              className="w-full h-2.5 bg-gradient-to-r from-slate-200 to-slate-300 rounded-xl appearance-none cursor-pointer range-lg shadow-inner"
               disabled={isSaving}
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -133,27 +140,28 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
           </div>
 
           {error && (
-            <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-xl text-sm font-medium">
+            <div className="p-3 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-xl text-sm font-semibold shadow-md">
               {error}
             </div>
           )}
 
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end pt-6">
             <button
               type="submit"
               disabled={isSaving || !name.trim()}
-              className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition duration-200 disabled:bg-gray-400 flex items-center font-semibold"
+              className="px-6 py-3 bg-gradient-to-r from-amber-600 to-yellow-600 text-white rounded-xl hover:from-amber-700 hover:to-yellow-700 transition-all duration-200 disabled:bg-gray-400 flex items-center gap-2 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
             >
               {isSaving ? (
                 "Registering..."
               ) : (
                 <>
-                  <UserPlus className="mr-2" size={18} /> Complete Registration
+                  <UserPlus className="w-5 h-5" /> Complete Registration
                 </>
               )}
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

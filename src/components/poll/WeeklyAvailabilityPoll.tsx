@@ -389,27 +389,41 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
 
       {/* Delete Confirmation Modal */}
       {playerToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
-              Delete Player?
-            </h2>
-            <p className="text-sm sm:text-base text-gray-600 mb-6">
-              Are you sure you want to delete <span className="font-semibold text-gray-800">{playerToDelete.name}</span>? This action cannot be undone.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:justify-end">
-              <button
-                onClick={() => setPlayerToDelete(null)}
-                className="px-4 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="px-4 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                Delete Player
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-red-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto animate-in slide-in-from-bottom-4 duration-300">
+            {/* Decorative background elements */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+              <div className="absolute -top-16 -right-16 w-32 h-32 bg-red-200/30 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-rose-200/30 rounded-full blur-3xl"></div>
+            </div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg">
+                  <Trash2 className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  Delete Player?
+                </h2>
+              </div>
+              <p className="text-sm sm:text-base text-slate-600 mb-6 pl-1">
+                Are you sure you want to delete <span className="font-semibold text-slate-800">{playerToDelete.name}</span>? This action cannot be undone.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:justify-end">
+                <button
+                  onClick={() => setPlayerToDelete(null)}
+                  className="px-5 py-2.5 bg-slate-200/80 text-slate-800 font-semibold rounded-xl hover:bg-slate-300 transition-all duration-200 hover:scale-105 active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Player
+                </button>
+              </div>
             </div>
           </div>
         </div>

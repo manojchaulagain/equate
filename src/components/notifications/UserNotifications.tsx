@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Bell, X, Heart, Star, CheckCircle } from "lucide-react";
 import { collection, query, where, onSnapshot, doc, updateDoc, Timestamp } from "firebase/firestore";
 
@@ -25,6 +25,8 @@ const UserNotifications: React.FC<UserNotificationsProps> = ({ db, userId }) => 
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!db || !userId) return;
@@ -91,6 +93,40 @@ const UserNotifications: React.FC<UserNotificationsProps> = ({ db, userId }) => 
     }
   };
 
+  // Calculate dropdown position when opening
+  useEffect(() => {
+    if (showDropdown && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const popupWidth = Math.min(380, window.innerWidth - 16); // Max width with 8px margin on each side
+      const rightEdge = window.innerWidth - rect.right;
+      const leftEdge = rect.left;
+      
+      // Ensure popup stays within viewport
+      // If there's not enough space on the right, position from left instead
+      let right = rightEdge;
+      if (rightEdge < 8) {
+        right = window.innerWidth - leftEdge - popupWidth;
+      }
+      right = Math.max(8, Math.min(right, window.innerWidth - popupWidth - 8));
+      
+      // Check if popup would go below viewport
+      const estimatedHeight = Math.min(500, window.innerHeight - 100); // Max height with some margin
+      const spaceBelow = window.innerHeight - rect.bottom;
+      let top = rect.bottom + 8;
+      if (spaceBelow < estimatedHeight && rect.top > estimatedHeight) {
+        // Position above button if not enough space below
+        top = rect.top - estimatedHeight - 8;
+      }
+      
+      setDropdownPosition({
+        top: Math.max(8, top),
+        right: right,
+      });
+    } else {
+      setDropdownPosition(null);
+    }
+  }, [showDropdown]);
+
   const getFormattedDate = (timestamp: Timestamp | any) => {
     if (timestamp?.toDate) {
       return timestamp.toDate().toLocaleString();
@@ -104,6 +140,7 @@ const UserNotifications: React.FC<UserNotificationsProps> = ({ db, userId }) => 
   return (
     <div className="relative flex-shrink-0">
       <button
+        ref={buttonRef}
         onClick={() => setShowDropdown(!showDropdown)}
         className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/20 transition-all duration-300 hover:scale-110 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/50"
         aria-label="Notifications"
@@ -122,7 +159,16 @@ const UserNotifications: React.FC<UserNotificationsProps> = ({ db, userId }) => 
             className="fixed inset-0 z-[95]"
             onClick={() => setShowDropdown(false)}
           />
-          <div className="absolute right-0 top-full mt-2 w-[320px] sm:w-[380px] bg-white rounded-2xl shadow-2xl border-2 border-slate-200 z-[100] max-h-[500px] overflow-hidden flex flex-col">
+          {dropdownPosition && (
+            <div 
+              className="fixed w-[320px] sm:w-[380px] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border-2 border-slate-200 z-[100] overflow-hidden flex flex-col"
+              style={{
+                top: `${dropdownPosition.top}px`,
+                right: `${dropdownPosition.right}px`,
+                left: 'auto',
+                maxHeight: `calc(100vh - ${dropdownPosition.top + 8}px)`,
+              }}
+            >
             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-slate-50 to-blue-50">
               <h3 className="font-bold text-slate-800 flex items-center gap-2">
                 <Bell className="w-5 h-5 text-blue-600" />
@@ -190,6 +236,7 @@ const UserNotifications: React.FC<UserNotificationsProps> = ({ db, userId }) => 
               )}
             </div>
           </div>
+          )}
         </>
       )}
     </div>

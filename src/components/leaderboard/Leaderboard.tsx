@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trophy, Award, Plus, TrendingUp, Star } from "lucide-react";
+import { Trophy, Award, Plus, TrendingUp, Star, X } from "lucide-react";
 import { collection, onSnapshot, doc, setDoc, Timestamp, getDocs, getDoc } from "firebase/firestore";
 
 declare const __app_id: string;
@@ -297,8 +297,28 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
 
       {/* Add Points Modal */}
       {showAddPointsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAddPointsModal(false);
+              setError(null);
+              setSelectedPlayer("");
+              setPoints("");
+              setReason("");
+            }
+          }}
+        >
+          <div 
+            className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-slate-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Decorative background elements */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+              <div className="absolute -top-16 -right-16 w-32 h-32 bg-amber-200/30 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-orange-200/30 rounded-full blur-3xl"></div>
+            </div>
+            
             <button
               onClick={() => {
                 setShowAddPointsModal(false);
@@ -307,14 +327,22 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
                 setPoints("");
                 setReason("");
               }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-4 right-4 p-2 hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 z-20"
+              type="button"
+              aria-label="Close modal"
             >
-              <Plus className="w-6 h-6 rotate-45" />
+              <X className="w-5 h-5 text-slate-600" />
             </button>
 
-            <h2 className="text-2xl font-bold text-gray-800 border-b pb-2 mb-4 flex items-center">
-              <Plus className="mr-2 text-amber-600" size={24} /> Add Points
-            </h2>
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
+                  <Plus className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  Add Points
+                </h2>
+              </div>
 
             <div className="space-y-4">
               <div>
@@ -327,7 +355,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
                     setSelectedPlayer(e.target.value);
                     setError(null);
                   }}
-                  className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition duration-150 bg-white"
+                  className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition duration-150 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md"
                   required
                   disabled={isSubmitting}
                 >
@@ -352,7 +380,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
                   }}
                   placeholder="Enter points"
                   min="1"
-                  className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition duration-150"
+                  className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition duration-150 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md"
                   required
                   disabled={isSubmitting}
                 />
@@ -369,14 +397,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
                   }}
                   placeholder="e.g., Great goal, Excellent defense, Man of the match performance..."
                   rows={4}
-                  className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition duration-150 resize-none"
+                  className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition duration-150 resize-none bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md"
                   required
                   disabled={isSubmitting}
                 />
               </div>
 
               {error && (
-                <div className="p-3 bg-red-50 border border-red-300 text-red-700 rounded-xl text-sm font-medium">
+                <div className="p-3 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-xl text-sm font-semibold shadow-md">
                   {error}
                 </div>
               )}
@@ -384,10 +412,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
               <button
                 onClick={handleAddPoints}
                 disabled={isSubmitting || !selectedPlayer || !points || !reason.trim()}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus size={20} /> {isSubmitting ? 'Adding...' : 'Add Points'}
               </button>
+            </div>
             </div>
           </div>
         </div>

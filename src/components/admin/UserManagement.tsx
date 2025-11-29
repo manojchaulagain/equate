@@ -496,42 +496,55 @@ const UserManagement: React.FC<UserManagementProps> = ({
 
       {/* Delete Confirmation Modal */}
       {userToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
-              Delete User?
-            </h2>
-            <p className="text-sm sm:text-base text-gray-600 mb-2">
-              Are you sure you want to delete <span className="font-semibold text-gray-800">{userToDelete.email}</span>?
-            </p>
-            <p className="text-xs sm:text-sm text-red-600 mb-6 font-medium">
-              ⚠️ This will also delete all players associated with this user (players registered by them and their own player profile). This action cannot be undone.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:justify-end">
-              <button
-                onClick={() => setUserToDelete(null)}
-                className="px-4 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-200"
-                disabled={deletingUserId === userToDelete.id}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                disabled={deletingUserId === userToDelete.id}
-                className="px-4 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center gap-2"
-              >
-                {deletingUserId === userToDelete.id ? (
-                  <>
-                    <span className="animate-spin">⏳</span>
-                    <span>Deleting...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 size={16} />
-                    <span>Delete User</span>
-                  </>
-                )}
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-red-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto animate-in slide-in-from-bottom-4 duration-300">
+            {/* Decorative background elements */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+              <div className="absolute -top-16 -right-16 w-32 h-32 bg-red-200/30 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-rose-200/30 rounded-full blur-3xl"></div>
+            </div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg">
+                  <Trash2 className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  Delete User?
+                </h2>
+              </div>
+              <p className="text-sm sm:text-base text-slate-600 mb-2 pl-1">
+                Are you sure you want to delete <span className="font-semibold text-slate-800">{userToDelete.email}</span>?
+              </p>
+              <p className="text-xs sm:text-sm text-red-600 mb-6 font-semibold pl-1 bg-red-50/50 p-3 rounded-xl border border-red-200">
+                ⚠️ This will also delete all players associated with this user (players registered by them and their own player profile). This action cannot be undone.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:justify-end">
+                <button
+                  onClick={() => setUserToDelete(null)}
+                  className="px-5 py-2.5 bg-slate-200/80 text-slate-800 font-semibold rounded-xl hover:bg-slate-300 transition-all duration-200 hover:scale-105 active:scale-95"
+                  disabled={deletingUserId === userToDelete.id}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={deletingUserId === userToDelete.id}
+                  className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center gap-2 transform hover:scale-105 active:scale-95"
+                >
+                  {deletingUserId === userToDelete.id ? (
+                    <>
+                      <span className="animate-spin">⏳</span>
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={16} />
+                      <span>Delete User</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

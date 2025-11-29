@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Heart, Send, ThumbsUp, MessageCircle } from "lucide-react";
+import { Heart, Send, ThumbsUp, MessageCircle, X } from "lucide-react";
 import { collection, addDoc, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
 
 declare const __app_id: string;
@@ -204,8 +204,27 @@ const KudosBoard: React.FC<KudosBoardProps> = ({ db, userId, userEmail, players,
 
       {/* Add Kudos Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAddModal(false);
+              setError(null);
+              setSelectedPlayer("");
+              setMessage("");
+            }
+          }}
+        >
+          <div 
+            className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-slate-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Decorative background elements */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+              <div className="absolute -top-16 -right-16 w-32 h-32 bg-pink-200/30 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-rose-200/30 rounded-full blur-3xl"></div>
+            </div>
+            
             <button
               onClick={() => {
                 setShowAddModal(false);
@@ -213,14 +232,22 @@ const KudosBoard: React.FC<KudosBoardProps> = ({ db, userId, userEmail, players,
                 setSelectedPlayer("");
                 setMessage("");
               }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-4 right-4 p-2 hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 z-20"
+              type="button"
+              aria-label="Close modal"
             >
-              <Send className="w-6 h-6 rotate-45" />
+              <X className="w-5 h-5 text-slate-600" />
             </button>
 
-            <h2 className="text-2xl font-bold text-gray-800 border-b pb-2 mb-4 flex items-center">
-              <Heart className="mr-2 text-pink-600" size={24} /> Give Kudos
-            </h2>
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center shadow-lg">
+                  <Heart className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  Give Kudos
+                </h2>
+              </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -233,7 +260,7 @@ const KudosBoard: React.FC<KudosBoardProps> = ({ db, userId, userEmail, players,
                     setSelectedPlayer(e.target.value);
                     setError(null);
                   }}
-                  className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150 bg-white"
+                  className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition duration-150 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md"
                   required
                   disabled={isSubmitting}
                 >
@@ -257,26 +284,27 @@ const KudosBoard: React.FC<KudosBoardProps> = ({ db, userId, userEmail, players,
                   }}
                   placeholder="e.g., Great goal today! Amazing teamwork in defense..."
                   rows={4}
-                  className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150 resize-none"
+                  className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition duration-150 resize-none bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md"
                   required
                   disabled={isSubmitting}
                 />
               </div>
 
               {error && (
-                <div className="p-3 bg-red-50 border border-red-300 text-red-700 rounded-xl text-sm font-medium">
+                <div className="p-3 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-xl text-sm font-semibold shadow-md">
                   {error}
                 </div>
               )}
 
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-2 px-5 py-3 text-base font-bold text-white bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 text-base font-bold text-white bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isSubmitting}
               >
                 <Send size={20} /> {isSubmitting ? 'Sending...' : 'Send Kudos'}
               </button>
             </form>
+            </div>
           </div>
         </div>
       )}

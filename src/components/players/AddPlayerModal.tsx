@@ -50,18 +50,42 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div 
+        className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-slate-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Decorative background elements */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+          <div className="absolute -top-16 -right-16 w-32 h-32 bg-emerald-200/30 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-green-200/30 rounded-full blur-3xl"></div>
+        </div>
+        
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-4 right-4 p-2 hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 z-20"
+          type="button"
+          aria-label="Close modal"
         >
-          <X size={24} />
+          <X size={20} className="text-slate-600" />
         </button>
 
-        <h2 className="text-2xl font-bold text-gray-800 border-b pb-2 mb-4 flex items-center">
-          <UserPlus className="mr-2 text-green-600" size={24} /> Register New Player
-        </h2>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg">
+              <UserPlus className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+              Register New Player
+            </h2>
+          </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -77,7 +101,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
                 setError(null); // Clear error when user starts typing
               }}
               required
-              className="w-full p-3 border border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+              className="w-full p-3 border-2 border-slate-300 rounded-xl bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition duration-150 shadow-sm hover:shadow-md"
               disabled={isSaving}
             />
           </div>
@@ -90,7 +114,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
               <select
                 value={position}
                 onChange={(e) => setPosition(e.target.value as Position)}
-                className="w-full p-3 appearance-none border border-gray-300 rounded-xl bg-white focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                className="w-full p-3 appearance-none border-2 border-slate-300 rounded-xl bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition duration-150 shadow-sm hover:shadow-md"
                 disabled={isSaving}
               >
                 {POSITIONS.map((pos) => (
@@ -119,7 +143,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
               max="10"
               value={skillLevel}
               onChange={(e) => setSkillLevel(parseInt(e.target.value) as SkillLevel)}
-              className="w-full h-2 bg-gray-200 rounded-xl appearance-none cursor-pointer range-lg"
+              className="w-full h-2.5 bg-gradient-to-r from-slate-200 to-slate-300 rounded-xl appearance-none cursor-pointer range-lg shadow-inner"
               disabled={isSaving}
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -129,35 +153,36 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
           </div>
 
           {error && (
-            <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-xl text-sm font-medium">
+            <div className="p-3 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-xl text-sm font-semibold shadow-md">
               {error}
             </div>
           )}
 
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex justify-end gap-3 pt-6">
             <button
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300 transition duration-200 disabled:opacity-50"
+              className="px-5 py-2.5 text-slate-700 bg-slate-200/80 hover:bg-slate-300 rounded-xl transition-all duration-200 disabled:opacity-50 font-semibold hover:scale-105 active:scale-95"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving || !name.trim()}
-              className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition duration-200 disabled:bg-gray-400 flex items-center"
+              className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all duration-200 disabled:bg-gray-400 flex items-center gap-2 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
             >
               {isSaving ? (
                 "Saving..."
               ) : (
                 <>
-                  <Save className="mr-2" size={16} /> Save Player
+                  <Save className="w-4 h-4" /> Save Player
                 </>
               )}
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
