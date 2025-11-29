@@ -1,6 +1,6 @@
 # ⚽ Soccer Team Balancer
 
-A modern web application for managing soccer players, tracking weekly availability, and generating balanced teams automatically. Built with React, TypeScript, and Firebase.
+A modern web application for managing soccer players, tracking weekly availability, and generating balanced teams automatically. Built with React, TypeScript, and Firebase
 
 ![Live Demo](https://manojchaulagain.github.io/equate)
 
