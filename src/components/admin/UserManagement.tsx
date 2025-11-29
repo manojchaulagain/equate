@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Users, Shield, User, Search, CheckCircle } from "lucide-react";
-import { doc, setDoc } from "firebase/firestore";
+import { Users, Shield, User, Search, CheckCircle, Trash2, Edit2, X, Save } from "lucide-react";
+import { doc, setDoc, collection, onSnapshot, deleteDoc, query, where, getDocs } from "firebase/firestore";
 import { UserRole } from "../../types/user";
 
 declare const __app_id: string;
@@ -9,6 +9,9 @@ interface UserData {
   id: string;
   email: string;
   role: UserRole;
+  createdAt?: any;
+  lastLogin?: any;
+  playerName?: string;
 }
 
 interface UserManagementProps {
@@ -28,6 +31,11 @@ const UserManagement: React.FC<UserManagementProps> = ({
   const [loading, setLoading] = useState(true);
   const [searchEmail, setSearchEmail] = useState("");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editEmail, setEditEmail] = useState("");
+  const [editRole, setEditRole] = useState<UserRole>("user");
+  const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -35,26 +43,55 @@ const UserManagement: React.FC<UserManagementProps> = ({
   useEffect(() => {
     if (!db) return;
 
-    const fetchUsers = async () => {
-      setLoading(true);
-      setError(null);
+    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+    const usersPath = `artifacts/${appId}/public/data/users`;
+    const usersRef = collection(db, usersPath);
 
-      try {
-        // Note: This requires a collection of users or we need to query by email
-        // For now, we'll create a helper to search by email or manage known users
-        // Since Firestore doesn't have a direct way to list all authenticated users,
-        // we'll need to maintain a users collection or search by email
+    const unsubscribe = onSnapshot(
+      usersRef,
+      async (snapshot) => {
+        const usersData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as UserData[];
+
+        // Fetch player names for each user
+        const playersPath = `artifacts/${appId}/public/data/soccer_players`;
+        const playersRef = collection(db, playersPath);
         
-        // For this implementation, we'll show a form to add/manage users by email
-        setLoading(false);
-      } catch (err: any) {
+        try {
+          const playersSnapshot = await getDocs(playersRef);
+          const playersMap = new Map<string, string>();
+          
+          playersSnapshot.docs.forEach((playerDoc) => {
+            const playerData = playerDoc.data();
+            if (playerData.userId) {
+              playersMap.set(playerData.userId, playerData.name);
+            }
+          });
+
+          // Add player names to users
+          const usersWithNames = usersData.map((user) => ({
+            ...user,
+            playerName: playersMap.get(user.id) || undefined,
+          }));
+
+          setUsers(usersWithNames);
+          setLoading(false);
+        } catch (err) {
+          console.error("Error fetching player names:", err);
+          setUsers(usersData);
+          setLoading(false);
+        }
+      },
+      (err) => {
         console.error("Error fetching users:", err);
-        setError(`Failed to fetch users: ${err.message}`);
+        setError("Failed to load users.");
         setLoading(false);
       }
-    };
+    );
 
-    fetchUsers();
+    return () => unsubscribe();
   }, [db]);
 
   const updateUserRole = async (userId: string, newRole: UserRole) => {
@@ -126,6 +163,113 @@ const UserManagement: React.FC<UserManagementProps> = ({
     }
   };
 
+  const handleEditClick = (user: UserData) => {
+    setEditingUserId(user.id);
+    setEditEmail(user.email);
+    setEditRole(user.role);
+    setError(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingUserId(null);
+    setEditEmail("");
+    setEditRole("user");
+    setError(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!db || !editingUserId) return;
+
+    if (!editEmail.trim()) {
+      setError("Email cannot be empty.");
+      return;
+    }
+
+    setUpdatingUserId(editingUserId);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+      const userDocPath = `artifacts/${appId}/public/data/users/${editingUserId}`;
+      const userDocRef = doc(db, userDocPath);
+      
+      await setDoc(
+        userDocRef,
+        {
+          email: editEmail.trim(),
+          role: editRole,
+        },
+        { merge: true }
+      );
+
+      setSuccess(`User details updated successfully`);
+      setEditingUserId(null);
+      onRoleUpdate();
+
+      setTimeout(() => {
+        setSuccess(null);
+      }, 3000);
+    } catch (err: any) {
+      console.error("Error updating user:", err);
+      setError(`Failed to update user: ${err.message}`);
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  const handleDeleteClick = (user: UserData) => {
+    setUserToDelete(user);
+    setError(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!db || !userToDelete) return;
+
+    setDeletingUserId(userToDelete.id);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+      
+      // Delete associated players (where userId matches or registeredBy matches)
+      const playersPath = `artifacts/${appId}/public/data/soccer_players`;
+      const playersRef = collection(db, playersPath);
+      
+      // Query players where userId matches
+      const q1 = query(playersRef, where("userId", "==", userToDelete.id));
+      const snapshot1 = await getDocs(q1);
+      const deletePromises1 = snapshot1.docs.map((doc) => deleteDoc(doc.ref));
+      
+      // Query players where registeredBy matches
+      const q2 = query(playersRef, where("registeredBy", "==", userToDelete.id));
+      const snapshot2 = await getDocs(q2);
+      const deletePromises2 = snapshot2.docs.map((doc) => deleteDoc(doc.ref));
+      
+      // Delete all associated players
+      await Promise.all([...deletePromises1, ...deletePromises2]);
+      
+      // Delete user document
+      const userDocPath = `artifacts/${appId}/public/data/users/${userToDelete.id}`;
+      const userDocRef = doc(db, userDocPath);
+      await deleteDoc(userDocRef);
+
+      setSuccess(`User ${userToDelete.email} and associated players deleted successfully`);
+      setUserToDelete(null);
+      onRoleUpdate();
+
+      setTimeout(() => {
+        setSuccess(null);
+      }, 3000);
+    } catch (err: any) {
+      console.error("Error deleting user:", err);
+      setError(`Failed to delete user: ${err.message}`);
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
   const filteredUsers = users.filter((user) =>
     user.email.toLowerCase().includes(searchEmail.toLowerCase())
   );
@@ -141,86 +285,40 @@ const UserManagement: React.FC<UserManagementProps> = ({
         <div className="absolute bottom-0 left-4 w-64 h-64 bg-pink-200/50 blur-[120px]" />
       </div>
       <div className="relative z-10">
-      <h2 className="text-3xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent border-b-2 border-purple-200 pb-3 mb-6 flex items-center">
-        <Shield className="mr-3 text-purple-600" size={28} /> User Role Management
-      </h2>
-
-      <div className="mb-6 p-5 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-xl shadow-md">
-        <p className="text-sm text-blue-800 font-medium mb-2">
-          How to set user roles:
-        </p>
-        <ol className="text-sm text-blue-700 list-decimal list-inside space-y-1">
-          <li>Get the user's User ID from Firebase Authentication</li>
-          <li>Use the form below to set their role</li>
-          <li>Or manually create a document in Firestore at:</li>
-        </ol>
-        <code className="block mt-2 p-2 bg-blue-100 rounded text-xs text-blue-900">
-          artifacts/{"{appId}"}/public/data/users/{"{userId}"}
-        </code>
-        <p className="text-xs text-blue-600 mt-2">
-          With fields: <code className="bg-blue-100 px-1 rounded">email</code> and{" "}
-          <code className="bg-blue-100 px-1 rounded">role</code> (value: "admin" or "user")
-        </p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <h2 className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent border-b-2 border-purple-200 pb-3 flex items-center">
+          <Shield className="mr-3 text-purple-600" size={28} /> User Management
+        </h2>
+        {users.length > 0 && (
+          <div className="text-sm font-semibold text-slate-600 bg-purple-50 px-4 py-2 rounded-xl border border-purple-200">
+            Total Users: {users.length}
+          </div>
+        )}
       </div>
 
-      {/* Add User by User ID Form */}
-      <div className="mb-6 p-5 bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl border-2 border-slate-300 shadow-md">
-        <h3 className="text-xl font-bold text-slate-800 mb-4">
-          Set Role by User ID
-        </h3>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-            const userId = formData.get("userId") as string;
-            const email = formData.get("email") as string;
-            const role = formData.get("role") as UserRole;
-
-            if (userId && email && role) {
-              handleSetUserRole(userId, email, role);
-            }
-          }}
-          className="space-y-3"
-        >
-          <input
-            type="text"
-            name="userId"
-            placeholder="Firebase User ID (UID)"
-            required
-            className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white/80 shadow-sm"
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="User Email"
-            required
-            className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white/80 shadow-sm"
-          />
-          <select
-            name="role"
-            required
-            className="w-full p-3 border-2 border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 shadow-sm"
-          >
-            <option value="user">Regular User</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button
-            type="submit"
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 px-4 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-          >
-            Set User Role
-          </button>
-        </form>
+      <div className="mb-6 p-5 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-2xl shadow-md">
+        <p className="text-sm text-blue-800 font-medium mb-2">
+          User Management:
+        </p>
+        <ul className="text-sm text-blue-700 list-disc list-inside space-y-1">
+          <li>View all users who have signed in to the app</li>
+          <li>Edit user email and role directly from the user list</li>
+          <li>Toggle admin status using the "Make Admin" / "Remove Admin" button</li>
+          <li>Delete users (this will also delete all associated players)</li>
+        </ul>
+        <p className="text-xs text-blue-600 mt-2">
+          User documents are automatically created when users sign in for the first time.
+        </p>
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-xl text-sm font-semibold shadow-md">
+        <div className="mb-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-2xl text-sm font-semibold shadow-md">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="mb-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 text-emerald-700 rounded-xl text-sm font-semibold flex items-center shadow-md">
+        <div className="mb-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 text-emerald-700 rounded-2xl text-sm font-semibold flex items-center shadow-md">
           <CheckCircle className="mr-2" size={18} />
           {success}
         </div>
@@ -237,7 +335,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
                 placeholder="Search by email..."
                 value={searchEmail}
                 onChange={(e) => setSearchEmail(e.target.value)}
-                className="w-full pl-12 p-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white/80 shadow-sm"
+                className="w-full pl-12 p-3.5 border-2 border-slate-300 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white/80 shadow-sm"
               />
             </div>
           </div>
@@ -246,52 +344,136 @@ const UserManagement: React.FC<UserManagementProps> = ({
             {filteredUsers.map((user) => (
               <div
                 key={user.id}
-                className="flex items-center justify-between p-4 bg-gradient-to-r from-white to-slate-50 rounded-xl border-2 border-slate-200 shadow-md hover:shadow-lg transition-all duration-200"
+                className="p-4 bg-gradient-to-r from-white to-slate-50 rounded-2xl border-2 border-slate-200 shadow-md hover:shadow-lg transition-all duration-200"
               >
-                <div className="flex items-center space-x-4">
-                  {user.role === "admin" ? (
-                    <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg shadow-md">
-                      <Shield className="text-white" size={24} />
+                {editingUserId === user.id ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={editEmail}
+                        onChange={(e) => {
+                          setEditEmail(e.target.value);
+                          setError(null);
+                        }}
+                        className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white"
+                        disabled={updatingUserId === user.id}
+                      />
                     </div>
-                  ) : (
-                    <div className="p-2 bg-slate-200 rounded-lg">
-                      <User className="text-slate-600" size={24} />
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Role
+                      </label>
+                      <select
+                        value={editRole}
+                        onChange={(e) => {
+                          setEditRole(e.target.value as UserRole);
+                          setError(null);
+                        }}
+                        className="w-full p-3 border-2 border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                        disabled={updatingUserId === user.id}
+                      >
+                        <option value="user">Regular User</option>
+                        <option value="admin">Admin</option>
+                      </select>
                     </div>
-                  )}
-                  <div>
-                    <p className="font-bold text-slate-800 text-lg">{user.email}</p>
-                    <p className="text-xs text-slate-500 font-medium">ID: {user.id}</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveEdit}
+                        disabled={updatingUserId === user.id}
+                        className="flex-1 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center gap-2"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>Save</span>
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={updatingUserId === user.id}
+                        className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-200"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <span
-                    className={`px-4 py-2 rounded-full text-xs font-bold shadow-md ${
-                      user.role === "admin"
-                        ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white"
-                        : "bg-slate-200 text-slate-700"
-                    }`}
-                  >
-                    {user.role}
-                  </span>
-                  {user.id !== currentUserId && (
-                    <button
-                      onClick={() =>
-                        updateUserRole(
-                          user.id,
-                          user.role === "admin" ? "user" : "admin"
-                        )
-                      }
-                      disabled={updatingUserId === user.id}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-xl hover:from-purple-700 hover:to-pink-700 disabled:bg-gray-400 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 disabled:transform-none"
-                    >
-                      {updatingUserId === user.id
-                        ? "Updating..."
-                        : user.role === "admin"
-                        ? "Remove Admin"
-                        : "Make Admin"}
-                    </button>
-                  )}
-                </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                    <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                      {user.role === "admin" ? (
+                        <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl shadow-md flex-shrink-0">
+                          <Shield className="text-white" size={20} />
+                        </div>
+                      ) : (
+                        <div className="p-2 bg-slate-200 rounded-xl flex-shrink-0">
+                          <User className="text-slate-600" size={20} />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-slate-800 text-base sm:text-lg truncate">
+                          {user.playerName || user.email}
+                        </p>
+                        <p className="text-xs text-slate-500 font-medium break-words">
+                          {user.playerName && <span className="break-all">{user.email}</span>}
+                          {user.playerName && (user.lastLogin || !user.lastLogin) && <span> • </span>}
+                          {user.lastLogin && (
+                            <span>
+                              Last login: {user.lastLogin.toDate ? user.lastLogin.toDate().toLocaleDateString() : (user.lastLogin.seconds ? new Date(user.lastLogin.seconds * 1000).toLocaleDateString() : "Never")}
+                            </span>
+                          )}
+                          {!user.lastLogin && <span>Last login: Never</span>}
+                        </p>
+                        <p className="text-xs text-slate-400 font-medium mt-0.5 truncate">ID: {user.id}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 sm:space-x-2 sm:flex-nowrap">
+                      <span
+                        className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold shadow-md whitespace-nowrap ${
+                          user.role === "admin"
+                            ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white"
+                            : "bg-slate-200 text-slate-700"
+                        }`}
+                      >
+                        {user.role}
+                      </span>
+                      {user.id !== currentUserId && (
+                        <>
+                          <button
+                            onClick={() => handleEditClick(user)}
+                            className="p-2 bg-gradient-to-br from-blue-500 to-cyan-600 text-white hover:from-blue-600 hover:to-cyan-700 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110 flex-shrink-0"
+                            title="Edit user"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(user)}
+                            className="p-2 bg-gradient-to-br from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110 flex-shrink-0"
+                            title="Delete user"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              updateUserRole(
+                                user.id,
+                                user.role === "admin" ? "user" : "admin"
+                              )
+                            }
+                            disabled={updatingUserId === user.id}
+                            className="px-2 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-xl hover:from-purple-700 hover:to-pink-700 disabled:bg-gray-400 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 disabled:transform-none whitespace-nowrap flex-shrink-0"
+                          >
+                            {updatingUserId === user.id
+                              ? "Updating..."
+                              : user.role === "admin"
+                              ? "Remove Admin"
+                              : "Make Admin"}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -299,64 +481,65 @@ const UserManagement: React.FC<UserManagementProps> = ({
       )}
 
       {users.length === 0 && !loading && (
-        <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-gray-100 rounded-xl border-2 border-dashed border-slate-300">
+        <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-gray-100 rounded-2xl border-2 border-dashed border-slate-300">
           <Users className="mx-auto mb-3 text-slate-400" size={40} />
-          <p className="text-slate-600 font-semibold">No users found. Use the form above to set user roles.</p>
+          <p className="text-slate-600 font-semibold mb-2">No users found in the database.</p>
+          <p className="text-xs text-slate-500">User documents are automatically created when users sign in. If you don't see any users, they may not have signed in yet.</p>
         </div>
       )}
 
       {loading && (
-        <div className="text-center p-8 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl border border-purple-200">
+        <div className="text-center p-8 bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl border border-purple-200">
           <p className="text-purple-700 font-bold text-lg">Loading users...</p>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {userToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
+              Delete User?
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-2">
+              Are you sure you want to delete <span className="font-semibold text-gray-800">{userToDelete.email}</span>?
+            </p>
+            <p className="text-xs sm:text-sm text-red-600 mb-6 font-medium">
+              ⚠️ This will also delete all players associated with this user (players registered by them and their own player profile). This action cannot be undone.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:justify-end">
+              <button
+                onClick={() => setUserToDelete(null)}
+                className="px-4 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-200"
+                disabled={deletingUserId === userToDelete.id}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deletingUserId === userToDelete.id}
+                className="px-4 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center gap-2"
+              >
+                {deletingUserId === userToDelete.id ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    <span>Delete User</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
       </div>
     </div>
   );
 
-  async function handleSetUserRole(userId: string, email: string, role: UserRole) {
-    if (!db) {
-      setError("Database connection not ready.");
-      return;
-    }
-
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-      const userDocPath = `artifacts/${appId}/public/data/users/${userId}`;
-      const userDocRef = doc(db, userDocPath);
-
-      await setDoc(
-        userDocRef,
-        {
-          email: email,
-          role: role,
-        },
-        { merge: true }
-      );
-
-      // Add to local state if not already present
-      setUsers((prev) => {
-        const existing = prev.find((u) => u.id === userId);
-        if (existing) {
-          return prev.map((u) => (u.id === userId ? { ...u, email, role } : u));
-        }
-        return [...prev, { id: userId, email, role }];
-      });
-
-      setSuccess(`User role set to ${role} for ${email}`);
-      onRoleUpdate();
-
-      setTimeout(() => {
-        setSuccess(null);
-      }, 3000);
-    } catch (err: any) {
-      console.error("Error setting user role:", err);
-      setError(`Failed to set role: ${err.message}`);
-    }
-  }
 };
 
 export default UserManagement;

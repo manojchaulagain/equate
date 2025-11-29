@@ -1,9 +1,13 @@
-import React, { useState, useMemo } from "react";
-import { ListChecks, Trophy, Edit2, UserPlus, Trash2 } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { ListChecks, Trophy, Edit2, UserPlus, Trash2, Calendar } from "lucide-react";
 import { PlayerAvailability, Player } from "../../types/player";
 import { POSITION_LABELS, SKILL_LABELS } from "../../constants/player";
 import EditPlayerModal from "../players/EditPlayerModal";
 import AddPlayerModal from "../players/AddPlayerModal";
+import { doc, onSnapshot } from "firebase/firestore";
+import { calculateNextGame, GameSchedule } from "../../utils/gameSchedule";
+
+declare const __app_id: string;
 
 const TEAM_COUNT_OPTIONS = [2, 3, 4, 5, 6];
 
@@ -24,6 +28,7 @@ interface WeeklyAvailabilityPollProps {
   minPlayersRequired: number;
   canGenerateTeams: boolean;
   currentUserId: string | null;
+  db?: any;
   isActive?: boolean;
 }
 
@@ -44,11 +49,43 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   minPlayersRequired,
   canGenerateTeams,
   currentUserId,
+  db,
   isActive = false,
 }) => {
   const [editingPlayer, setEditingPlayer] = useState<PlayerAvailability | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [playerToDelete, setPlayerToDelete] = useState<PlayerAvailability | null>(null);
+  const [gameSchedule, setGameSchedule] = useState<GameSchedule | null>(null);
+  const [nextGame, setNextGame] = useState<{ date: Date; formatted: string } | null>(null);
+
+  // Fetch game schedule and calculate next game
+  useEffect(() => {
+    if (!db) return;
+
+    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+    const schedulePath = `artifacts/${appId}/public/data/gameSchedule/config`;
+    const scheduleRef = doc(db, schedulePath);
+
+    const unsubscribe = onSnapshot(
+      scheduleRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data() as GameSchedule;
+          setGameSchedule(data);
+          const next = calculateNextGame(data);
+          setNextGame(next);
+        } else {
+          setGameSchedule(null);
+          setNextGame(null);
+        }
+      },
+      (err) => {
+        console.error("Error fetching game schedule:", err);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [db]);
 
   // Sort availability: logged-in user's player first, then players registered by them, then others sorted by name
   const sortedAvailability = useMemo(() => {
@@ -107,18 +144,37 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
         <div className="absolute bottom-0 left-0 w-40 h-40 bg-indigo-200/50 blur-[80px]" />
       </div>
       <div className="relative z-10">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div className="flex-1">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent pb-2 flex flex-col sm:flex-row items-start sm:items-center gap-2">
-            <span className="flex items-center">
-              <ListChecks className="mr-2 sm:mr-3 text-indigo-600" size={20} /> 
-              <span className="whitespace-nowrap">Weekly Availability</span>
-            </span>
-            <span className="sm:ml-2">Poll</span>
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
-            Toggle players who are available to play this week.
-          </p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">
+              <ListChecks className="text-indigo-600 flex-shrink-0" size={20} /> 
+              <span className="whitespace-nowrap">Weekly Availability Poll</span>
+            </h2>
+            {nextGame && (
+              <div className="inline-block p-3 sm:p-4 bg-gradient-to-br from-indigo-100/90 via-purple-100/90 to-pink-100/90 border-2 border-indigo-300/70 rounded-2xl shadow-lg backdrop-blur-sm relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5"></div>
+                <div className="relative z-10 flex items-center gap-2 sm:gap-3">
+                  <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-md flex-shrink-0">
+                    <Calendar className="text-white" size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-0.5">
+                      Next Game
+                    </p>
+                    <p className="text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 bg-clip-text text-transparent whitespace-nowrap">
+                      {nextGame.formatted}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          {!nextGame && (
+            <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
+              Toggle players who are available to play this week.
+            </p>
+          )}
         </div>
         <button
           onClick={() => setShowAddModal(true)}

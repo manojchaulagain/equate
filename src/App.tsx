@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { ListChecks, Trophy, LogOut, Shield, Info, MessageCircle, AlertTriangle, X } from "lucide-react";
+import { ListChecks, Trophy, LogOut, Shield, Info, MessageCircle, AlertTriangle, X, Award } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
@@ -20,6 +20,7 @@ import {
   where,
   getDocs,
   orderBy,
+  Timestamp,
 } from "firebase/firestore";
 
 import {
@@ -37,9 +38,14 @@ import AuthUI from "./components/auth/AuthUI";
 import WeeklyAvailabilityPoll from "./components/poll/WeeklyAvailabilityPoll";
 import TeamResults from "./components/teams/TeamResults";
 import UserManagement from "./components/admin/UserManagement";
+import GameSchedule from "./components/admin/GameSchedule";
 import SelfRegistrationModal from "./components/players/SelfRegistrationModal";
 import QuestionsConcerns from "./components/questions/QuestionsConcerns";
 import Notifications from "./components/notifications/Notifications";
+import UserNotifications from "./components/notifications/UserNotifications";
+import Leaderboard from "./components/leaderboard/Leaderboard";
+import KudosBoard from "./components/kudos/KudosBoard";
+import ManOfTheMatch from "./components/motm/ManOfTheMatch";
 
 // --- GLOBAL CANVAS VARIABLES (Mandatory) ---
 declare const __app_id: string;
@@ -218,15 +224,15 @@ const InfoTooltip: React.FC = () => {
     }
   }, [isOpen]);
 
-  return (
+    return (
     <div className="relative flex-shrink-0" ref={iconRef}>
-      <button
+        <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/20 transition-all duration-300 hover:scale-110 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/50"
         aria-label="App information"
-      >
+        >
         <Info className="w-4 h-4 sm:w-5 sm:h-5" />
-      </button>
+        </button>
 
       {isOpen && (
         <>
@@ -265,8 +271,8 @@ const InfoTooltip: React.FC = () => {
           )}
         </>
       )}
-    </div>
-  );
+      </div>
+    );
 };
 
 // Notifications Banner Component - Shows critical notifications at top
@@ -319,15 +325,15 @@ const NotificationsBanner: React.FC<{ db: any }> = ({ db }) => {
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-sm sm:text-base mb-1">{notification.title}</h3>
               <p className="text-xs sm:text-sm text-white/95 whitespace-pre-wrap">{notification.message}</p>
-            </div>
+        </div>
           </div>
-          <button
+      <button
             onClick={() => handleDismiss(notification.id)}
             className="text-white/80 hover:text-white transition-colors flex-shrink-0"
             aria-label="Dismiss notification"
           >
             <X size={20} />
-          </button>
+      </button>
         </div>
       ))}
     </div>
@@ -347,16 +353,16 @@ export default function App() {
   const [availability, setAvailability] = useState<PlayerAvailability[]>([]);
   const [teams, setTeams] = useState<TeamResultsState | null>(null);
   const [teamCount, setTeamCount] = useState<number>(2);
-  const [view, setView] = useState<"poll" | "teams" | "questions" | "admin">("poll");
+  const [view, setView] = useState<"poll" | "teams" | "questions" | "admin" | "leaderboard">("poll");
   const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   // Helper to determine slide direction based on tab order
-  const getTabOrder = (tab: "poll" | "teams" | "questions" | "admin"): number => {
-    return tab === "poll" ? 0 : tab === "teams" ? 1 : tab === "questions" ? 2 : 3;
+  const getTabOrder = (tab: "poll" | "teams" | "questions" | "admin" | "leaderboard"): number => {
+    return tab === "poll" ? 0 : tab === "leaderboard" ? 1 : tab === "teams" ? 2 : tab === "questions" ? 3 : 4;
   };
   
-  const handleViewChange = (newView: "poll" | "teams" | "questions" | "admin") => {
+  const handleViewChange = (newView: "poll" | "teams" | "questions" | "admin" | "leaderboard") => {
     if (view !== newView) {
       const currentOrder = getTabOrder(view);
       const newOrder = getTabOrder(newView);
@@ -403,10 +409,41 @@ export default function App() {
       setDb(firestore);
       setAuth(authInstance);
 
-      const unsubscribeAuth = onAuthStateChanged(authInstance, (user) => {
+      const unsubscribeAuth = onAuthStateChanged(authInstance, async (user) => {
         if (user) {
           setUserId(user.uid);
           setUserEmail(user.email);
+          
+          // Automatically create/update user document in Firestore
+          if (db && user.email) {
+            try {
+              const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+              const userDocPath = `artifacts/${appId}/public/data/users/${user.uid}`;
+              const userDocRef = doc(db, userDocPath);
+              const userDocSnap = await getDoc(userDocRef);
+              
+              // Only create if it doesn't exist (preserve existing role if admin)
+              if (!userDocSnap.exists()) {
+                await setDoc(userDocRef, {
+                  email: user.email,
+                  role: "user", // Default to regular user
+                  lastLogin: Timestamp.now(),
+                }, { merge: true });
+              } else {
+                // Update email if it has changed and always update lastLogin
+                const existingData = userDocSnap.data();
+                await setDoc(userDocRef, {
+                  email: user.email,
+                  role: existingData.role || "user",
+                  lastLogin: Timestamp.now(),
+                }, { merge: true });
+              }
+            } catch (error) {
+              console.error("Error creating/updating user document:", error);
+              // Don't block sign-in if this fails
+            }
+          }
+          
           // Check localStorage for registration status on auth state change
           const stored = localStorage.getItem(`userRegistered_${user.uid}`);
           if (stored === "true") {
@@ -414,7 +451,7 @@ export default function App() {
             setCheckingRegistration(false);
           } else {
             setIsUserRegistered(null);
-            setCheckingRegistration(true);
+            setCheckingRegistration(false);
           }
         } else {
           setUserId(null);
@@ -434,10 +471,41 @@ export default function App() {
   }, []);
 
   // Handler for successful sign-in from AuthUI
-  const handleSuccessfulSignIn = (user: User) => {
+  const handleSuccessfulSignIn = async (user: User) => {
     setUserId(user.uid);
     setUserEmail(user.email);
     setError(null);
+    
+    // Automatically create/update user document in Firestore
+    if (db && user.email) {
+      try {
+        const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+        const userDocPath = `artifacts/${appId}/public/data/users/${user.uid}`;
+        const userDocRef = doc(db, userDocPath);
+        const userDocSnap = await getDoc(userDocRef);
+        
+        // Only create if it doesn't exist (preserve existing role if admin)
+        if (!userDocSnap.exists()) {
+          await setDoc(userDocRef, {
+            email: user.email,
+            role: "user", // Default to regular user
+            lastLogin: Timestamp.now(),
+          }, { merge: true });
+        } else {
+          // Update email if it has changed and always update lastLogin
+          const existingData = userDocSnap.data();
+          await setDoc(userDocRef, {
+            email: user.email,
+            role: existingData.role || "user",
+            lastLogin: Timestamp.now(),
+          }, { merge: true });
+        }
+      } catch (error) {
+        console.error("Error creating/updating user document:", error);
+        // Don't block sign-in if this fails
+      }
+    }
+    
     // Check localStorage first, then trigger check if not found
     const stored = localStorage.getItem(`userRegistered_${user.uid}`);
     if (stored === "true") {
@@ -445,7 +513,7 @@ export default function App() {
       setCheckingRegistration(false);
     } else {
       setIsUserRegistered(null);
-      setCheckingRegistration(true);
+      setCheckingRegistration(false);
     }
     // Note: The registration check useEffect will run automatically when userId changes
   };
@@ -1008,7 +1076,7 @@ export default function App() {
         <div className="absolute top-1/3 -left-24 w-80 h-80 bg-indigo-500/20 blur-[140px]" />
         <div className="absolute bottom-0 right-1/3 w-96 h-96 bg-blue-500/10 blur-[160px]" />
         <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.02)_25%,transparent_25%)]" />
-      </div>
+          </div>
 
       <div className="relative z-10 px-2 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <header className="max-w-5xl mx-auto relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl sm:rounded-[2rem] p-4 sm:p-6 md:p-8 shadow-2xl border border-slate-700/50 z-20 overflow-hidden">
@@ -1039,20 +1107,21 @@ export default function App() {
             <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl -mr-48 -mt-48"></div>
             <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl -ml-40 -mb-40"></div>
             <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-red-500/8 rounded-full blur-2xl"></div>
-          </div>
-          
+        </div>
+
           {/* Top Right Corner - Profile and Info */}
           {userId && userEmail && (
             <div className="absolute top-2 right-2 sm:top-4 sm:right-4 md:top-6 md:right-6 flex items-center gap-1.5 sm:gap-2 md:gap-3 z-30">
+              <UserNotifications db={db} userId={userId} />
+              <InfoTooltip />
               <ProfileMenu
                 userEmail={userEmail}
                 userRole={userRole}
                 playerName={availability.find(p => p.userId === userId)?.name}
                 onSignOut={handleSignOut}
               />
-              <InfoTooltip />
-            </div>
-          )}
+          </div>
+        )}
 
           {/* Club Content */}
           <div className="relative z-10 flex flex-col items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
@@ -1070,8 +1139,8 @@ export default function App() {
                 />
                 {/* Shine effect */}
                 <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none"></div>
-              </div>
-            </div>
+        </div>
+        </div>
 
             {/* Club Name - Centered */}
             <div className="text-center space-y-2 sm:space-y-3 md:space-y-4 px-2">
@@ -1079,42 +1148,42 @@ export default function App() {
                 <span className="inline-flex items-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black tracking-tight flex-wrap justify-center">
                   <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 bg-clip-text text-transparent drop-shadow-lg">
                     Sagarmatha
-                  </span>
+        </span>
                   <span className="mx-1.5 sm:mx-2 md:mx-3 text-slate-300">FC</span>
-                </span>
+            </span>
                 <div className="flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 mt-1 flex-wrap px-2">
                   <div className="h-px w-6 sm:w-8 md:w-12 bg-gradient-to-r from-transparent via-amber-500/60 to-amber-500/60"></div>
                   <span className="uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[10px] sm:text-xs md:text-sm text-slate-400 font-semibold px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-800/50 backdrop-blur-sm rounded-full border border-slate-700/50 whitespace-nowrap">
                     Excellence Through Unity
-                  </span>
+            </span>
                   <div className="h-px w-6 sm:w-8 md:w-12 bg-gradient-to-l from-transparent via-amber-500/60 to-amber-500/60"></div>
-                </div>
-              </h1>
-            </div>
           </div>
-        </header>
+        </h1>
+            </div>
+        </div>
+      </header>
 
-        {!isAppReady && (
+      {!isAppReady && (
           <div className="max-w-4xl mx-auto text-center p-10 bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 shadow-[0_20px_50px_rgba(15,23,42,0.2)]">
             <p className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Initializing application...
+          Initializing application...
             </p>
-          </div>
-        )}
+        </div>
+      )}
 
-        {/* Conditional Rendering based on Auth Status */}
-        {isAppReady && !userId && auth && (
-          <AuthUI
-            auth={auth}
-            onSignIn={handleSuccessfulSignIn}
-            error={error}
-            setError={setError}
-          />
-        )}
+      {/* Conditional Rendering based on Auth Status */}
+      {isAppReady && !userId && auth && (
+        <AuthUI
+          auth={auth}
+          onSignIn={handleSuccessfulSignIn}
+          error={error}
+          setError={setError}
+        />
+      )}
 
-        {/* Main Application Tabs (Visible only when logged in) */}
-        {isAppReady && userId && (
-          <>
+      {/* Main Application Tabs (Visible only when logged in) */}
+      {isAppReady && userId && (
+        <>
             {/* Notifications Banner - Show critical notifications at top */}
             {db && <NotificationsBanner db={db} />}
             <nav className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-center bg-white/80 backdrop-blur-xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-1 sm:p-1.5 md:p-2 shadow-[0_15px_40px_rgba(15,23,42,0.15)] border border-white/60 border-b-0 gap-1 sm:gap-0 mb-0 relative z-10">
@@ -1131,6 +1200,19 @@ export default function App() {
                 <span className="hidden sm:inline">Availability </span>
                 <span className="sm:hidden">Avail</span>
                 <span className="ml-1">({availableCount})</span>
+              </span>
+            </button>
+            <button
+              onClick={() => handleViewChange("leaderboard")}
+              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
+                view === "leaderboard"
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
+                  : "bg-transparent text-slate-600 hover:bg-amber-50/60 hover:text-amber-700"
+              }`}
+            >
+              <span className="flex items-center justify-center">
+                <Award className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" /> 
+                <span>Leaderboard</span>
               </span>
             </button>
             <button
@@ -1207,6 +1289,7 @@ export default function App() {
                   minPlayersRequired={minPlayersRequired}
                   canGenerateTeams={canGenerateTeams}
                   currentUserId={userId}
+                  db={db}
                   isActive={view === "poll"}
                 />
               )}
@@ -1227,8 +1310,40 @@ export default function App() {
                   isActive={view === "questions"}
                 />
               )}
+              {view === "leaderboard" && userId && (
+                <div className="space-y-6">
+                  <Leaderboard
+                    db={db}
+                    userId={userId}
+                    userEmail={userEmail || ""}
+                    userRole={userRole}
+                    players={availability}
+                    isActive={view === "leaderboard"}
+                  />
+                  <KudosBoard
+                    db={db}
+                    userId={userId}
+                    userEmail={userEmail || ""}
+                    players={availability}
+                    isActive={view === "leaderboard"}
+                  />
+                  <ManOfTheMatch
+                    db={db}
+                    userId={userId}
+                    userEmail={userEmail || ""}
+                    players={availability}
+                    isActive={view === "leaderboard"}
+                  />
+                </div>
+              )}
               {view === "admin" && userRole === "admin" && userId && (
                 <div className="space-y-6">
+                  <GameSchedule
+                    db={db}
+                    userId={userId}
+                    userEmail={userEmail || ""}
+                    isActive={view === "admin"}
+                  />
                   <Notifications
                     db={db}
                     userId={userId}
@@ -1247,14 +1362,14 @@ export default function App() {
             </div>
           </main>
         </>
-        )}
+      )}
 
-        {/* General Error Display */}
-        {isAppReady && userId && error && (
+      {/* General Error Display */}
+      {isAppReady && userId && error && (
           <div className="max-w-4xl mx-auto mt-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-2xl text-sm font-semibold text-center shadow-lg">
-            {error}
-          </div>
-        )}
+          {error}
+        </div>
+      )}
 
         {/* Self-Registration Modal (shown when user is not registered) */}
         {isAppReady && userId && !checkingRegistration && !isUserRegistered && userEmail && (
