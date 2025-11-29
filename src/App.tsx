@@ -1199,11 +1199,11 @@ export default function App() {
             {/* Notifications Banner - Show critical notifications at top */}
             {db && <NotificationsBanner db={db} />}
             
-            {/* Mobile Hamburger Menu Button */}
-            <div className="max-w-5xl mx-auto sm:hidden mb-2 px-2">
+            {/* Mobile Hamburger Menu Button - Visible only on mobile (below 640px) */}
+            <div className="max-w-5xl mx-auto mb-2 px-2 mt-2" style={{ display: 'block' }}>
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className={`w-full flex items-center justify-between p-3 backdrop-blur-xl rounded-2xl shadow-lg border transition-all duration-200 ${
+                className={`w-full flex items-center justify-between p-3 backdrop-blur-xl rounded-2xl shadow-lg border transition-all duration-200 sm:hidden ${
                   view === "poll"
                     ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-500/50"
                     : view === "leaderboard"
@@ -1329,7 +1329,7 @@ export default function App() {
               </>
             )}
 
-            {/* Desktop Tabs - Hidden on mobile */}
+            {/* Desktop Tabs - Hidden on mobile, visible on sm and up */}
             <nav className="max-w-5xl mx-auto hidden sm:flex flex-row justify-center bg-white/80 backdrop-blur-xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-1 sm:p-1.5 md:p-2 shadow-[0_15px_40px_rgba(15,23,42,0.15)] border border-white/60 border-b-0 gap-1 sm:gap-0 mb-0 relative z-10">
             <button
               onClick={() => handleViewChange("poll")}
