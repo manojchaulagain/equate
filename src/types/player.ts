@@ -18,6 +18,8 @@ export interface Player {
   position: Position;
   skillLevel: SkillLevel;
   isAvailable?: boolean;
+  userId?: string; // User ID of the user who registered this player (for self-registration)
+  registeredBy?: string; // User ID of the user who registered this player (for admin-added players)
 }
 
 export interface PlayerAvailability extends Player {

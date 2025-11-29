@@ -7,6 +7,7 @@ interface TeamResultsProps {
   teams: Team[];
   generatedAt?: string;
   onBack: () => void;
+  isActive?: boolean;
 }
 
 const countPositions = (players: PlayerAvailability[]) =>
@@ -15,7 +16,7 @@ const countPositions = (players: PlayerAvailability[]) =>
     return acc;
   }, {} as Record<Position, number>);
 
-const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack }) => {
+const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, isActive = false }) => {
   if (!teams.length) {
     return null;
   }
@@ -38,7 +39,11 @@ const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack })
       : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
 
   return (
-    <div className="relative overflow-hidden bg-white/90 backdrop-blur-xl p-6 sm:p-8 rounded-2xl shadow-[0_20px_60px_rgba(15,23,42,0.18)] border border-white/70">
+    <div className={`relative overflow-hidden backdrop-blur-xl p-6 sm:p-8 rounded-b-2xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.18)] -mt-[1px] ${
+      isActive 
+        ? "bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70" 
+        : "bg-white/90 border border-white/70 border-t-0"
+    }`}>
       <div className="pointer-events-none absolute inset-0 opacity-60">
         <div className="absolute -top-10 right-0 w-56 h-56 bg-amber-200/60 blur-[110px]" />
         <div className="absolute bottom-0 left-4 w-64 h-64 bg-pink-200/50 blur-[120px]" />

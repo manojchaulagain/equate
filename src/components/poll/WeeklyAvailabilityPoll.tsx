@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { ListChecks, Trophy, Edit2, UserPlus } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { ListChecks, Trophy, Edit2, UserPlus, Trash2 } from "lucide-react";
 import { PlayerAvailability, Player } from "../../types/player";
 import { POSITION_LABELS, SKILL_LABELS } from "../../constants/player";
 import EditPlayerModal from "../players/EditPlayerModal";
@@ -14,6 +14,7 @@ interface WeeklyAvailabilityPollProps {
   onToggleAvailability: (playerId: string) => void | Promise<void>;
   onGenerateTeams: () => void;
   onUpdatePlayer: (playerId: string, updates: { position?: any; skillLevel?: any }) => Promise<void>;
+  onDeletePlayer: (playerId: string) => Promise<void>;
   onAddPlayer: (player: Omit<Player, "id">) => Promise<void>;
   error: string | null;
   disabled?: boolean;
@@ -22,6 +23,8 @@ interface WeeklyAvailabilityPollProps {
   onTeamCountChange: (count: number) => void;
   minPlayersRequired: number;
   canGenerateTeams: boolean;
+  currentUserId: string | null;
+  isActive?: boolean;
 }
 
 const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
@@ -31,6 +34,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   onToggleAvailability,
   onGenerateTeams,
   onUpdatePlayer,
+  onDeletePlayer,
   onAddPlayer,
   error,
   disabled = false,
@@ -39,13 +43,53 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   onTeamCountChange,
   minPlayersRequired,
   canGenerateTeams,
+  currentUserId,
+  isActive = false,
 }) => {
   const [editingPlayer, setEditingPlayer] = useState<PlayerAvailability | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [playerToDelete, setPlayerToDelete] = useState<PlayerAvailability | null>(null);
+
+  // Sort availability: logged-in user's player first, then players registered by them, then others sorted by name
+  const sortedAvailability = useMemo(() => {
+    if (!currentUserId) {
+      // If no user is logged in, just sort all players by name
+      return [...availability].sort((a, b) => 
+        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+      );
+    }
+    
+    const userPlayer = availability.find(p => p.userId === currentUserId);
+    const registeredByUser = availability.filter(
+      p => p.userId !== currentUserId && p.registeredBy === currentUserId
+    );
+    const otherPlayers = availability.filter(
+      p => p.userId !== currentUserId && p.registeredBy !== currentUserId
+    );
+    
+    // Sort other players alphabetically by name (case-insensitive)
+    const sortedOtherPlayers = [...otherPlayers].sort((a, b) => 
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+    
+    return [...(userPlayer ? [userPlayer] : []), ...registeredByUser, ...sortedOtherPlayers];
+  }, [availability, currentUserId]);
 
   const handleEditClick = (e: React.MouseEvent, player: PlayerAvailability) => {
     e.stopPropagation(); // Prevent toggling availability when clicking edit
     setEditingPlayer(player);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, player: PlayerAvailability) => {
+    e.stopPropagation(); // Prevent toggling availability when clicking delete
+    setPlayerToDelete(player);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (playerToDelete) {
+      await onDeletePlayer(playerToDelete.id);
+      setPlayerToDelete(null);
+    }
   };
 
   const handleSaveEdit = async (playerId: string, updates: { position: any; skillLevel: any }) => {
@@ -53,7 +97,11 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     setEditingPlayer(null);
   };
   return (
-    <div className="relative overflow-hidden bg-white/90 backdrop-blur-xl p-4 sm:p-6 rounded-2xl shadow-[0_20px_60px_rgba(15,23,42,0.15)] border border-white/70">
+    <div className={`relative overflow-hidden backdrop-blur-xl p-4 sm:p-6 rounded-b-2xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.15)] -mt-[1px] ${
+      isActive 
+        ? "bg-gradient-to-br from-indigo-50/95 via-purple-50/95 to-indigo-50/95 border-l-2 border-r-2 border-b-2 border-indigo-500/70" 
+        : "bg-white/90 border border-white/70 border-t-0"
+    }`}>
       <div className="pointer-events-none absolute inset-0 opacity-70">
         <div className="absolute -top-16 -right-10 w-48 h-48 bg-cyan-200/50 blur-[90px]" />
         <div className="absolute bottom-0 left-0 w-40 h-40 bg-indigo-200/50 blur-[80px]" />
@@ -100,7 +148,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
         </div>
       ) : (
         <div className="space-y-3 max-h-96 overflow-y-auto p-4 custom-scrollbar">
-          {availability.map((player) => (
+          {sortedAvailability.map((player) => (
             <div
               key={player.id}
               className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all duration-300 transform hover:scale-[1.02] ${
@@ -122,13 +170,22 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
               </div>
               <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3 flex-shrink-0">
                 {isAdmin && (
-                  <button
-                    onClick={(e) => handleEditClick(e, player)}
-                    className="p-2 sm:p-2.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
-                    title="Edit player"
-                  >
-                    <Edit2 size={14} className="sm:w-4 sm:h-4" />
-                  </button>
+                  <>
+                    <button
+                      onClick={(e) => handleEditClick(e, player)}
+                      className="p-2 sm:p-2.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
+                      title="Edit player"
+                    >
+                      <Edit2 size={14} className="sm:w-4 sm:h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteClick(e, player)}
+                      className="p-2 sm:p-2.5 bg-gradient-to-br from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
+                      title="Delete player"
+                    >
+                      <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                    </button>
+                  </>
                 )}
                 <div className="flex items-center bg-gradient-to-r from-slate-200 to-slate-300 rounded-lg sm:rounded-xl p-1 sm:p-1.5 shadow-inner border-2 border-slate-400">
                   <button
@@ -241,6 +298,34 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
           onClose={() => setShowAddModal(false)}
           onAddPlayer={onAddPlayer}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {playerToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
+              Delete Player?
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-6">
+              Are you sure you want to delete <span className="font-semibold text-gray-800">{playerToDelete.name}</span>? This action cannot be undone.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:justify-end">
+              <button
+                onClick={() => setPlayerToDelete(null)}
+                className="px-4 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-all duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                Delete Player
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       </div>
     </div>

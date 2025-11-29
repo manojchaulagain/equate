@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { ListChecks, Users, Trophy, LogOut, Shield } from "lucide-react";
+import { ListChecks, Trophy, LogOut, Shield, Info } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
@@ -54,6 +54,120 @@ const __firebase_config = {
 
 // Type and constant definitions moved to dedicated modules for reuse.
 
+// Profile Menu Component
+interface ProfileMenuProps {
+  userEmail: string;
+  userRole: UserRole;
+  playerName?: string; // Player's full name if available
+  onSignOut: () => void;
+}
+
+const ProfileMenu: React.FC<ProfileMenuProps> = ({ userEmail, userRole, playerName, onSignOut }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Get user's initials from name (first and last) or email fallback
+  const getInitials = (name?: string, email?: string): string => {
+    if (name) {
+      const nameParts = name.trim().split(/\s+/);
+      if (nameParts.length >= 2) {
+        // First and last name initials
+        return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+      } else if (nameParts.length === 1) {
+        // Single name - use first two characters
+        const nameStr = nameParts[0];
+        return nameStr.length >= 2 
+          ? (nameStr.charAt(0) + nameStr.charAt(1)).toUpperCase()
+          : nameStr.charAt(0).toUpperCase();
+      }
+    }
+    // Fallback to email first character
+    return email ? email.charAt(0).toUpperCase() : "?";
+  };
+
+  // Generate gradient color based on email
+  const getGradientColor = (email: string): string => {
+    const hash = email.split('').reduce((acc, char) => {
+      return char.charCodeAt(0) + ((acc << 5) - acc);
+    }, 0);
+    const colors = [
+      'from-indigo-500 to-purple-600',
+      'from-blue-500 to-cyan-600',
+      'from-purple-500 to-pink-600',
+      'from-emerald-500 to-teal-600',
+      'from-orange-500 to-red-600',
+      'from-pink-500 to-rose-600',
+    ];
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const gradientClass = getGradientColor(userEmail);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`relative w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 border-2 border-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2`}
+        aria-label="User menu"
+      >
+        {getInitials(playerName, userEmail)}
+        {userRole === "admin" && (
+          <div className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full border-2 border-white flex items-center justify-center">
+            <Shield className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+          </div>
+        )}
+      </button>
+
+      {isOpen && (
+        <>
+          {/* Backdrop to close menu */}
+          <div
+            className="fixed inset-0 z-[90]"
+            onClick={() => setIsOpen(false)}
+          />
+          {/* Dropdown Menu */}
+          <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white/98 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200/60 z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Header Section */}
+            <div className={`bg-gradient-to-br ${gradientClass} p-6 text-white relative overflow-hidden`}>
+              <div className="absolute inset-0 bg-black/10"></div>
+              <div className="relative flex items-center gap-4">
+                <div className={`w-16 h-16 rounded-full bg-white/25 backdrop-blur-sm flex items-center justify-center text-white font-bold text-2xl border-[3px] border-white/40 shadow-xl ring-2 ring-white/20`}>
+                  {getInitials(playerName, userEmail)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-base sm:text-lg truncate drop-shadow-md mb-1">{userEmail}</p>
+                  {playerName && (
+                    <p className="text-xs sm:text-sm text-white/90 truncate font-medium mb-1.5">{playerName}</p>
+                  )}
+                  {userRole === "admin" && (
+                    <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-white/20 backdrop-blur-sm rounded-full border border-white/30 w-fit">
+                      <Shield className="w-3.5 h-3.5" />
+                      <span className="text-xs font-bold">Administrator</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Actions Section */}
+            <div className="p-4 bg-gradient-to-b from-slate-50/50 to-white border-t border-slate-200/50">
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  onSignOut();
+                }}
+                className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 text-sm font-bold text-white bg-gradient-to-r from-red-500 via-red-600 to-rose-600 hover:from-red-600 hover:via-red-700 hover:to-rose-700 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] border border-red-400/30"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 export default function App() {
   // Firebase State
   const [auth, setAuth] = useState<any>(null);
@@ -68,7 +182,25 @@ export default function App() {
   const [teams, setTeams] = useState<TeamResultsState | null>(null);
   const [teamCount, setTeamCount] = useState<number>(2);
   const [view, setView] = useState<"poll" | "teams" | "admin">("poll");
+  const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Helper to determine slide direction based on tab order
+  const getTabOrder = (tab: "poll" | "teams" | "admin"): number => {
+    return tab === "poll" ? 0 : tab === "teams" ? 1 : 2;
+  };
+  
+  const handleViewChange = (newView: "poll" | "teams" | "admin") => {
+    if (view !== newView) {
+      const currentOrder = getTabOrder(view);
+      const newOrder = getTabOrder(newView);
+      setSlideDirection(newOrder > currentOrder ? "left" : "right");
+      setTimeout(() => {
+        setView(newView);
+        setTimeout(() => setSlideDirection(null), 500);
+      }, 50);
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [isUserRegistered, setIsUserRegistered] = useState<boolean | null>(null);
   const [checkingRegistration, setCheckingRegistration] = useState(true);
@@ -264,6 +396,8 @@ export default function App() {
             skillLevel: normalizedSkill,
             position: normalizedPosition,
             isAvailable,
+            userId: data.userId || undefined, // Include userId if present
+            registeredBy: data.registeredBy || undefined, // Include registeredBy if present
           } as PlayerAvailability;
         });
 
@@ -403,6 +537,9 @@ export default function App() {
       // If self-registration, add userId to link player to user
       if (isSelfRegistration && userId) {
         (playerDoc as any).userId = userId;
+      } else if (!isSelfRegistration && userId) {
+        // If admin/user adds a player, track who registered them
+        (playerDoc as any).registeredBy = userId;
       }
 
       await addDoc(playersColRef, playerDoc);
@@ -495,6 +632,37 @@ export default function App() {
     } catch (e) {
       console.error("Error updating document: ", e);
       setError("Failed to update player in database.");
+    }
+  };
+
+  // Function to delete a player (admin only)
+  const deletePlayer = async (playerId: string) => {
+    if (!db) {
+      setError("Database connection not ready. Please wait.");
+      return;
+    }
+
+    if (userRole !== "admin") {
+      setError("Only admins can delete players.");
+      return;
+    }
+
+    // Clear any previous errors
+    setError(null);
+
+    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+    const playerDocPath = `artifacts/${appId}/public/data/soccer_players/${playerId}`;
+    const playerDocRef = doc(db, playerDocPath);
+
+    try {
+      await deleteDoc(playerDocRef);
+      // Clear teams from Firestore when a player is deleted
+      await clearTeamsFromFirestore();
+      // Clear error on success
+      setError(null);
+    } catch (e) {
+      console.error("Error deleting player: ", e);
+      setError("Failed to delete player from database.");
     }
   };
 
@@ -613,11 +781,37 @@ export default function App() {
       createdTeams[targetIndex].totalSkill += player.skillLevel;
     });
 
-    const teamsData: TeamResultsState = {
-      teams: createdTeams.map((team) => ({
-        ...team,
-        players: [...team.players],
-      })),
+    // Convert teams to plain objects for Firestore (ensure all data is serializable)
+    // Remove undefined values as Firestore doesn't support them
+    const teamsData = {
+      teams: createdTeams.map((team) => {
+        const teamData: any = {
+          name: team.name,
+          totalSkill: team.totalSkill,
+          players: team.players.map((player) => {
+            const playerData: any = {
+              id: player.id,
+              name: player.name,
+              position: player.position,
+              skillLevel: player.skillLevel,
+              isAvailable: player.isAvailable,
+            };
+            // Only include optional fields if they are defined
+            if (player.userId !== undefined) {
+              playerData.userId = player.userId;
+            }
+            if (player.registeredBy !== undefined) {
+              playerData.registeredBy = player.registeredBy;
+            }
+            return playerData;
+          }),
+        };
+        // Only include colorKey if it's defined
+        if (team.colorKey !== undefined) {
+          teamData.colorKey = team.colorKey;
+        }
+        return teamData;
+      }),
       generatedAt: new Date().toISOString(),
     };
 
@@ -626,12 +820,14 @@ export default function App() {
       const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
       const teamsDocPath = `artifacts/${appId}/public/data/teams/current`;
       const teamsDocRef = doc(db, teamsDocPath);
-      await setDoc(teamsDocRef, teamsData);
+      await setDoc(teamsDocRef, teamsData, { merge: false });
       // The real-time listener will update the state automatically
       setView("teams");
-    } catch (error) {
+      setError(null); // Clear any previous errors on success
+    } catch (error: any) {
       console.error("Error saving teams:", error);
-      setError("Failed to save teams to database.");
+      const errorMessage = error?.message || "Unknown error occurred";
+      setError(`Failed to save teams to database: ${errorMessage}`);
     }
   };
 
@@ -648,48 +844,96 @@ export default function App() {
         <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.02)_25%,transparent_25%)]" />
       </div>
 
-      <div className="relative z-10 px-3 sm:px-6 lg:px-10 py-6 space-y-6">
-        <header className="max-w-5xl mx-auto text-center bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-[0_20px_60px_rgba(15,23,42,0.18)] border border-white/60">
-        <h1 className="flex flex-col items-center gap-2 text-center mb-2 sm:mb-3">
-          <span className="inline-flex items-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-            <Users className="text-indigo-600 mr-2 sm:mr-3" size={28} />
-            Sagarmatha FC
-          </span>
-          <span className="uppercase tracking-[0.3em] text-xs sm:text-sm text-slate-500 font-semibold">
-            Squad Balancer
-          </span>
-        </h1>
-        <p className="text-slate-700 mt-1 sm:mt-2 text-sm sm:text-base md:text-lg font-medium px-2">
-          Manage Sagarmatha FC players, track availability, and generate fair teams.
-          <span className="block text-xs sm:text-sm font-semibold mt-2 text-emerald-700 bg-emerald-50 px-2 sm:px-3 py-1 rounded-full inline-block">
-            The Player Roster is shared. Sign-in required for access.
-          </span>
-        </p>
-
-        {/* User Info and Sign Out */}
-        <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-3 sm:space-x-4">
-          {userEmail && (
-            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 bg-white/70 backdrop-blur-sm px-3 sm:px-4 py-2 rounded-xl shadow-md border border-indigo-200 w-full sm:w-auto">
-              <p className="text-xs sm:text-sm font-medium text-slate-700 text-center sm:text-left">
-                <span className="hidden sm:inline">Logged in as: </span>
-                <span className="font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent break-all sm:break-normal">{userEmail}</span>
-              </p>
-              {userRole === "admin" && (
-                <span className="px-2 sm:px-3 py-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full text-xs font-bold shadow-md whitespace-nowrap">
-                  Admin
-                </span>
-              )}
+      <div className="relative z-10 px-2 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        <header className="max-w-5xl mx-auto relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl border border-slate-700/50 z-20 overflow-hidden">
+          {/* Elegant Background with Mountains */}
+          <div className="absolute inset-0">
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-transparent to-red-900/20"></div>
+            
+            {/* Mountain silhouette - more elegant */}
+            <svg className="absolute bottom-0 left-0 w-full h-24 sm:h-32 opacity-40" viewBox="0 0 1200 150" preserveAspectRatio="none">
+              <path d="M0,150 L150,100 L300,110 L450,70 L600,85 L750,50 L900,65 L1050,45 L1200,60 L1200,150 Z" 
+                    fill="url(#mountainGradient1)" />
+              <path d="M0,150 L100,120 L250,100 L400,90 L550,75 L700,60 L850,50 L1000,55 L1200,50 L1200,150 Z" 
+                    fill="url(#mountainGradient2)" />
+              <defs>
+                <linearGradient id="mountainGradient1" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#d97706" stopOpacity="0.5" />
+                  <stop offset="100%" stopColor="#1e40af" stopOpacity="0.3" />
+                </linearGradient>
+                <linearGradient id="mountainGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#dc2626" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0.2" />
+                </linearGradient>
+              </defs>
+            </svg>
+            
+            {/* Subtle decorative orbs */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl -mr-48 -mt-48"></div>
+            <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl -ml-40 -mb-40"></div>
+            <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-red-500/8 rounded-full blur-2xl"></div>
+          </div>
+          
+          {/* Top Right Corner - Profile and Info */}
+          {userId && userEmail && (
+            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 md:top-6 md:right-6 flex items-center gap-1.5 sm:gap-2 md:gap-3 z-30">
+              <ProfileMenu
+                userEmail={userEmail}
+                userRole={userRole}
+                playerName={availability.find(p => p.userId === userId)?.name}
+                onSignOut={handleSignOut}
+              />
+              <div className="relative group flex-shrink-0">
+                <Info className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300 cursor-help hover:text-white transition-all duration-300 hover:scale-110" />
+                <div className="absolute right-0 sm:right-0 bottom-full mb-2 w-[min(calc(100vw-3rem),420px)] p-4 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 text-white text-xs sm:text-sm rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none z-50 border border-slate-700/50 backdrop-blur-sm">
+                  <p className="leading-relaxed text-slate-100 whitespace-normal break-words">
+                    Manage Sagarmatha FC players, track availability, and generate fair teams. The Player Roster is shared. Sign-in required for access.
+                  </p>
+                  <div className="absolute right-6 top-full w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-transparent border-t-slate-900"></div>
+                </div>
+              </div>
             </div>
           )}
-          {userId && (
-            <button
-              onClick={handleSignOut}
-              className="flex items-center justify-center text-xs sm:text-sm text-white font-semibold px-3 sm:px-4 py-2 bg-gradient-to-r from-red-500 to-rose-600 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg hover:from-red-600 hover:to-rose-700 transform hover:scale-105 w-full sm:w-auto"
-            >
-              <LogOut className="w-4 h-4 mr-1" /> <span>Sign Out</span>
-            </button>
-          )}
-        </div>
+
+          {/* Club Content */}
+          <div className="relative z-10 flex flex-col items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+            {/* Club Logo - Centered */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-full blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-300"></div>
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full bg-white/10 backdrop-blur-sm shadow-2xl border-[3px] border-amber-300/60 flex items-center justify-center transform hover:scale-105 transition-all duration-300 overflow-hidden">
+                <img 
+                  src={`${process.env.PUBLIC_URL || ''}/club-logo.png`}
+                  alt="Sagarmatha FC Logo" 
+                  className="w-full h-full object-cover rounded-full"
+                  onError={(e) => {
+                    console.error("Failed to load club logo from:", e.currentTarget.src);
+                  }}
+                />
+                {/* Shine effect */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none"></div>
+              </div>
+            </div>
+
+            {/* Club Name - Centered */}
+            <div className="text-center space-y-2 sm:space-y-3 md:space-y-4 px-2">
+              <h1 className="flex flex-col items-center gap-2 sm:gap-3">
+                <span className="inline-flex items-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black tracking-tight flex-wrap justify-center">
+                  <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 bg-clip-text text-transparent drop-shadow-lg">
+                    Sagarmatha
+                  </span>
+                  <span className="mx-1.5 sm:mx-2 md:mx-3 text-slate-300">FC</span>
+                </span>
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 mt-1 flex-wrap px-2">
+                  <div className="h-px w-6 sm:w-8 md:w-12 bg-gradient-to-r from-transparent via-amber-500/60 to-amber-500/60"></div>
+                  <span className="uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[10px] sm:text-xs md:text-sm text-slate-400 font-semibold px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-800/50 backdrop-blur-sm rounded-full border border-slate-700/50 whitespace-nowrap">
+                    Excellence Through Unity
+                  </span>
+                  <div className="h-px w-6 sm:w-8 md:w-12 bg-gradient-to-l from-transparent via-amber-500/60 to-amber-500/60"></div>
+                </div>
+              </h1>
+            </div>
+          </div>
         </header>
 
         {!isAppReady && (
@@ -713,10 +957,10 @@ export default function App() {
         {/* Main Application Tabs (Visible only when logged in) */}
         {isAppReady && userId && (
           <>
-            <nav className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-center mb-4 sm:mb-6 md:mb-8 bg-white/80 backdrop-blur-xl rounded-2xl p-1.5 sm:p-2 shadow-[0_15px_40px_rgba(15,23,42,0.15)] border border-white/60 gap-1 sm:gap-0">
+            <nav className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-center bg-white/80 backdrop-blur-xl rounded-t-xl sm:rounded-t-2xl rounded-b-none p-1 sm:p-1.5 md:p-2 shadow-[0_15px_40px_rgba(15,23,42,0.15)] border border-white/60 border-b-0 gap-1 sm:gap-0 mb-0 relative z-10">
             <button
-              onClick={() => setView("poll")}
-              className={`px-3 sm:px-5 md:px-6 py-2.5 sm:py-3 font-semibold rounded-xl sm:rounded-l-xl sm:rounded-r-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
+              onClick={() => handleViewChange("poll")}
+              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-lg sm:rounded-xl sm:rounded-l-xl sm:rounded-r-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
                 view === "poll"
                   ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
                   : "bg-transparent text-slate-600 hover:bg-indigo-50/60 hover:text-indigo-700"
@@ -730,9 +974,9 @@ export default function App() {
               </span>
             </button>
             <button
-              onClick={() => setView("teams")}
+              onClick={() => handleViewChange("teams")}
               disabled={!teams || !teams.teams || teams.teams.length === 0}
-              className={`px-3 sm:px-5 md:px-6 py-2.5 sm:py-3 font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed text-xs sm:text-sm md:text-base rounded-xl sm:rounded-none ${
+              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed text-xs sm:text-sm md:text-base rounded-lg sm:rounded-none ${
                 userRole !== "admin" ? "sm:rounded-r-xl" : ""
               } ${
                 view === "teams"
@@ -747,8 +991,8 @@ export default function App() {
             </button>
             {userRole === "admin" && (
               <button
-                onClick={() => setView("admin")}
-                className={`px-3 sm:px-5 md:px-6 py-2.5 sm:py-3 font-semibold rounded-xl sm:rounded-r-xl sm:rounded-l-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
+                onClick={() => handleViewChange("admin")}
+                className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-lg sm:rounded-r-xl sm:rounded-l-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
                   view === "admin"
                     ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
                     : "bg-transparent text-slate-600 hover:bg-purple-50/60 hover:text-purple-700"
@@ -763,39 +1007,54 @@ export default function App() {
           </nav>
 
           {/* Content Area */}
-          <main className="max-w-5xl mx-auto px-2 sm:px-4">
-            {view === "poll" && (
-              <WeeklyAvailabilityPoll
-                availability={availability}
-                loading={loading}
-                availableCount={availableCount}
-                onToggleAvailability={toggleAvailability}
-                onGenerateTeams={generateBalancedTeams}
-                onUpdatePlayer={updatePlayer}
-                onAddPlayer={(player) => addPlayer(player, false)}
-                error={error}
-                disabled={!userId}
-                isAdmin={userRole === "admin"}
-                teamCount={teamCount}
-                onTeamCountChange={handleTeamCountChange}
-                minPlayersRequired={minPlayersRequired}
-                canGenerateTeams={canGenerateTeams}
-              />
-            )}
-            {view === "teams" && teams && teams.teams?.length > 0 && (
-              <TeamResults
-                teams={teams.teams}
-                generatedAt={teams.generatedAt}
-                onBack={() => setView("poll")}
-              />
-            )}
-            {view === "admin" && userRole === "admin" && userId && (
-              <UserManagement
-                db={db}
-                currentUserId={userId}
-                onRoleUpdate={refreshUserRole}
-              />
-            )}
+          <main className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 -mt-[1px] overflow-hidden relative">
+            <div 
+              className={`transition-all duration-500 ease-in-out ${
+                slideDirection === "left"
+                  ? "translate-x-full opacity-0"
+                  : slideDirection === "right"
+                  ? "-translate-x-full opacity-0"
+                  : "translate-x-0 opacity-100"
+              }`}
+            >
+              {view === "poll" && (
+                <WeeklyAvailabilityPoll
+                  availability={availability}
+                  loading={loading}
+                  availableCount={availableCount}
+                  onToggleAvailability={toggleAvailability}
+                  onGenerateTeams={generateBalancedTeams}
+                  onUpdatePlayer={updatePlayer}
+                  onDeletePlayer={deletePlayer}
+                  onAddPlayer={(player) => addPlayer(player, false)}
+                  error={error}
+                  disabled={!userId}
+                  isAdmin={userRole === "admin"}
+                  teamCount={teamCount}
+                  onTeamCountChange={handleTeamCountChange}
+                  minPlayersRequired={minPlayersRequired}
+                  canGenerateTeams={canGenerateTeams}
+                  currentUserId={userId}
+                  isActive={view === "poll"}
+                />
+              )}
+              {view === "teams" && teams && teams.teams?.length > 0 && (
+                <TeamResults
+                  teams={teams.teams}
+                  generatedAt={teams.generatedAt}
+                  onBack={() => handleViewChange("poll")}
+                  isActive={view === "teams"}
+                />
+              )}
+              {view === "admin" && userRole === "admin" && userId && (
+                <UserManagement
+                  db={db}
+                  currentUserId={userId}
+                  onRoleUpdate={refreshUserRole}
+                  isActive={view === "admin"}
+                />
+              )}
+            </div>
           </main>
         </>
         )}
