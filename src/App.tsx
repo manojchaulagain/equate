@@ -167,13 +167,13 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ userEmail, userRole, playerNa
         <>
           {/* Backdrop to close menu */}
           <div
-            className="fixed inset-0 z-[90]"
+            className="fixed inset-0 z-[110]"
             onClick={() => setIsOpen(false)}
           />
           {/* Dropdown Menu - Fixed positioning to escape header bounds */}
           {menuPosition && (
             <div 
-              className="fixed w-[280px] sm:w-[320px] md:w-[360px] max-w-[calc(100vw-1rem)] bg-white/98 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-200/60 z-[100] overflow-visible animate-in fade-in slide-in-from-top-2 duration-200"
+              className="fixed w-[280px] sm:w-[320px] md:w-[360px] max-w-[calc(100vw-1rem)] bg-white/98 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-200/60 z-[120] overflow-visible animate-in fade-in slide-in-from-top-2 duration-200"
               style={{
                 top: `${menuPosition.top}px`,
                 right: `${menuPosition.right}px`,
@@ -283,13 +283,13 @@ const InfoTooltip: React.FC = () => {
         <>
           {/* Backdrop to close tooltip */}
           <div
-            className="fixed inset-0 z-[90]"
+            className="fixed inset-0 z-[110]"
             onClick={() => setIsOpen(false)}
           />
           {/* Tooltip */}
           {tooltipPosition && (
             <div
-              className="fixed w-[min(calc(100vw-2rem),400px)] sm:w-[420px] bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-xl text-white text-xs sm:text-sm rounded-3xl shadow-2xl pointer-events-auto z-[100] border border-slate-700/60 p-4 sm:p-5 transition-all duration-200"
+              className="fixed w-[min(calc(100vw-2rem),400px)] sm:w-[420px] bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-xl text-white text-xs sm:text-sm rounded-3xl shadow-2xl pointer-events-auto z-[120] border border-slate-700/60 p-4 sm:p-5 transition-all duration-200"
               style={{
                 top: `${tooltipPosition.top}px`,
                 right: `${tooltipPosition.right}px`,
@@ -1116,7 +1116,7 @@ export default function App() {
       const teamsDocRef = doc(db, teamsDocPath);
       await setDoc(teamsDocRef, teamsData, { merge: false });
       // The real-time listener will update the state automatically
-      setView("teams");
+    setView("teams");
       setError(null); // Clear any previous errors on success
     } catch (error: any) {
       console.error("Error saving teams:", error);
@@ -1179,7 +1179,7 @@ export default function App() {
                 userRole={userRole}
                 playerName={availability.find(p => p.userId === userId)?.name}
                 onSignOut={handleSignOut}
-              />
+            />
           </div>
         )}
 
@@ -1199,7 +1199,7 @@ export default function App() {
                 />
                 {/* Shine effect */}
                 <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none"></div>
-        </div>
+          </div>
         </div>
 
             {/* Club Name - Centered */}
@@ -1217,9 +1217,9 @@ export default function App() {
                     Excellence Through Unity
             </span>
                   <div className="h-px w-6 sm:w-8 md:w-12 bg-gradient-to-l from-transparent via-amber-500/60 to-amber-500/60"></div>
-          </div>
-        </h1>
             </div>
+        </h1>
+        </div>
         </div>
       </header>
 
@@ -1228,8 +1228,8 @@ export default function App() {
             <p className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
           Initializing application...
             </p>
-        </div>
-      )}
+          </div>
+        )}
 
       {/* Conditional Rendering based on Auth Status */}
       {isAppReady && !userId && auth && (
@@ -1248,9 +1248,14 @@ export default function App() {
             {db && <NotificationsBanner db={db} />}
             
             {/* Mobile Hamburger Menu Button - Visible only on mobile (below 640px) */}
-            <div className="max-w-5xl mx-auto mb-2 px-2 mt-2" style={{ display: 'block' }}>
+            <div className="max-w-5xl mx-auto mb-2 px-2 mt-2 relative" style={{ display: 'block', zIndex: 45 }}>
               <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMobileMenuOpen(!mobileMenuOpen);
+                }}
+                type="button"
+                style={{ position: 'relative', zIndex: 45 }}
                 className={`w-full flex items-center justify-between p-3 backdrop-blur-xl rounded-2xl shadow-lg border transition-all duration-200 sm:hidden ${
                   view === "poll"
                     ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-500/50"
@@ -1282,8 +1287,8 @@ export default function App() {
                   {view === "admin" && "Admin"}
                 </span>
                 <Menu className="w-5 h-5" />
-              </button>
-            </div>
+          </button>
+        </div>
 
             {/* Mobile Menu Dropdown */}
             {mobileMenuOpen && (
@@ -1297,7 +1302,7 @@ export default function App() {
                   <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-b-3xl">
                     <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-200/30 rounded-full blur-3xl"></div>
                     <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-purple-200/30 rounded-full blur-3xl"></div>
-                  </div>
+          </div>
                   
                   <div className="relative p-5 sm:p-6 space-y-3">
                     {/* Header */}
@@ -1305,16 +1310,16 @@ export default function App() {
                       <div className="flex items-center gap-2">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
                           <Menu className="w-5 h-5 text-white" />
-                        </div>
+        </div>
                         <h2 className="font-bold text-xl bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Navigation</h2>
-                      </div>
-                      <button
+        </div>
+          <button
                         onClick={() => setMobileMenuOpen(false)}
                         className="p-2 hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95"
-                      >
+          >
                         <X className="w-5 h-5 text-slate-600" />
-                      </button>
-                    </div>
+          </button>
+        </div>
                     
                     {/* Menu Items */}
                     <div className="space-y-2.5">
@@ -1334,7 +1339,7 @@ export default function App() {
                         </div>
                         <span className="font-semibold flex-1 text-left">
                           Availability <span className="ml-1">({availableCount})</span>
-                        </span>
+        </span>
                       </button>
                       
                       <button
@@ -1368,7 +1373,7 @@ export default function App() {
                       >
                         <div className={`p-2 rounded-xl ${view === "teams" ? "bg-white/20" : "bg-amber-100"}`}>
                           <Trophy className={`w-5 h-5 ${view === "teams" ? "text-white" : "text-amber-600"}`} />
-                        </div>
+          </div>
                         <span className="font-semibold flex-1 text-left">Teams</span>
                       </button>
                       
@@ -1385,12 +1390,12 @@ export default function App() {
                       >
                         <div className={`p-2 rounded-xl ${view === "questions" ? "bg-white/20" : "bg-blue-100"}`}>
                           <MessageCircle className={`w-5 h-5 ${view === "questions" ? "text-white" : "text-blue-600"}`} />
-                        </div>
+    </div>
                         <span className="font-semibold flex-1 text-left">Questions</span>
                       </button>
                       
                       {userRole === "admin" && (
-                        <button
+            <button
                           onClick={() => {
                             handleViewChange("admin");
                             setMobileMenuOpen(false);
@@ -1405,10 +1410,10 @@ export default function App() {
                             <Shield className={`w-5 h-5 ${view === "admin" ? "text-white" : "text-purple-600"}`} />
                           </div>
                           <span className="font-semibold flex-1 text-left">Admin</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
+            </button>
+          )}
+        </div>
+        </div>
                 </div>
               </>
             )}

@@ -156,12 +156,12 @@ const UserNotifications: React.FC<UserNotificationsProps> = ({ db, userId }) => 
       {showDropdown && (
         <>
           <div
-            className="fixed inset-0 z-[95]"
+            className="fixed inset-0 z-[110]"
             onClick={() => setShowDropdown(false)}
           />
           {dropdownPosition && (
             <div 
-              className="fixed w-[320px] sm:w-[380px] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border-2 border-slate-200 z-[100] overflow-hidden flex flex-col"
+              className="fixed w-[320px] sm:w-[380px] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border-2 border-slate-200 z-[120] overflow-hidden flex flex-col"
               style={{
                 top: `${dropdownPosition.top}px`,
                 right: `${dropdownPosition.right}px`,
