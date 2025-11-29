@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, Clock, Save, CheckCircle } from "lucide-react";
+import { Calendar, Clock, Save, CheckCircle, MapPin } from "lucide-react";
 import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import TimeInput from "./TimeInput";
 
@@ -7,6 +7,7 @@ declare const __app_id: string;
 
 interface GameSchedule {
   schedule: { [day: number]: string }; // Map of day (0-6) to time string (HH:MM)
+  location?: { [day: number]: string }; // Map of day (0-6) to location string
   updatedAt?: any;
   updatedBy?: string;
 }
@@ -32,6 +33,7 @@ const GameSchedule: React.FC<GameScheduleProps> = ({ db, userId, userEmail, isAc
   const [schedule, setSchedule] = useState<{ [day: number]: string }>({
     6: "18:00", // Default to Saturday at 6:00 PM
   });
+  const [location, setLocation] = useState<{ [day: number]: string }>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +52,7 @@ const GameSchedule: React.FC<GameScheduleProps> = ({ db, userId, userEmail, isAc
         if (scheduleSnap.exists()) {
           const data = scheduleSnap.data() as GameSchedule;
           setSchedule(data.schedule || { 6: "18:00" });
+          setLocation(data.location || {});
         }
       } catch (err: any) {
         console.error("Error fetching game schedule:", err);
@@ -68,6 +71,12 @@ const GameSchedule: React.FC<GameScheduleProps> = ({ db, userId, userEmail, isAc
         // Remove day if it exists
         const newSchedule = { ...prev };
         delete newSchedule[dayValue];
+        // Also remove location for this day
+        setLocation((prevLoc) => {
+          const newLocation = { ...prevLoc };
+          delete newLocation[dayValue];
+          return newLocation;
+        });
         return newSchedule;
       } else {
         // Add day with default time
@@ -83,6 +92,21 @@ const GameSchedule: React.FC<GameScheduleProps> = ({ db, userId, userEmail, isAc
         return { ...prev, [dayValue]: time };
       }
       return prev;
+    });
+    setError(null);
+  };
+
+  const handleLocationChange = (dayValue: number, loc: string) => {
+    setLocation((prev) => {
+      if (loc.trim()) {
+        // Store the raw value (with spaces) - only trim when saving
+        return { ...prev, [dayValue]: loc };
+      } else {
+        // Remove location if empty
+        const newLocation = { ...prev };
+        delete newLocation[dayValue];
+        return newLocation;
+      }
     });
     setError(null);
   };
@@ -109,10 +133,21 @@ const GameSchedule: React.FC<GameScheduleProps> = ({ db, userId, userEmail, isAc
       const schedulePath = `artifacts/${appId}/public/data/gameSchedule/config`;
       const scheduleRef = doc(db, schedulePath);
 
+      // Trim location values before saving
+      const trimmedLocation: { [day: number]: string } = {};
+      Object.keys(location).forEach((dayStr) => {
+        const day = parseInt(dayStr);
+        const trimmed = location[day].trim();
+        if (trimmed) {
+          trimmedLocation[day] = trimmed;
+        }
+      });
+
       await setDoc(
         scheduleRef,
         {
           schedule: schedule,
+          location: Object.keys(trimmedLocation).length > 0 ? trimmedLocation : null,
           updatedAt: Timestamp.now(),
           updatedBy: userEmail,
         }
@@ -161,12 +196,13 @@ const GameSchedule: React.FC<GameScheduleProps> = ({ db, userId, userEmail, isAc
 
         <div className="mb-6 p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-2xl shadow-md">
           <p className="text-sm text-emerald-800 font-medium mb-2">
-            Configure when soccer games are played:
+            Configure when and where soccer games are played:
           </p>
           <ul className="text-sm text-emerald-700 list-disc list-inside space-y-1">
             <li>Select the days of the week when games are scheduled</li>
             <li>Set a different time for each day if needed</li>
-            <li>The availability poll will automatically show the next game date and time</li>
+            <li>Set a different field location for each day if needed</li>
+            <li>The availability poll will automatically show the next game date, time, and location</li>
           </ul>
         </div>
 
@@ -189,24 +225,41 @@ const GameSchedule: React.FC<GameScheduleProps> = ({ db, userId, userEmail, isAc
                         : "bg-slate-50 border-slate-200"
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleDayToggle(day.value)}
-                        className={`px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200 flex-shrink-0 ${
-                          isSelected
-                            ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md"
-                            : "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                        }`}
-                      >
-                        {day.label}
-                      </button>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleDayToggle(day.value)}
+                          className={`px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200 flex-shrink-0 ${
+                            isSelected
+                              ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md"
+                              : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                        {isSelected && (
+                          <div className="flex-1">
+                            <TimeInput
+                              value={schedule[day.value]}
+                              onChange={(time) => handleTimeChange(day.value, time)}
+                              className="w-full sm:w-auto"
+                            />
+                          </div>
+                        )}
+                      </div>
                       {isSelected && (
                         <div className="flex-1">
-                          <TimeInput
-                            value={schedule[day.value]}
-                            onChange={(time) => handleTimeChange(day.value, time)}
-                            className="w-full sm:w-auto"
+                          <label className="block text-xs font-medium text-slate-600 mb-2">
+                            <MapPin className="inline mr-1 text-emerald-600" size={14} />
+                            Field Location (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={location[day.value] || ""}
+                            onChange={(e) => handleLocationChange(day.value, e.target.value)}
+                            placeholder="e.g., Central Park Field 3, 123 Main Street"
+                            className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition duration-150 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md text-sm"
                           />
                         </div>
                       )}

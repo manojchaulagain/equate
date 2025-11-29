@@ -4,12 +4,13 @@
 
 export interface GameSchedule {
   schedule: { [day: number]: string }; // Map of day (0-6) to time string (HH:MM)
+  location?: { [day: number]: string }; // Map of day (0-6) to location string
 }
 
 /**
  * Calculate the next game date and time based on the schedule
  */
-export function calculateNextGame(schedule: GameSchedule | null): { date: Date; formatted: string } | null {
+export function calculateNextGame(schedule: GameSchedule | null): { date: Date; formatted: string; dayOfWeek?: number } | null {
   if (!schedule || !schedule.schedule || Object.keys(schedule.schedule).length === 0) {
     return null;
   }
@@ -31,12 +32,14 @@ export function calculateNextGame(schedule: GameSchedule | null): { date: Date; 
       return {
         date: todayGameTime,
         formatted: formatGameDateTime(todayGameTime),
+        dayOfWeek: today,
       };
     }
   }
   
   // Look for the next game day in the current week
   let nextGameDate: Date | null = null;
+  let nextGameDay: number | null = null;
   let minDaysUntil = Infinity;
   
   for (let i = 1; i <= 7; i++) {
@@ -50,6 +53,7 @@ export function calculateNextGame(schedule: GameSchedule | null): { date: Date; 
       if (i < minDaysUntil) {
         minDaysUntil = i;
         nextGameDate = gameDate;
+        nextGameDay = checkDay;
       }
     }
   }
@@ -67,6 +71,7 @@ export function calculateNextGame(schedule: GameSchedule | null): { date: Date; 
       nextGameDate = new Date(now);
       nextGameDate.setDate(now.getDate() + daysUntil);
       nextGameDate.setHours(hours, minutes, 0, 0);
+      nextGameDay = earliestDay;
     }
   }
   
@@ -77,6 +82,7 @@ export function calculateNextGame(schedule: GameSchedule | null): { date: Date; 
   return {
     date: nextGameDate,
     formatted: formatGameDateTime(nextGameDate),
+    dayOfWeek: nextGameDay ?? undefined,
   };
 }
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { ListChecks, Trophy, Edit2, UserPlus, Trash2, Calendar } from "lucide-react";
+import { ListChecks, Trophy, Edit2, UserPlus, Trash2, Calendar, MapPin } from "lucide-react";
 import { PlayerAvailability, Player } from "../../types/player";
 import { POSITION_LABELS, SKILL_LABELS } from "../../constants/player";
 import EditPlayerModal from "../players/EditPlayerModal";
@@ -56,7 +56,8 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   const [showAddModal, setShowAddModal] = useState(false);
   const [playerToDelete, setPlayerToDelete] = useState<PlayerAvailability | null>(null);
   const [gameSchedule, setGameSchedule] = useState<GameSchedule | null>(null);
-  const [nextGame, setNextGame] = useState<{ date: Date; formatted: string } | null>(null);
+  const [nextGame, setNextGame] = useState<{ date: Date; formatted: string; dayOfWeek?: number } | null>(null);
+  const [fieldLocation, setFieldLocation] = useState<string | null>(null);
 
   // Fetch game schedule and calculate next game
   useEffect(() => {
@@ -74,9 +75,16 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
           setGameSchedule(data);
           const next = calculateNextGame(data);
           setNextGame(next);
+          // Get location for the specific day of the next game
+          if (next && typeof next.dayOfWeek === 'number' && data.location && data.location[next.dayOfWeek]) {
+            setFieldLocation(data.location[next.dayOfWeek]);
+          } else {
+            setFieldLocation(null);
+          }
         } else {
           setGameSchedule(null);
           setNextGame(null);
+          setFieldLocation(null);
         }
       },
       (err) => {
@@ -165,18 +173,35 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
             {nextGame && (
               <div className="inline-block p-3 sm:p-4 bg-gradient-to-br from-indigo-100/90 via-purple-100/90 to-pink-100/90 border-2 border-indigo-300/70 rounded-2xl shadow-lg backdrop-blur-sm relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5"></div>
-                <div className="relative z-10 flex items-center gap-2 sm:gap-3">
-                  <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-md flex-shrink-0">
-                    <Calendar className="text-white" size={18} />
+                <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-md flex-shrink-0">
+                      <Calendar className="text-white" size={18} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-0.5">
+                        Next Game
+                      </p>
+                      <p className="text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 bg-clip-text text-transparent whitespace-nowrap">
+                        {nextGame.formatted}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-0.5">
-                      Next Game
-                    </p>
-                    <p className="text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 bg-clip-text text-transparent whitespace-nowrap">
-                      {nextGame.formatted}
-                    </p>
-                  </div>
+                  {fieldLocation && (
+                    <div className="flex items-center gap-2 sm:gap-3 pl-0 sm:pl-2 border-l-0 sm:border-l-2 border-indigo-300/50">
+                      <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl shadow-md flex-shrink-0">
+                        <MapPin className="text-white" size={18} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-0.5">
+                          Location
+                        </p>
+                        <p className="text-xs sm:text-sm font-bold bg-gradient-to-r from-purple-700 via-pink-700 to-rose-700 bg-clip-text text-transparent">
+                          {fieldLocation}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
