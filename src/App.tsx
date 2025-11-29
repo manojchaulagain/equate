@@ -1139,7 +1139,7 @@ export default function App() {
           </div>
 
       <div className="relative z-10 px-2 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        <header className="max-w-5xl mx-auto relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl sm:rounded-[2rem] p-4 sm:p-6 md:p-8 shadow-2xl border border-slate-700/50 z-20 overflow-hidden">
+        <header className="max-w-5xl mx-auto relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl sm:rounded-[2rem] p-4 sm:p-6 md:p-8 shadow-2xl border border-slate-700/50 z-20">
           {/* Elegant Background with Mountains */}
           <div className="absolute inset-0">
             {/* Subtle gradient overlay */}
@@ -1171,7 +1171,7 @@ export default function App() {
 
           {/* Top Right Corner - Profile and Info */}
           {userId && userEmail && (
-            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 md:top-6 md:right-6 flex items-center gap-1.5 sm:gap-2 md:gap-3 z-30">
+            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 md:top-6 md:right-6 flex items-center gap-1.5 sm:gap-2 md:gap-3 z-30" style={{ overflow: 'visible' }}>
               <UserNotifications db={db} userId={userId} />
               <InfoTooltip />
               <ProfileMenu
