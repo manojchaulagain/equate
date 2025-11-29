@@ -20,11 +20,12 @@ interface ManOfTheMatchProps {
   db: any;
   userId: string;
   userEmail: string;
+  userRole: string;
   players: any[];
   isActive?: boolean;
 }
 
-const ManOfTheMatch: React.FC<ManOfTheMatchProps> = ({ db, userId, userEmail, players, isActive = false }) => {
+const ManOfTheMatch: React.FC<ManOfTheMatchProps> = ({ db, userId, userEmail, userRole, players, isActive = false }) => {
   const [nominations, setNominations] = useState<MOTMNomination[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNominateModal, setShowNominateModal] = useState(false);
@@ -37,6 +38,22 @@ const ManOfTheMatch: React.FC<ManOfTheMatchProps> = ({ db, userId, userEmail, pl
   const [nextGame, setNextGame] = useState<{ date: Date; formatted: string } | null>(null);
   const [currentWeekNominations, setCurrentWeekNominations] = useState<MOTMNomination[]>([]);
   const [hasNominated, setHasNominated] = useState(false);
+
+  const isAdmin = userRole === "admin";
+
+  // Filter players that the current user can nominate
+  const getAvailablePlayers = () => {
+    if (isAdmin) {
+      // Admins can nominate anyone
+      return players;
+    }
+    // Regular users cannot nominate themselves or players they registered
+    return players.filter(
+      (player) => player.userId !== userId && player.registeredBy !== userId
+    );
+  };
+
+  const availablePlayers = getAvailablePlayers();
 
   useEffect(() => {
     if (!db) return;
@@ -217,10 +234,12 @@ const ManOfTheMatch: React.FC<ManOfTheMatchProps> = ({ db, userId, userEmail, pl
               Man of the Match
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
-              Nominate the best performer from this week's game.
+              {availablePlayers.length > 0
+                ? "Nominate the best performer from this week's game."
+                : "Nominate the best performer from this week's game. (You cannot nominate yourself or players you registered.)"}
             </p>
           </div>
-          {nextGame && !hasNominated && (
+          {nextGame && !hasNominated && availablePlayers.length > 0 && (
             <button
               onClick={() => setShowNominateModal(true)}
               className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-semibold py-2.5 px-4 sm:px-6 rounded-2xl hover:from-yellow-600 hover:to-amber-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2 w-full sm:w-auto"
@@ -409,12 +428,17 @@ const ManOfTheMatch: React.FC<ManOfTheMatchProps> = ({ db, userId, userEmail, pl
                   disabled={isSubmitting}
                 >
                   <option value="">Select a player</option>
-                  {players.map((player) => (
+                  {availablePlayers.map((player) => (
                     <option key={player.id} value={player.id}>
                       {player.name}
                     </option>
                   ))}
                 </select>
+                {!isAdmin && availablePlayers.length === 0 && (
+                  <p className="mt-2 text-xs text-slate-500 italic">
+                    You cannot nominate yourself or players you registered.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

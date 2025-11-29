@@ -1557,6 +1557,7 @@ export default function App() {
                     db={db}
                     userId={userId}
                     userEmail={userEmail || ""}
+                    userRole={userRole}
                     players={availability}
                     isActive={view === "leaderboard"}
                   />
@@ -1564,6 +1565,7 @@ export default function App() {
                     db={db}
                     userId={userId}
                     userEmail={userEmail || ""}
+                    userRole={userRole}
                     players={availability}
                     isActive={view === "leaderboard"}
                   />

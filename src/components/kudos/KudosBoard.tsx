@@ -18,11 +18,12 @@ interface KudosBoardProps {
   db: any;
   userId: string;
   userEmail: string;
+  userRole: string;
   players: any[];
   isActive?: boolean;
 }
 
-const KudosBoard: React.FC<KudosBoardProps> = ({ db, userId, userEmail, players, isActive = false }) => {
+const KudosBoard: React.FC<KudosBoardProps> = ({ db, userId, userEmail, userRole, players, isActive = false }) => {
   const [kudos, setKudos] = useState<Kudos[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -30,6 +31,22 @@ const KudosBoard: React.FC<KudosBoardProps> = ({ db, userId, userEmail, players,
   const [message, setMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isAdmin = userRole === "admin";
+
+  // Filter players that the current user can give kudos to
+  const getAvailablePlayers = () => {
+    if (isAdmin) {
+      // Admins can give kudos to anyone
+      return players;
+    }
+    // Regular users cannot give kudos to themselves or players they registered
+    return players.filter(
+      (player) => player.userId !== userId && player.registeredBy !== userId
+    );
+  };
+
+  const availablePlayers = getAvailablePlayers();
 
   useEffect(() => {
     if (!db) return;
@@ -145,16 +162,20 @@ const KudosBoard: React.FC<KudosBoardProps> = ({ db, userId, userEmail, players,
               Kudos Board
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
-              Show appreciation and give kudos to your teammates for their great plays and sportsmanship!
+              {availablePlayers.length > 0
+                ? "Show appreciation and give kudos to your teammates for their great plays and sportsmanship!"
+                : "Show appreciation and give kudos to your teammates for their great plays and sportsmanship! (You cannot give kudos to yourself or players you registered.)"}
             </p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-gradient-to-r from-pink-500 to-rose-600 text-white font-semibold py-2.5 px-4 sm:px-6 rounded-2xl hover:from-pink-600 hover:to-rose-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2 w-full sm:w-auto"
-          >
-            <Heart className="w-4 h-4" />
-            <span>Give Kudos</span>
-          </button>
+          {availablePlayers.length > 0 && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-gradient-to-r from-pink-500 to-rose-600 text-white font-semibold py-2.5 px-4 sm:px-6 rounded-2xl hover:from-pink-600 hover:to-rose-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2 w-full sm:w-auto"
+            >
+              <Heart className="w-4 h-4" />
+              <span>Give Kudos</span>
+            </button>
+          )}
         </div>
 
         {error && (
@@ -265,12 +286,17 @@ const KudosBoard: React.FC<KudosBoardProps> = ({ db, userId, userEmail, players,
                   disabled={isSubmitting}
                 >
                   <option value="">Select a player</option>
-                  {players.map((player) => (
+                  {availablePlayers.map((player) => (
                     <option key={player.id} value={player.id}>
                       {player.name}
                     </option>
                   ))}
                 </select>
+                {!isAdmin && availablePlayers.length === 0 && (
+                  <p className="mt-2 text-xs text-slate-500 italic">
+                    You cannot give kudos to yourself or players you registered.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

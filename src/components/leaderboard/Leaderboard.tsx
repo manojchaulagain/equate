@@ -39,6 +39,20 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
 
   const isAdmin = userRole === "admin";
 
+  // Filter players that the current user can add points for
+  const getAvailablePlayers = () => {
+    if (isAdmin) {
+      // Admins can add points for anyone
+      return players;
+    }
+    // Regular users cannot add points for themselves or players they registered
+    return players.filter(
+      (player) => player.userId !== userId && player.registeredBy !== userId
+    );
+  };
+
+  const availablePlayers = getAvailablePlayers();
+
   useEffect(() => {
     if (!db || players.length === 0) return;
 
@@ -218,10 +232,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
               Leaderboard
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
-              {isAdmin ? "View player rankings and assign points based on performance." : "View player rankings and performance points."}
+              {isAdmin 
+                ? "View player rankings and assign points based on performance." 
+                : availablePlayers.length > 0
+                ? "View player rankings and assign points for other players."
+                : "View player rankings and performance points."}
             </p>
           </div>
-          {isAdmin && (
+          {availablePlayers.length > 0 && (
             <button
               onClick={() => setShowAddPointsModal(true)}
               className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold py-2.5 px-4 sm:px-6 rounded-2xl hover:from-amber-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2 w-full sm:w-auto"
@@ -360,12 +378,17 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
                   disabled={isSubmitting}
                 >
                   <option value="">Select a player</option>
-                  {players.map((player) => (
+                  {availablePlayers.map((player) => (
                     <option key={player.id} value={player.id}>
                       {player.name}
                     </option>
                   ))}
                 </select>
+                {!isAdmin && availablePlayers.length === 0 && (
+                  <p className="mt-2 text-xs text-slate-500 italic">
+                    You cannot add points for yourself or players you registered.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
