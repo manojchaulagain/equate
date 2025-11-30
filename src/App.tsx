@@ -1744,6 +1744,7 @@ export default function App() {
                     userEmail={userEmail || ""}
                     players={availability}
                     gameSchedule={gameSchedule}
+                    userRole={userRole}
                     isActive={view === "leaderboard"}
                   />
                   <KudosBoard

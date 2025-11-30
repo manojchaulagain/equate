@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Target, Footprints, Plus, X, Calendar } from "lucide-react";
 import { collection, addDoc, Timestamp, query, getDocs, onSnapshot } from "firebase/firestore";
 import { GameSchedule } from "../../utils/gameSchedule";
-import { getTodayGameDateString, isTodayGameDayPassed } from "../../utils/gamePoints";
+import { getGameDateStringForSubmission, canSubmitGoalsAssists } from "../../utils/gamePoints";
 
 declare const __app_id: string;
 
@@ -12,6 +12,7 @@ interface GoalsAssistsSubmissionProps {
   userEmail: string;
   players: any[];
   gameSchedule: GameSchedule | null;
+  userRole?: string;
   isActive?: boolean;
 }
 
@@ -36,6 +37,7 @@ const GoalsAssistsSubmission: React.FC<GoalsAssistsSubmissionProps> = ({
   userEmail,
   players,
   gameSchedule,
+  userRole = "user",
   isActive = false,
 }) => {
   const [showModal, setShowModal] = useState(false);
@@ -47,8 +49,13 @@ const GoalsAssistsSubmission: React.FC<GoalsAssistsSubmissionProps> = ({
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingSubmissions, setPendingSubmissions] = useState<Submission[]>([]);
 
-  // Get players that the user can submit for (themselves or players they registered)
+  // Get players that the user can submit for
+  // Admins can submit for any player, regular users can only submit for themselves or players they registered
   const getAvailablePlayers = () => {
+    const isAdmin = userRole === "admin";
+    if (isAdmin) {
+      return players; // Admins can submit for all players
+    }
     return players.filter(
       (player) => player.userId === userId || player.registeredBy === userId
     );
@@ -56,9 +63,9 @@ const GoalsAssistsSubmission: React.FC<GoalsAssistsSubmissionProps> = ({
 
   const availablePlayers = getAvailablePlayers();
 
-  // Check if user can submit (must be after a game day)
-  const canSubmit = isTodayGameDayPassed(gameSchedule?.schedule || null);
-  const todayGameDate = gameSchedule ? getTodayGameDateString(gameSchedule.schedule) : null;
+  // Check if user can submit (must be after a game day OR on day after game day)
+  const canSubmit = canSubmitGoalsAssists(gameSchedule?.schedule || null);
+  const todayGameDate = gameSchedule ? getGameDateStringForSubmission(gameSchedule.schedule) : null;
 
   // Fetch pending submissions for this user
   useEffect(() => {
@@ -95,8 +102,8 @@ const GoalsAssistsSubmission: React.FC<GoalsAssistsSubmissionProps> = ({
   }, [db, userId]);
 
   const handleSubmit = async () => {
-    if (!selectedPlayer || !todayGameDate) {
-      setError("Please select a player and ensure a game was played today.");
+      if (!selectedPlayer || !todayGameDate) {
+      setError("Please select a player and ensure a game was played recently.");
       return;
     }
 
@@ -144,7 +151,7 @@ const GoalsAssistsSubmission: React.FC<GoalsAssistsSubmissionProps> = ({
       });
 
       if (existing) {
-        setError("You have already submitted stats for this player for today's game. Please wait for admin approval.");
+        setError("You have already submitted stats for this player for this game. Please wait for admin approval.");
         setIsSubmitting(false);
         return;
       }
@@ -193,7 +200,9 @@ const GoalsAssistsSubmission: React.FC<GoalsAssistsSubmissionProps> = ({
               Goals & Assists
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
-              Submit goals and assists for yourself or players you registered. Requires admin approval.
+              {userRole === "admin"
+                ? "Submit goals and assists for any player. Requires admin approval."
+                : "Submit goals and assists for yourself or players you registered. Requires admin approval."}
             </p>
           </div>
           {canSubmit && availablePlayers.length > 0 && (
@@ -265,7 +274,11 @@ const GoalsAssistsSubmission: React.FC<GoalsAssistsSubmissionProps> = ({
         {availablePlayers.length === 0 && (
           <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-green-50 rounded-2xl border-2 border-dashed border-green-200">
             <Target className="mx-auto text-green-400 mb-3" size={48} />
-            <p className="text-slate-600 font-medium">No players available. You can only submit stats for yourself or players you registered.</p>
+            <p className="text-slate-600 font-medium">
+              {userRole === "admin" 
+                ? "No players available." 
+                : "No players available. You can only submit stats for yourself or players you registered."}
+            </p>
           </div>
         )}
       </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Calendar, MapPin, CheckCircle2, Trophy, Star, Heart, Award, ArrowRight } from "lucide-react";
 import { calculateNextGame, getTodayGame } from "../../utils/gameSchedule";
 import { useGameSchedule } from "../../hooks/useGameSchedule";
-import { isSameDay } from "../../utils/dateHelpers";
+import { isSameDay, isOnGameDayOrDayAfter } from "../../utils/dateHelpers";
 
 interface GameInfoPanelProps {
   db: any;
@@ -38,23 +38,82 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
       // Get today's game info (if today is a game day)
       const today = getTodayGame(gameSchedule);
       
-      // Check if today's game is still valid (until midnight)
+      // Check for yesterday's game (if yesterday was a game day)
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayDayOfWeek = yesterday.getDay();
+      let yesterdayGame = null;
+      if (gameSchedule.schedule && gameSchedule.schedule[yesterdayDayOfWeek]) {
+        const [hours, minutes] = gameSchedule.schedule[yesterdayDayOfWeek].split(':').map(Number);
+        const yesterdayGameTime = new Date(yesterday);
+        yesterdayGameTime.setHours(hours, minutes, 0, 0);
+        
+        // Format yesterday's game date string
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const dayName = dayNames[yesterdayGameTime.getDay()];
+        const month = monthNames[yesterdayGameTime.getMonth()];
+        const day = yesterdayGameTime.getDate();
+        const timeStr = yesterdayGameTime.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+        
+        yesterdayGame = {
+          date: yesterdayGameTime,
+          formatted: `${dayName}, ${month} ${day} at ${timeStr}`,
+          dayOfWeek: yesterdayDayOfWeek,
+        };
+      }
+      
+      // Determine which game to show
       let validTodayGame = null;
+      
+      // Check if today is a game day - show until midnight of next day
       if (today) {
         const gameTime = new Date(today.date);
-        // Only show today's game if it's still the same day (until midnight)
-        if (isSameDay(gameTime, now)) {
+        if (isOnGameDayOrDayAfter(gameTime, now)) {
           validTodayGame = today;
+        }
+      }
+      
+      // If no valid today game, check if yesterday was a game day
+      // If we're on the day after a game, show yesterday's game
+      if (!validTodayGame && yesterdayGame) {
+        const yesterdayGameTime = new Date(yesterdayGame.date);
+        if (isOnGameDayOrDayAfter(yesterdayGameTime, now)) {
+          validTodayGame = yesterdayGame;
         }
       }
       
       setTodayGame(validTodayGame);
       
-      // Recalculate next game in case today's game is no longer valid
-      const next = calculateNextGame(gameSchedule);
+      // Calculate next game - only show if we're past the day after any game day
+      let next = null;
+      if (!validTodayGame) {
+        // Only show next game if we're not showing today's or yesterday's game
+        next = calculateNextGame(gameSchedule);
+      } else {
+        // Don't show next game if we're still showing today's or yesterday's game
+        // Check if we're past the day after the game day (2 days after the game)
+        const gameTimeToCheck = new Date(validTodayGame.date);
+        const twoDaysAfter = new Date(gameTimeToCheck);
+        twoDaysAfter.setDate(gameTimeToCheck.getDate() + 2);
+        twoDaysAfter.setHours(0, 0, 0, 0);
+        
+        const currentDay = new Date(now);
+        currentDay.setHours(0, 0, 0, 0);
+        
+        // Only show next game if we're past the day after the game (i.e., 2+ days after)
+        if (currentDay.getTime() >= twoDaysAfter.getTime()) {
+          next = calculateNextGame(gameSchedule);
+        }
+      }
+      
       setNextGame(next);
       
-      // Check if game was played (2 hours after game time) and still same day
+      // Check if game was played (2 hours after game time) and we're on game day or day after
       if (validTodayGame) {
         const gameTime = new Date(validTodayGame.date);
         const twoHoursAfterGame = new Date(gameTime.getTime() + 2 * 60 * 60 * 1000);
@@ -62,8 +121,8 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
         // Check if it's been 2 hours since game time
         const hasBeenTwoHours = now.getTime() >= twoHoursAfterGame.getTime();
         
-        // Show panel if 2 hours have passed AND it's still the same day
-        const shouldShow = hasBeenTwoHours && isSameDay(gameTime, now);
+        // Show panel if 2 hours have passed AND we're on the game day or the day after
+        const shouldShow = hasBeenTwoHours && isOnGameDayOrDayAfter(gameTime, now);
         setGamePlayed(shouldShow);
         setShowGameCompletePanel(shouldShow);
       } else {

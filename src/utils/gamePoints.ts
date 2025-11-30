@@ -3,6 +3,7 @@
  */
 
 import { doc, getDoc, setDoc, Timestamp, collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { isOnGameDayOrDayAfter } from "./dateHelpers";
 
 declare const __app_id: string;
 
@@ -107,7 +108,87 @@ export function isTodayGameDayPassed(schedule: { [day: number]: string } | null)
 }
 
 /**
+ * Check if user can submit goals/assists (on game day after game time OR day after game day)
+ */
+export function canSubmitGoalsAssists(schedule: { [day: number]: string } | null): boolean {
+  if (!schedule) return false;
+  
+  const now = new Date();
+  const today = now.getDay();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayDayOfWeek = yesterday.getDay();
+  
+  // Check if today is a game day and game has passed
+  if (schedule[today]) {
+    const [hours, minutes] = schedule[today].split(':').map(Number);
+    const todayGameTime = new Date(now);
+    todayGameTime.setHours(hours, minutes, 0, 0);
+    
+    // Allow submission if game time has passed and we're on game day or day after
+    if (now > todayGameTime && isOnGameDayOrDayAfter(todayGameTime, now)) {
+      return true;
+    }
+  }
+  
+  // Check if yesterday was a game day (we're on the day after)
+  if (schedule[yesterdayDayOfWeek]) {
+    const [hours, minutes] = schedule[yesterdayDayOfWeek].split(':').map(Number);
+    const yesterdayGameTime = new Date(yesterday);
+    yesterdayGameTime.setHours(hours, minutes, 0, 0);
+    
+    // Check if we're on the day after the game day
+    if (isOnGameDayOrDayAfter(yesterdayGameTime, now)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Get the game date string for goals/assists submission (today's or yesterday's game)
+ */
+export function getGameDateStringForSubmission(schedule: { [day: number]: string } | null): string | null {
+  if (!schedule) return null;
+  
+  const now = new Date();
+  const today = now.getDay();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayDayOfWeek = yesterday.getDay();
+  
+  // Check if today is a game day and game has passed
+  if (schedule[today]) {
+    const [hours, minutes] = schedule[today].split(':').map(Number);
+    const todayGameTime = new Date(now);
+    todayGameTime.setHours(hours, minutes, 0, 0);
+    
+    if (now > todayGameTime && isOnGameDayOrDayAfter(todayGameTime, now)) {
+      // Game time has passed today and we're on game day or day after - return today's date
+      return getDateString(now);
+    }
+  }
+  
+  // Check if yesterday was a game day (we're on the day after)
+  if (schedule[yesterdayDayOfWeek]) {
+    const [hours, minutes] = schedule[yesterdayDayOfWeek].split(':').map(Number);
+    const yesterdayGameTime = new Date(yesterday);
+    yesterdayGameTime.setHours(hours, minutes, 0, 0);
+    
+    // Check if we're on the day after the game day
+    if (isOnGameDayOrDayAfter(yesterdayGameTime, now)) {
+      // We're on the day after a game - return yesterday's date
+      return getDateString(yesterday);
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Get today's date string if it was a game day
+ * @deprecated Use getGameDateStringForSubmission instead to support day-after submissions
  */
 export function getTodayGameDateString(schedule: { [day: number]: string } | null): string | null {
   if (isTodayGameDayPassed(schedule)) {
