@@ -1186,9 +1186,16 @@ export default function App() {
 
     const createdTeams: Team[] = Array.from({ length: normalizedTeamCount }, (_, index) => {
       const colorKey = resolveColor(index);
-      const label = getTeamColorLabel(colorKey);
+      // For 2 teams, explicitly name them "Red Team" and "Blue Team"
+      let teamName: string;
+      if (normalizedTeamCount === 2) {
+        teamName = index === 0 ? "Red Team" : "Blue Team";
+      } else {
+        const label = getTeamColorLabel(colorKey);
+        teamName = `${label} Team`;
+      }
       return {
-        name: `${label} Team`,
+        name: teamName,
         players: [],
         totalSkill: 0,
         colorKey,
@@ -1389,6 +1396,8 @@ export default function App() {
             {userId && (
               <GameInfoPanel
                 db={db}
+                teams={teams?.teams || []}
+                userRole={userRole}
                 onNavigateToLeaderboard={() => handleViewChange("leaderboard")}
                 onOpenMOTM={() => {
                   handleViewChange("poll");

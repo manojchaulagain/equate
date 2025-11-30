@@ -6,6 +6,10 @@ import { isTodayGameDayPassed } from "../../utils/gamePoints";
 import PlayerProfileModal from "../players/PlayerProfileModal";
 import { Player, Position, SkillLevel } from "../../types/player";
 import { POSITION_LABELS, SKILL_LABELS, POSITIONS } from "../../constants/player";
+import LeagueTable from "../league/LeagueTable";
+import { GameResult, TeamStanding } from "../../types/league";
+import { calculateStandings } from "../../utils/leagueTable";
+import { FirestorePaths } from "../../utils/firestorePaths";
 
 declare const __app_id: string;
 
@@ -47,6 +51,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
   const [success, setSuccess] = useState<string | null>(null);
   const [gameSchedule, setGameSchedule] = useState<GameSchedule | null>(null);
   const [selectedPlayerProfile, setSelectedPlayerProfile] = useState<{ player: Player; stats: PlayerPoints } | null>(null);
+  
+  // League table state
+  const [gameResults, setGameResults] = useState<GameResult[]>([]);
+  const [leagueStandings, setLeagueStandings] = useState<TeamStanding[]>([]);
+  const [loadingLeagueTable, setLoadingLeagueTable] = useState(true);
   
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -97,6 +106,43 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
 
     return () => unsubscribe();
   }, [db]);
+
+  // Fetch game results for league table
+  useEffect(() => {
+    if (!db) return;
+
+    setLoadingLeagueTable(true);
+    const gameResultsPath = FirestorePaths.gameResults();
+    const gameResultsRef = collection(db, gameResultsPath);
+
+    const unsubscribe = onSnapshot(
+      gameResultsRef,
+      (snapshot) => {
+        const results = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as GameResult[];
+        setGameResults(results);
+        setLoadingLeagueTable(false);
+      },
+      (err) => {
+        console.error("Error fetching game results:", err);
+        setLoadingLeagueTable(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [db]);
+
+  // Calculate standings when game results change
+  useEffect(() => {
+    if (gameResults.length > 0) {
+      const standings = calculateStandings(gameResults);
+      setLeagueStandings(standings);
+    } else {
+      setLeagueStandings([]);
+    }
+  }, [gameResults]);
 
   useEffect(() => {
     if (!db || players.length === 0) return;
@@ -376,6 +422,20 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
         <div className="absolute bottom-0 left-0 w-40 h-40 bg-yellow-200/50 blur-[80px]" />
       </div>
       <div className="relative z-10">
+        {/* League Table Section - At the very top */}
+        <div className="mb-8">
+          <div className="mb-4">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-600 via-yellow-600 to-orange-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">
+              <Trophy className="text-amber-600" size={24} />
+              League Table
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
+              Team standings based on game results. Win = 3 pts | Draw = 1 pt | Loss = 0 pts
+            </p>
+          </div>
+          <LeagueTable standings={leagueStandings} isLoading={loadingLeagueTable} />
+        </div>
+
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-6">
           <div>
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-600 via-yellow-600 to-orange-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">

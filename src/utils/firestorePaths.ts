@@ -36,5 +36,6 @@ export const FirestorePaths = {
   goalsAssistsSubmissions: () => `${getBasePath()}/goalsAssistsSubmissions`,
   questions: () => `${getBasePath()}/questions`,
   completedGames: () => `${getBasePath()}/completedGames/status`,
+  gameResults: () => `${getBasePath()}/gameResults`,
 } as const;
 

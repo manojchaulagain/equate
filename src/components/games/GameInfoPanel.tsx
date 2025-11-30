@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, MapPin, CheckCircle2, Trophy, Star, Heart, Award, ArrowRight } from "lucide-react";
+import { Calendar, MapPin, CheckCircle2, Trophy, Star, Heart, Award, ArrowRight, Target } from "lucide-react";
 import { calculateNextGame, getTodayGame } from "../../utils/gameSchedule";
 import { useGameSchedule } from "../../hooks/useGameSchedule";
 import { isSameDay, isOnGameDayOrDayAfter } from "../../utils/dateHelpers";
+import { Team } from "../../types/player";
+import GameScoreInput from "./GameScoreInput";
 
 interface GameInfoPanelProps {
   db: any;
+  teams?: Team[];
+  userRole?: string;
   onNavigateToLeaderboard?: () => void;
   onOpenMOTM?: () => void;
   onOpenKudos?: () => void;
@@ -14,6 +18,8 @@ interface GameInfoPanelProps {
 
 const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
   db,
+  teams = [],
+  userRole = "user",
   onNavigateToLeaderboard,
   onOpenMOTM,
   onOpenKudos,
@@ -27,6 +33,25 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
   const [fieldLocation, setFieldLocation] = useState<string | null>(null);
   const [gamePlayed, setGamePlayed] = useState(false);
   const [showGameCompletePanel, setShowGameCompletePanel] = useState(false);
+  const [showScoreInput, setShowScoreInput] = useState(false);
+  
+  const isAdmin = userRole === "admin";
+
+  // Debug logging for Enter Score button visibility
+  useEffect(() => {
+    if (showGameCompletePanel) {
+      console.log('GameInfoPanel Debug - Enter Score Button:', {
+        isAdmin,
+        userRole,
+        teams,
+        teamsIsArray: Array.isArray(teams),
+        teamsLength: teams?.length,
+        teamsWithNames: teams?.filter(t => t?.name)?.map(t => t.name),
+        showGameCompletePanel,
+        todayGame,
+      });
+    }
+  }, [showGameCompletePanel, isAdmin, userRole, teams, todayGame]);
 
   // Update game played status and today's game every minute
   useEffect(() => {
@@ -249,7 +274,7 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
         {/* Game Complete Actions Section - Only show if game is played */}
         {showGameCompletePanel && todayGame && (
           <div className="relative z-10 px-5 sm:px-6 md:px-8 pb-5 sm:pb-6 md:pb-8 pt-0 border-t-2 border-amber-200/50">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               {onOpenMOTM && (
                 <button
                   onClick={onOpenMOTM}
@@ -303,6 +328,49 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
                   <ArrowRight className="text-amber-600 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-3" size={20} />
                 </button>
               )}
+              
+              {/* Enter Score button - Show for admins when teams are generated */}
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    // Check if we have valid teams before opening
+                    if (!Array.isArray(teams) || teams.length < 2 || !teams.every(t => t?.name)) {
+                      alert('Please generate teams first. You need at least 2 teams with names to enter scores.');
+                      return;
+                    }
+                    setShowScoreInput(true);
+                  }}
+                  disabled={!Array.isArray(teams) || teams.length < 2 || !teams.every(t => t?.name)}
+                  className={`group flex items-center justify-between p-5 border-2 rounded-2xl shadow-lg transition-all duration-300 transform ${
+                    Array.isArray(teams) && teams.length >= 2 && teams.every(t => t?.name)
+                      ? 'bg-white/90 hover:bg-white border-green-200/60 hover:border-green-400 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
+                      : 'bg-gray-100/90 border-gray-200/60 opacity-60 cursor-not-allowed'
+                  }`}
+                >
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className={`p-3 rounded-xl shadow-lg flex-shrink-0 transition-transform ${
+                      Array.isArray(teams) && teams.length >= 2 && teams.every(t => t?.name)
+                        ? 'bg-gradient-to-br from-green-500 to-emerald-600 group-hover:scale-110'
+                        : 'bg-gradient-to-br from-gray-400 to-gray-500'
+                    }`}>
+                      <Target className="text-white" size={22} />
+                    </div>
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="text-base font-bold text-slate-800 mb-1">Enter Score</p>
+                      <p className="text-sm text-slate-600">
+                        {!Array.isArray(teams) || teams.length < 2
+                          ? "Generate teams first"
+                          : !teams.every(t => t?.name)
+                          ? "Teams need names"
+                          : "Record game result"}
+                      </p>
+                    </div>
+                  </div>
+                  {Array.isArray(teams) && teams.length >= 2 && teams.every(t => t?.name) && (
+                    <ArrowRight className="text-green-600 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-3" size={20} />
+                  )}
+                </button>
+              )}
             </div>
             
             {/* View Leaderboard Button */}
@@ -320,6 +388,19 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
           </div>
         )}
       </div>
+      
+      {/* Score Input Modal */}
+      {showScoreInput && todayGame && teams.length >= 2 && (
+        <GameScoreInput
+          db={db}
+          teams={teams}
+          gameDate={todayGame.date}
+          onSuccess={() => {
+            setShowScoreInput(false);
+          }}
+          onClose={() => setShowScoreInput(false)}
+        />
+      )}
     </div>
   );
 };
