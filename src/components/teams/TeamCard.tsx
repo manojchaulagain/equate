@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Team, PlayerAvailability, Position } from "../../types/player";
 import { POSITION_LABELS, POSITIONS } from "../../constants/player";
 import { getTeamColorTheme } from "../../constants/teamColors";
@@ -9,7 +9,13 @@ interface TeamCardProps {
 }
 
 const TeamCard: React.FC<TeamCardProps> = ({ team, positions }) => {
-  const theme = getTeamColorTheme(team.colorKey);
+  const theme = useMemo(() => getTeamColorTheme(team.colorKey), [team.colorKey]);
+  
+  // Memoize sorted players to avoid re-sorting on every render
+  const sortedPlayers = useMemo(
+    () => [...team.players].sort((a, b) => b.skillLevel - a.skillLevel),
+    [team.players]
+  );
 
   return (
     <div
@@ -43,23 +49,21 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, positions }) => {
       </div>
 
       <ul className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-        {team.players
-          .sort((a, b) => b.skillLevel - a.skillLevel)
-          .map((player: PlayerAvailability) => (
-            <li
-              key={player.id}
-              className={`flex justify-between items-center text-sm p-3 rounded-lg shadow-sm ${theme.listBg} border ${theme.listBorder}`}
-            >
-              <span className="font-bold text-slate-800">{player.name}</span>
-              <span className={`text-xs font-bold px-3 py-1 rounded-full ${theme.badgeBg} ${theme.badgeText}`}>
-                {player.position} (S:{player.skillLevel})
-              </span>
-            </li>
-          ))}
+        {sortedPlayers.map((player: PlayerAvailability) => (
+          <li
+            key={player.id}
+            className={`flex justify-between items-center text-sm p-3 rounded-lg shadow-sm ${theme.listBg} border ${theme.listBorder}`}
+          >
+            <span className="font-bold text-slate-800">{player.name}</span>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full ${theme.badgeBg} ${theme.badgeText}`}>
+              {player.position} (S:{player.skillLevel})
+            </span>
+          </li>
+        ))}
       </ul>
     </div>
   );
 };
 
-export default TeamCard;
+export default React.memo(TeamCard);
 

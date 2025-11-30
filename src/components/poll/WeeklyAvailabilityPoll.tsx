@@ -4,11 +4,10 @@ import { PlayerAvailability, Player } from "../../types/player";
 import { POSITION_LABELS, SKILL_LABELS } from "../../constants/player";
 import EditPlayerModal from "../players/EditPlayerModal";
 import AddPlayerModal from "../players/AddPlayerModal";
-import { doc, onSnapshot, collection, addDoc, Timestamp, getDoc, setDoc } from "firebase/firestore";
-import { GameSchedule } from "../../utils/gameSchedule";
+import { doc, collection, addDoc, Timestamp, getDoc, setDoc } from "firebase/firestore";
+import { useGameSchedule } from "../../hooks/useGameSchedule";
 import { getTodayGameDateString } from "../../utils/gamePoints";
-
-declare const __app_id: string;
+import { FirestorePaths } from "../../utils/firestorePaths";
 
 const TEAM_COUNT_OPTIONS = [2, 3, 4, 5, 6];
 
@@ -70,7 +69,9 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   const [editingPlayer, setEditingPlayer] = useState<PlayerAvailability | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [playerToDelete, setPlayerToDelete] = useState<PlayerAvailability | null>(null);
-  const [gameSchedule, setGameSchedule] = useState<GameSchedule | null>(null);
+  
+  // Use shared hook for game schedule
+  const gameSchedule = useGameSchedule(db);
   
   // Modal states
   const [showMOTMModal, setShowMOTMModal] = useState(false);
@@ -120,31 +121,6 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   const [pointsError, setPointsError] = useState<string | null>(null);
   const [pointsSuccess, setPointsSuccess] = useState<string | null>(null);
 
-  // Fetch game schedule (needed for modals to check if it's a game day)
-  useEffect(() => {
-    if (!db) return;
-
-    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-    const schedulePath = `artifacts/${appId}/public/data/gameSchedule/config`;
-    const scheduleRef = doc(db, schedulePath);
-
-    const unsubscribe = onSnapshot(
-      scheduleRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.data() as GameSchedule;
-          setGameSchedule(data);
-        } else {
-          setGameSchedule(null);
-        }
-      },
-      (err) => {
-        console.error("Error fetching game schedule:", err);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [db]);
 
   // Get available players for MOTM, Kudos, and Points
   const getAvailablePlayers = () => {
@@ -175,8 +151,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     setMotmSubmitting(true);
 
     try {
-      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-      const motmPath = `artifacts/${appId}/public/data/manOfTheMatch`;
+      const motmPath = FirestorePaths.motm();
       const motmRef = collection(db, motmPath);
 
       const player = availability.find((p) => p.id === motmSelectedPlayer);
@@ -198,7 +173,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
 
       // Create notification for the player who was nominated
       if (player.userId) {
-        const notificationsPath = `artifacts/${appId}/public/data/userNotifications`;
+        const notificationsPath = FirestorePaths.userNotifications();
         const notificationsRef = collection(db, notificationsPath);
         await addDoc(notificationsRef, {
           userId: player.userId,
@@ -241,8 +216,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     setKudosSubmitting(true);
 
     try {
-      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-      const kudosPath = `artifacts/${appId}/public/data/kudos`;
+      const kudosPath = FirestorePaths.kudos();
       const kudosRef = collection(db, kudosPath);
 
       const player = availability.find((p) => p.id === kudosSelectedPlayer);
@@ -261,7 +235,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
 
       // Create notification for the player who received kudos
       if (player.userId) {
-        const notificationsPath = `artifacts/${appId}/public/data/userNotifications`;
+        const notificationsPath = FirestorePaths.userNotifications();
         const notificationsRef = collection(db, notificationsPath);
         await addDoc(notificationsRef, {
           userId: player.userId,
@@ -309,8 +283,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     setPointsSubmitting(true);
 
     try {
-      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-      const pointsPath = `artifacts/${appId}/public/data/playerPoints/${pointsSelectedPlayer}`;
+      const pointsPath = `${FirestorePaths.playerPoints()}/${pointsSelectedPlayer}`;
       const pointsRef = doc(db, pointsPath);
 
       const player = availability.find((p) => p.id === pointsSelectedPlayer);

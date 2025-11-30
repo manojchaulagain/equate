@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Bell, Heart, Star } from "lucide-react";
 import { collection, query, where, onSnapshot, doc, updateDoc, Timestamp } from "firebase/firestore";
-
-declare const __app_id: string;
+import { FirestorePaths } from "../../utils/firestorePaths";
+import { sortByTimestamp, getFormattedDate } from "../../utils/timestampHelpers";
 
 interface UserNotification {
   id: string;
@@ -31,8 +31,7 @@ const UserNotifications: React.FC<UserNotificationsProps> = ({ db, userId }) => 
   useEffect(() => {
     if (!db || !userId) return;
 
-    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-    const notificationsPath = `artifacts/${appId}/public/data/userNotifications`;
+    const notificationsPath = FirestorePaths.userNotifications();
     const notificationsRef = collection(db, notificationsPath);
     const q = query(notificationsRef, where("userId", "==", userId));
 
@@ -44,14 +43,12 @@ const UserNotifications: React.FC<UserNotificationsProps> = ({ db, userId }) => 
           ...doc.data(),
         })) as UserNotification[];
 
-        const sortedNotifications = notificationsData.sort((a, b) => {
-          const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt?.seconds || 0) * 1000;
-          const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt?.seconds || 0) * 1000;
-          return bTime - aTime;
-        });
-
+        // Sort notifications (newest first) and calculate unread count
+        const sortedNotifications = sortByTimestamp(notificationsData);
         setNotifications(sortedNotifications);
-        setUnreadCount(sortedNotifications.filter((n) => !n.read).length);
+        // Calculate unread count in one pass
+        const unread = sortedNotifications.reduce((count, n) => count + (n.read ? 0 : 1), 0);
+        setUnreadCount(unread);
       },
       (err) => {
         console.error("Error fetching notifications:", err);
@@ -65,8 +62,7 @@ const UserNotifications: React.FC<UserNotificationsProps> = ({ db, userId }) => 
     if (!db) return;
 
     try {
-      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-      const notificationPath = `artifacts/${appId}/public/data/userNotifications/${notificationId}`;
+      const notificationPath = `${FirestorePaths.userNotifications()}/${notificationId}`;
       const notificationRef = doc(db, notificationPath);
       await updateDoc(notificationRef, { read: true });
     } catch (err) {
@@ -78,12 +74,11 @@ const UserNotifications: React.FC<UserNotificationsProps> = ({ db, userId }) => 
     if (!db || unreadCount === 0) return;
 
     try {
-      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
       const unreadNotifications = notifications.filter((n) => !n.read);
 
       await Promise.all(
         unreadNotifications.map((notification) => {
-          const notificationPath = `artifacts/${appId}/public/data/userNotifications/${notification.id}`;
+          const notificationPath = `${FirestorePaths.userNotifications()}/${notification.id}`;
           const notificationRef = doc(db, notificationPath);
           return updateDoc(notificationRef, { read: true });
         })
@@ -127,15 +122,6 @@ const UserNotifications: React.FC<UserNotificationsProps> = ({ db, userId }) => 
     }
   }, [showDropdown]);
 
-  const getFormattedDate = (timestamp: Timestamp | any) => {
-    if (timestamp?.toDate) {
-      return timestamp.toDate().toLocaleString();
-    }
-    if (timestamp?.seconds) {
-      return new Date(timestamp.seconds * 1000).toLocaleString();
-    }
-    return "N/A";
-  };
 
   return (
     <div className="relative flex-shrink-0">

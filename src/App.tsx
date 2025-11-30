@@ -51,6 +51,7 @@ import GoalsAssistsReview from "./components/admin/GoalsAssistsReview";
 import GameInfoPanel from "./components/games/GameInfoPanel";
 import { awardGameAttendancePoints, getDateString, processMOTMAwards } from "./utils/gamePoints";
 import { GameSchedule as GameScheduleType } from "./utils/gameSchedule";
+import { FirestorePaths } from "./utils/firestorePaths";
 
 // --- GLOBAL CANVAS VARIABLES (Mandatory) ---
 declare const __app_id: string;
@@ -336,8 +337,7 @@ const NotificationsBanner: React.FC<{ db: any }> = ({ db }) => {
   useEffect(() => {
     if (!db) return;
 
-    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-    const notificationsPath = `artifacts/${appId}/public/data/notifications`;
+    const notificationsPath = FirestorePaths.notifications();
     const notificationsRef = collection(db, notificationsPath);
     const q = query(notificationsRef, orderBy("createdAt", "desc"));
 
@@ -763,8 +763,7 @@ export default function App() {
     setLoading(true);
 
     // Collection path: /artifacts/{appId}/public/data/soccer_players
-    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-    const playersCollectionPath = `artifacts/${appId}/public/data/soccer_players`;
+    const playersCollectionPath = FirestorePaths.players();
     const playersColRef = collection(db, playersCollectionPath);
 
     const unsubscribeSnapshot = onSnapshot(
@@ -810,8 +809,7 @@ export default function App() {
   useEffect(() => {
     if (!db) return;
 
-    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-    const teamsDocPath = `artifacts/${appId}/public/data/teams/current`;
+    const teamsDocPath = FirestorePaths.teams();
     const teamsDocRef = doc(db, teamsDocPath);
 
     const unsubscribeTeams = onSnapshot(

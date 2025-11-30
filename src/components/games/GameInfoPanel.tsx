@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, MapPin, CheckCircle2, Trophy, Star, Heart, Award, ArrowRight } from "lucide-react";
-import { doc, onSnapshot } from "firebase/firestore";
-import { calculateNextGame, getTodayGame, GameSchedule } from "../../utils/gameSchedule";
-
-declare const __app_id: string;
+import { calculateNextGame, getTodayGame } from "../../utils/gameSchedule";
+import { useGameSchedule } from "../../hooks/useGameSchedule";
+import { isSameDay } from "../../utils/dateHelpers";
 
 interface GameInfoPanelProps {
   db: any;
@@ -20,43 +19,14 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
   onOpenKudos,
   onOpenPoints,
 }) => {
-  const [gameSchedule, setGameSchedule] = useState<GameSchedule | null>(null);
+  // Use shared hook for game schedule
+  const gameSchedule = useGameSchedule(db);
+  
   const [nextGame, setNextGame] = useState<{ date: Date; formatted: string; dayOfWeek?: number } | null>(null);
   const [todayGame, setTodayGame] = useState<{ date: Date; formatted: string; dayOfWeek: number } | null>(null);
   const [fieldLocation, setFieldLocation] = useState<string | null>(null);
   const [gamePlayed, setGamePlayed] = useState(false);
   const [showGameCompletePanel, setShowGameCompletePanel] = useState(false);
-
-  // Fetch game schedule and calculate game info
-  useEffect(() => {
-    if (!db) return;
-
-    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-    const schedulePath = `artifacts/${appId}/public/data/gameSchedule/config`;
-    const scheduleRef = doc(db, schedulePath);
-
-    const unsubscribe = onSnapshot(
-      scheduleRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.data() as GameSchedule;
-          setGameSchedule(data);
-        } else {
-          setGameSchedule(null);
-          setNextGame(null);
-          setTodayGame(null);
-          setFieldLocation(null);
-          setGamePlayed(false);
-          setShowGameCompletePanel(false);
-        }
-      },
-      (err) => {
-        console.error("Error fetching game schedule:", err);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [db]);
 
   // Update game played status and today's game every minute
   useEffect(() => {
@@ -72,12 +42,8 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
       let validTodayGame = null;
       if (today) {
         const gameTime = new Date(today.date);
-        const gameDateStr = gameTime.toDateString();
-        const currentDateStr = now.toDateString();
-        const isSameDay = currentDateStr === gameDateStr;
-        
         // Only show today's game if it's still the same day (until midnight)
-        if (isSameDay) {
+        if (isSameDay(gameTime, now)) {
           validTodayGame = today;
         }
       }
@@ -96,13 +62,8 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
         // Check if it's been 2 hours since game time
         const hasBeenTwoHours = now.getTime() >= twoHoursAfterGame.getTime();
         
-        // Check if it's still the same day as the game (until midnight)
-        const gameDateStr = gameTime.toDateString();
-        const currentDateStr = now.toDateString();
-        const isSameDay = currentDateStr === gameDateStr;
-        
         // Show panel if 2 hours have passed AND it's still the same day
-        const shouldShow = hasBeenTwoHours && isSameDay;
+        const shouldShow = hasBeenTwoHours && isSameDay(gameTime, now);
         setGamePlayed(shouldShow);
         setShowGameCompletePanel(shouldShow);
       } else {
