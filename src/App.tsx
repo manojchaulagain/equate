@@ -479,11 +479,11 @@ export default function App() {
           setUserEmail(user.email);
           
           // Automatically create/update user document in Firestore
-          if (db && user.email) {
+          if (firestore && user.email) {
             try {
               const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
               const userDocPath = `artifacts/${appId}/public/data/users/${user.uid}`;
-              const userDocRef = doc(db, userDocPath);
+              const userDocRef = doc(firestore, userDocPath);
               const userDocSnap = await getDoc(userDocRef);
               
               // Only create if it doesn't exist (preserve existing role if admin)

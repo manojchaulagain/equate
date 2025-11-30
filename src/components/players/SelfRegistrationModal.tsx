@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Save, ChevronDown, UserPlus, AlertCircle } from "lucide-react";
+import { ChevronDown, UserPlus, AlertCircle } from "lucide-react";
 import { Position, SkillLevel } from "../../types/player";
 import { POSITIONS, POSITION_LABELS, SKILL_LABELS } from "../../constants/player";
 

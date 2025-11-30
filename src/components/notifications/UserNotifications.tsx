@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Bell, X, Heart, Star, CheckCircle } from "lucide-react";
+import { Bell, Heart, Star } from "lucide-react";
 import { collection, query, where, onSnapshot, doc, updateDoc, Timestamp } from "firebase/firestore";
 
 declare const __app_id: string;

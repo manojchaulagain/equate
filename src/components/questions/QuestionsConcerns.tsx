@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MessageCircle, Send, X, AlertCircle, CheckCircle } from "lucide-react";
+import { MessageCircle, Send, AlertCircle, CheckCircle } from "lucide-react";
 import { collection, addDoc, query, orderBy, onSnapshot, Timestamp, updateDoc, doc } from "firebase/firestore";
 
 declare const __app_id: string;

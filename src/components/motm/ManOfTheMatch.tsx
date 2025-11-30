@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Star, Trophy, Calendar, CheckCircle, X } from "lucide-react";
-import { collection, addDoc, query, orderBy, onSnapshot, Timestamp, doc, getDoc, setDoc, where, getDocs } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, onSnapshot, Timestamp, doc } from "firebase/firestore";
 import { calculateNextGame, GameSchedule } from "../../utils/gameSchedule";
-import { isTodayGameDayPassed, getTodayGameDateString } from "../../utils/gamePoints";
+import { getTodayGameDateString } from "../../utils/gamePoints";
 
 declare const __app_id: string;
 

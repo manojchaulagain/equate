@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Heart, Send, ThumbsUp, MessageCircle, X } from "lucide-react";
-import { collection, addDoc, query, orderBy, onSnapshot, Timestamp, doc, onSnapshot as onSnapshotDoc } from "firebase/firestore";
-import { GameSchedule } from "../../utils/gameSchedule";
-import { isTodayGameDayPassed } from "../../utils/gamePoints";
+import { Heart, Send, X } from "lucide-react";
+import { collection, addDoc, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
 
 declare const __app_id: string;
 
@@ -26,7 +24,6 @@ interface KudosBoardProps {
 }
 
 const KudosBoard: React.FC<KudosBoardProps> = ({ db, userId, userEmail, userRole, players, isActive = false }) => {
-  const [gameSchedule, setGameSchedule] = useState<GameSchedule | null>(null);
   const [kudos, setKudos] = useState<Kudos[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);

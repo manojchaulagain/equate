@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, Clock, Save, CheckCircle, MapPin } from "lucide-react";
+import { Calendar, Save, CheckCircle, MapPin } from "lucide-react";
 import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import TimeInput from "./TimeInput";
 
 declare const __app_id: string;
 
-interface GameSchedule {
+interface GameScheduleData {
   schedule: { [day: number]: string }; // Map of day (0-6) to time string (HH:MM)
   location?: { [day: number]: string }; // Map of day (0-6) to location string
   updatedAt?: any;
@@ -50,7 +50,7 @@ const GameSchedule: React.FC<GameScheduleProps> = ({ db, userId, userEmail, isAc
         const scheduleSnap = await getDoc(scheduleRef);
 
         if (scheduleSnap.exists()) {
-          const data = scheduleSnap.data() as GameSchedule;
+          const data = scheduleSnap.data() as GameScheduleData;
           setSchedule(data.schedule || { 6: "18:00" });
           setLocation(data.location || {});
         }

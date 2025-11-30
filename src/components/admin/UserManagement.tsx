@@ -137,32 +137,6 @@ const UserManagement: React.FC<UserManagementProps> = ({
     }
   };
 
-  const addUserByEmail = async (email: string) => {
-    if (!db || !email.trim()) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-
-    setError(null);
-    setSuccess(null);
-
-    try {
-      // In a real app, you'd need to get the user's UID from their email
-      // For now, we'll use a simplified approach where admins can set roles
-      // by providing the user's email (which maps to their Firebase Auth UID)
-      
-      // This is a placeholder - in production, you'd want to:
-      // 1. Look up the user by email in Firebase Auth
-      // 2. Get their UID
-      // 3. Create/update their role document
-      
-      setError("To set a user's role, you need their User ID. Please use the manual method below.");
-    } catch (err: any) {
-      console.error("Error adding user:", err);
-      setError(`Failed to add user: ${err.message}`);
-    }
-  };
-
   const handleEditClick = (user: UserData) => {
     setEditingUserId(user.id);
     setEditEmail(user.email);

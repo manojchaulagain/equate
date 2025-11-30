@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Target, Footprints, CheckCircle, X, Clock, User } from "lucide-react";
-import { collection, onSnapshot, query, where, orderBy, doc, updateDoc, getDoc, setDoc, Timestamp } from "firebase/firestore";
+import { collection, onSnapshot, query, where, doc, updateDoc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 
 declare const __app_id: string;
 

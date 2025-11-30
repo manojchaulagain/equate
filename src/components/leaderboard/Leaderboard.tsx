@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Trophy, Award, Plus, TrendingUp, Star, X, Target, Users, Footprints } from "lucide-react";
-import { collection, onSnapshot, doc, setDoc, Timestamp, getDocs, getDoc, onSnapshot as onSnapshotDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, Timestamp, getDocs, getDoc } from "firebase/firestore";
 import { GameSchedule } from "../../utils/gameSchedule";
 import { isTodayGameDayPassed } from "../../utils/gamePoints";
 

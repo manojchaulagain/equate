@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Target, Footprints, Plus, X, Calendar } from "lucide-react";
-import { collection, addDoc, Timestamp, doc, getDoc, query, where, getDocs, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, Timestamp, query, getDocs, onSnapshot } from "firebase/firestore";
 import { GameSchedule } from "../../utils/gameSchedule";
 import { getTodayGameDateString, isTodayGameDayPassed } from "../../utils/gamePoints";
 

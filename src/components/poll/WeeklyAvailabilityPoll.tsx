@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { ListChecks, Trophy, Edit2, UserPlus, Trash2, Calendar, MapPin, CheckCircle2, Star, Heart, Award, ArrowRight, X, Send, Plus } from "lucide-react";
+import { ListChecks, Trophy, Edit2, UserPlus, Trash2, Star, Heart, X, Send, Plus } from "lucide-react";
 import { PlayerAvailability, Player } from "../../types/player";
 import { POSITION_LABELS, SKILL_LABELS } from "../../constants/player";
 import EditPlayerModal from "../players/EditPlayerModal";
 import AddPlayerModal from "../players/AddPlayerModal";
 import { doc, onSnapshot, collection, addDoc, Timestamp, getDoc, setDoc } from "firebase/firestore";
 import { GameSchedule } from "../../utils/gameSchedule";
-import { isTodayGameDayPassed, getTodayGameDateString } from "../../utils/gamePoints";
+import { getTodayGameDateString } from "../../utils/gamePoints";
 
 declare const __app_id: string;
 
