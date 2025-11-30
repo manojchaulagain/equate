@@ -208,7 +208,7 @@ const Notifications: React.FC<NotificationsProps> = ({ db, userId, userEmail, us
 
         {/* Add Notification Modal */}
         {showAddModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
             <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6 relative my-auto max-h-[90vh] overflow-y-auto">
               <button
                 onClick={() => {

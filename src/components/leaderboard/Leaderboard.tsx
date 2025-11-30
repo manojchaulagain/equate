@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trophy, Award, Plus, TrendingUp, Star, X } from "lucide-react";
+import { Trophy, Award, Plus, TrendingUp, Star, X, Target, Users, Footprints } from "lucide-react";
 import { collection, onSnapshot, doc, setDoc, Timestamp, getDocs, getDoc, onSnapshot as onSnapshotDoc } from "firebase/firestore";
 import { GameSchedule } from "../../utils/gameSchedule";
 import { isTodayGameDayPassed } from "../../utils/gamePoints";
@@ -10,6 +10,10 @@ interface PlayerPoints {
   playerId: string;
   playerName: string;
   totalPoints: number;
+  motmAwards?: number;
+  goals?: number;
+  assists?: number;
+  gamesPlayed?: number;
   pointsHistory: {
     points: number;
     reason: string;
@@ -97,10 +101,19 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
       snapshot.docs.forEach((docSnap) => {
         const data = docSnap.data();
         if (data.playerId) {
+          // Calculate games played from points history
+          const gamesPlayed = (data.pointsHistory || []).filter(
+            (entry: any) => entry.reason === "Played in game" && entry.automatic === true
+          ).length;
+
           pointsData[data.playerId] = {
             playerId: data.playerId,
             playerName: data.playerName,
             totalPoints: data.totalPoints || 0,
+            motmAwards: data.motmAwards || 0,
+            goals: data.goals || 0,
+            assists: data.assists || 0,
+            gamesPlayed: gamesPlayed,
             pointsHistory: data.pointsHistory || [],
           };
         }
@@ -113,6 +126,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
               playerId: player.id,
               playerName: player.name,
               totalPoints: 0,
+              motmAwards: 0,
+              goals: 0,
+              assists: 0,
+              gamesPlayed: 0,
               pointsHistory: [],
             };
           }
@@ -139,10 +156,19 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
       const pointsData: { [playerId: string]: PlayerPoints } = {};
       snapshot.docs.forEach((doc) => {
         const data = doc.data();
+        // Calculate games played from points history
+        const gamesPlayed = (data.pointsHistory || []).filter(
+          (entry: any) => entry.reason === "Played in game" && entry.automatic === true
+        ).length;
+
         pointsData[data.playerId] = {
           playerId: data.playerId,
           playerName: data.playerName,
           totalPoints: data.totalPoints || 0,
+          motmAwards: data.motmAwards || 0,
+          goals: data.goals || 0,
+          assists: data.assists || 0,
+          gamesPlayed: gamesPlayed,
           pointsHistory: data.pointsHistory || [],
         };
       });
@@ -153,6 +179,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
             playerId: player.id,
             playerName: player.name,
             totalPoints: 0,
+            motmAwards: 0,
+            goals: 0,
+            assists: 0,
+            gamesPlayed: 0,
             pointsHistory: [],
           };
         }
@@ -330,9 +360,34 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
                       <p className="font-bold text-slate-800 text-base sm:text-lg truncate">
                         {player.playerName}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        {player.pointsHistory.length} {player.pointsHistory.length === 1 ? "entry" : "entries"}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5">
+                        {(player.motmAwards || 0) > 0 && (
+                          <div className="flex items-center gap-1">
+                            <Star className="text-yellow-500" size={12} />
+                            <span className="text-xs font-semibold text-yellow-600">
+                              {player.motmAwards} {player.motmAwards === 1 ? "MOTM" : "MOTM"}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Target className="text-red-500" size={12} />
+                          <span className="text-xs font-semibold text-slate-700">
+                            {player.goals || 0} {player.goals === 1 ? "Goal" : "Goals"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Footprints className="text-blue-500" size={12} />
+                          <span className="text-xs font-semibold text-slate-700">
+                            {player.assists || 0} {player.assists === 1 ? "Assist" : "Assists"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Users className="text-green-500" size={12} />
+                          <span className="text-xs font-semibold text-slate-700">
+                            {player.gamesPlayed || 0} {player.gamesPlayed === 1 ? "Game" : "Games"}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -352,7 +407,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
       {/* Add Points Modal */}
       {showAddPointsModal && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowAddPointsModal(false);

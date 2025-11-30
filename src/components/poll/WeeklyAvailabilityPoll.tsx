@@ -5,7 +5,7 @@ import { POSITION_LABELS, SKILL_LABELS } from "../../constants/player";
 import EditPlayerModal from "../players/EditPlayerModal";
 import AddPlayerModal from "../players/AddPlayerModal";
 import { doc, onSnapshot, collection, addDoc, Timestamp, getDoc, setDoc } from "firebase/firestore";
-import { calculateNextGame, getTodayGame, GameSchedule } from "../../utils/gameSchedule";
+import { GameSchedule } from "../../utils/gameSchedule";
 import { isTodayGameDayPassed, getTodayGameDateString } from "../../utils/gamePoints";
 
 declare const __app_id: string;
@@ -34,6 +34,10 @@ interface WeeklyAvailabilityPollProps {
   onNavigateToLeaderboard?: () => void;
   userEmail?: string;
   userRole?: string;
+  openMOTMModal?: boolean;
+  openKudosModal?: boolean;
+  openPointsModal?: boolean;
+  onModalOpened?: (modal: "motm" | "kudos" | "points") => void;
 }
 
 const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
@@ -58,21 +62,42 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   onNavigateToLeaderboard,
   userEmail = "",
   userRole = "user",
+  openMOTMModal: propOpenMOTM = false,
+  openKudosModal: propOpenKudos = false,
+  openPointsModal: propOpenPoints = false,
+  onModalOpened,
 }) => {
   const [editingPlayer, setEditingPlayer] = useState<PlayerAvailability | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [playerToDelete, setPlayerToDelete] = useState<PlayerAvailability | null>(null);
   const [gameSchedule, setGameSchedule] = useState<GameSchedule | null>(null);
-  const [nextGame, setNextGame] = useState<{ date: Date; formatted: string; dayOfWeek?: number } | null>(null);
-  const [todayGame, setTodayGame] = useState<{ date: Date; formatted: string; dayOfWeek: number } | null>(null);
-  const [fieldLocation, setFieldLocation] = useState<string | null>(null);
-  const [gamePlayed, setGamePlayed] = useState(false);
-  const [showGameCompletePanel, setShowGameCompletePanel] = useState(false);
   
   // Modal states
   const [showMOTMModal, setShowMOTMModal] = useState(false);
   const [showKudosModal, setShowKudosModal] = useState(false);
   const [showPointsModal, setShowPointsModal] = useState(false);
+
+  // Handle prop-based modal opening
+  useEffect(() => {
+    if (propOpenMOTM) {
+      setShowMOTMModal(true);
+      onModalOpened?.("motm");
+    }
+  }, [propOpenMOTM, onModalOpened]);
+
+  useEffect(() => {
+    if (propOpenKudos) {
+      setShowKudosModal(true);
+      onModalOpened?.("kudos");
+    }
+  }, [propOpenKudos, onModalOpened]);
+
+  useEffect(() => {
+    if (propOpenPoints) {
+      setShowPointsModal(true);
+      onModalOpened?.("points");
+    }
+  }, [propOpenPoints, onModalOpened]);
   
   // MOTM state
   const [motmSelectedPlayer, setMotmSelectedPlayer] = useState<string>("");
@@ -95,7 +120,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   const [pointsError, setPointsError] = useState<string | null>(null);
   const [pointsSuccess, setPointsSuccess] = useState<string | null>(null);
 
-  // Fetch game schedule and calculate next game
+  // Fetch game schedule (needed for modals to check if it's a game day)
   useEffect(() => {
     if (!db) return;
 
@@ -109,66 +134,8 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
         if (snapshot.exists()) {
           const data = snapshot.data() as GameSchedule;
           setGameSchedule(data);
-          
-          // Get today's game info (if today is a game day)
-          const today = getTodayGame(data);
-          const now = new Date();
-          
-          // Check if today's game is still valid (until midnight)
-          let validTodayGame = null;
-          if (today) {
-            const gameTime = new Date(today.date);
-            const gameDateStr = gameTime.toDateString();
-            const currentDateStr = now.toDateString();
-            const isSameDay = currentDateStr === gameDateStr;
-            
-            // Only show today's game if it's still the same day (until midnight)
-            if (isSameDay) {
-              validTodayGame = today;
-            }
-          }
-          
-          setTodayGame(validTodayGame);
-          
-          // Check if game was played (2 hours after game time) and still same day
-          if (validTodayGame) {
-            const gameTime = new Date(validTodayGame.date);
-            const twoHoursAfterGame = new Date(gameTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours in milliseconds
-            
-            // Check if it's been 2 hours since game time
-            const hasBeenTwoHours = now.getTime() >= twoHoursAfterGame.getTime();
-            
-            // Check if it's still the same day as the game (until midnight)
-            const gameDateStr = gameTime.toDateString();
-            const currentDateStr = now.toDateString();
-            const isSameDay = currentDateStr === gameDateStr;
-            
-            // Show panel if 2 hours have passed AND it's still the same day
-            const shouldShowPanel = hasBeenTwoHours && isSameDay;
-            setGamePlayed(shouldShowPanel);
-            setShowGameCompletePanel(shouldShowPanel);
-          } else {
-            setGamePlayed(false);
-            setShowGameCompletePanel(false);
-          }
-          
-          // Calculate next game (from tomorrow onwards, or today if today's game has passed midnight)
-          const next = calculateNextGame(data);
-          setNextGame(next);
-          
-          // Get location - prioritize today's game, then next game
-          const gameToShow = validTodayGame || next;
-          if (gameToShow && typeof gameToShow.dayOfWeek === 'number' && data.location && data.location[gameToShow.dayOfWeek]) {
-            setFieldLocation(data.location[gameToShow.dayOfWeek]);
-          } else {
-            setFieldLocation(null);
-          }
         } else {
           setGameSchedule(null);
-          setNextGame(null);
-          setTodayGame(null);
-          setFieldLocation(null);
-          setGamePlayed(false);
         }
       },
       (err) => {
@@ -178,76 +145,6 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
 
     return () => unsubscribe();
   }, [db]);
-
-  // Update game played status and today's game every minute to check if 2 hours have passed and still same day
-  useEffect(() => {
-    if (!gameSchedule) return;
-
-    const checkGameStatus = () => {
-      const now = new Date();
-      
-      // Get today's game info (if today is a game day)
-      const today = getTodayGame(gameSchedule);
-      
-      // Check if today's game is still valid (until midnight)
-      let validTodayGame = null;
-      if (today) {
-        const gameTime = new Date(today.date);
-        const gameDateStr = gameTime.toDateString();
-        const currentDateStr = now.toDateString();
-        const isSameDay = currentDateStr === gameDateStr;
-        
-        // Only show today's game if it's still the same day (until midnight)
-        if (isSameDay) {
-          validTodayGame = today;
-        }
-      }
-      
-      setTodayGame(validTodayGame);
-      
-      // Recalculate next game in case today's game is no longer valid
-      const next = calculateNextGame(gameSchedule);
-      setNextGame(next);
-      
-      // Check if game was played (2 hours after game time) and still same day
-      if (validTodayGame) {
-        const gameTime = new Date(validTodayGame.date);
-        const twoHoursAfterGame = new Date(gameTime.getTime() + 2 * 60 * 60 * 1000);
-        
-        // Check if it's been 2 hours since game time
-        const hasBeenTwoHours = now.getTime() >= twoHoursAfterGame.getTime();
-        
-        // Check if it's still the same day as the game (until midnight)
-        const gameDateStr = gameTime.toDateString();
-        const currentDateStr = now.toDateString();
-        const isSameDay = currentDateStr === gameDateStr;
-        
-        // Show panel if 2 hours have passed AND it's still the same day
-        const shouldShow = hasBeenTwoHours && isSameDay;
-        setGamePlayed(shouldShow);
-        setShowGameCompletePanel(shouldShow);
-      } else {
-        setGamePlayed(false);
-        setShowGameCompletePanel(false);
-      }
-      
-      // Update location based on which game is showing
-      const gameToShow = validTodayGame || next;
-      if (gameToShow && typeof gameToShow.dayOfWeek === 'number' && gameSchedule.location && gameSchedule.location[gameToShow.dayOfWeek]) {
-        setFieldLocation(gameSchedule.location[gameToShow.dayOfWeek]);
-      } else {
-        setFieldLocation(null);
-      }
-    };
-
-    // Check immediately
-    checkGameStatus();
-
-    // Check every minute to update when day changes at midnight
-    const interval = setInterval(checkGameStatus, 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [gameSchedule]);
 
   // Get available players for MOTM, Kudos, and Points
   const getAvailablePlayers = () => {
@@ -542,11 +439,9 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
             <ListChecks className="text-indigo-600 flex-shrink-0" size={20} /> 
             <span className="whitespace-nowrap">Weekly Availability Poll</span>
           </h2>
-          {!todayGame && !nextGame && (
-            <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
-              Toggle players who are available to play this week.
-            </p>
-          )}
+          <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
+            Toggle players who are available to play this week.
+          </p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
@@ -557,166 +452,6 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
         </button>
       </div>
 
-      {/* Game Info Panel - Full width below header */}
-      {(todayGame || nextGame) && (
-        <div className={`w-full rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl backdrop-blur-sm relative overflow-hidden transition-all duration-300 mb-6 ${
-          showGameCompletePanel
-            ? "bg-gradient-to-br from-amber-50/95 via-yellow-50/95 to-orange-50/95 border-2 border-amber-300/70 shadow-amber-200/20"
-            : (gamePlayed && todayGame)
-              ? "bg-gradient-to-br from-emerald-50/95 via-green-50/95 to-teal-50/95 border-2 border-emerald-300/70 shadow-emerald-200/20"
-              : "bg-gradient-to-br from-indigo-100/95 via-purple-100/95 to-pink-100/95 border-2 border-indigo-300/70 shadow-indigo-200/20"
-        }`}>
-          <div className={`absolute inset-0 ${
-            showGameCompletePanel
-              ? "bg-gradient-to-r from-amber-500/5 via-yellow-500/5 to-orange-500/5"
-              : (gamePlayed && todayGame)
-                ? "bg-gradient-to-r from-emerald-500/5 via-green-500/5 to-teal-500/5"
-                : "bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5"
-          }`}></div>
-          
-          {/* Game Info Section */}
-          <div className="relative z-10 p-5 sm:p-6 md:p-8">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-5 lg:gap-8">
-              {/* Left side - Game info */}
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className={`p-4 sm:p-5 rounded-2xl shadow-xl flex-shrink-0 relative transition-transform hover:scale-110 ${
-                  showGameCompletePanel
-                    ? "bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/30"
-                    : (gamePlayed && todayGame)
-                      ? "bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30"
-                      : "bg-gradient-to-br from-indigo-500 to-purple-600 shadow-indigo-500/30"
-                }`}>
-                  {showGameCompletePanel ? (
-                    <Trophy className="text-white" size={28} />
-                  ) : (gamePlayed && todayGame) ? (
-                    <CheckCircle2 className="text-white" size={28} />
-                  ) : (
-                    <Calendar className="text-white" size={28} />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm sm:text-base font-bold uppercase tracking-wide mb-2 flex flex-wrap items-center gap-2 ${
-                    showGameCompletePanel ? "text-amber-700" : (gamePlayed && todayGame) ? "text-emerald-700" : "text-slate-700"
-                  }`}>
-                    <span>{showGameCompletePanel ? "Game Complete!" : todayGame ? "Today's Game" : "Next Game"}</span>
-                    {(gamePlayed && todayGame && !showGameCompletePanel) && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold shadow-sm">
-                        <CheckCircle2 size={12} />
-                        Played
-                      </span>
-                    )}
-                  </p>
-                  <p className={`text-lg sm:text-xl md:text-2xl font-bold break-words ${
-                    showGameCompletePanel
-                      ? "bg-gradient-to-r from-amber-700 via-orange-700 to-red-700 bg-clip-text text-transparent"
-                      : (gamePlayed && todayGame)
-                        ? "bg-gradient-to-r from-emerald-700 via-green-700 to-teal-700 bg-clip-text text-transparent"
-                        : "bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 bg-clip-text text-transparent"
-                  }`}>
-                    {(todayGame || nextGame)?.formatted}
-                  </p>
-                  {showGameCompletePanel && (
-                    <p className="text-sm sm:text-base text-slate-600 mt-2 font-medium">
-                      Share your thoughts about today's game
-                    </p>
-                  )}
-                </div>
-              </div>
-              
-              {/* Right side - Location */}
-              {fieldLocation && (
-                <div className="flex items-center gap-4 lg:pl-8 lg:border-l-2 border-indigo-300/50 lg:min-w-[220px]">
-                  <div className={`p-4 sm:p-5 rounded-2xl shadow-xl flex-shrink-0 transition-transform hover:scale-110 ${
-                    showGameCompletePanel
-                      ? "bg-gradient-to-br from-orange-500 to-red-600 shadow-orange-500/30"
-                      : "bg-gradient-to-br from-purple-500 to-pink-600 shadow-purple-500/30"
-                  }`}>
-                    <MapPin className="text-white" size={28} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm sm:text-base font-bold text-slate-600 uppercase tracking-wide mb-2">
-                      Location
-                    </p>
-                    <p className={`text-lg sm:text-xl font-bold break-words ${
-                      showGameCompletePanel
-                        ? "bg-gradient-to-r from-orange-700 via-red-700 to-rose-700 bg-clip-text text-transparent"
-                        : "bg-gradient-to-r from-purple-700 via-pink-700 to-rose-700 bg-clip-text text-transparent"
-                    }`}>
-                      {fieldLocation}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Game Complete Actions Section - Only show if game is played */}
-          {showGameCompletePanel && todayGame && onNavigateToLeaderboard && (
-            <div className="relative z-10 px-5 sm:px-6 md:px-8 pb-5 sm:pb-6 md:pb-8 pt-0 border-t-2 border-amber-200/50">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <button
-                          onClick={() => setShowMOTMModal(true)}
-                          className="group flex items-center justify-between p-5 bg-white/90 hover:bg-white border-2 border-amber-200/60 hover:border-amber-400 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                          <div className="flex items-center gap-4 flex-1 min-w-0">
-                            <div className="p-3 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-xl shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform">
-                              <Star className="text-white" size={22} />
-                            </div>
-                            <div className="text-left flex-1 min-w-0">
-                              <p className="text-base font-bold text-slate-800 mb-1">Man of the Match</p>
-                              <p className="text-sm text-slate-600">Nominate the best player</p>
-                            </div>
-                          </div>
-                          <ArrowRight className="text-amber-600 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-3" size={20} />
-                        </button>
-
-                        <button
-                          onClick={() => setShowKudosModal(true)}
-                          className="group flex items-center justify-between p-5 bg-white/90 hover:bg-white border-2 border-amber-200/60 hover:border-amber-400 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                          <div className="flex items-center gap-4 flex-1 min-w-0">
-                            <div className="p-3 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform">
-                              <Heart className="text-white" size={22} />
-                            </div>
-                            <div className="text-left flex-1 min-w-0">
-                              <p className="text-base font-bold text-slate-800 mb-1">Give Kudos</p>
-                              <p className="text-sm text-slate-600">Appreciate teammates</p>
-                            </div>
-                          </div>
-                          <ArrowRight className="text-amber-600 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-3" size={20} />
-                        </button>
-
-                        <button
-                          onClick={() => setShowPointsModal(true)}
-                          className="group flex items-center justify-between p-5 bg-white/90 hover:bg-white border-2 border-amber-200/60 hover:border-amber-400 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                          <div className="flex items-center gap-4 flex-1 min-w-0">
-                            <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform">
-                              <Award className="text-white" size={22} />
-                            </div>
-                            <div className="text-left flex-1 min-w-0">
-                              <p className="text-base font-bold text-slate-800 mb-1">Rate Players</p>
-                              <p className="text-sm text-slate-600">Add performance points</p>
-                            </div>
-                          </div>
-                          <ArrowRight className="text-amber-600 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-3" size={20} />
-                        </button>
-                      </div>
-                      
-              {/* View Leaderboard Button */}
-              <div className="pt-5 border-t-2 border-amber-200/50">
-                <button
-                  onClick={onNavigateToLeaderboard}
-                  className="w-full md:w-auto md:max-w-md mx-auto md:mx-0 flex items-center justify-center gap-3 px-6 py-3.5 text-lg font-bold text-white bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 hover:from-amber-700 hover:via-orange-700 hover:to-red-700 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <Trophy className="w-6 h-6" />
-                  <span>View Leaderboard</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {loading && (
         <div className="text-center p-8 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-2xl border border-indigo-200">
@@ -911,7 +646,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
 
       {/* Delete Confirmation Modal */}
       {playerToDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
           <div className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-red-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto animate-in slide-in-from-bottom-4 duration-300">
             {/* Decorative background elements */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
@@ -954,7 +689,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
       {/* MOTM Modal */}
       {showMOTMModal && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowMOTMModal(false);
@@ -1075,7 +810,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
       {/* Kudos Modal */}
       {showKudosModal && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowKudosModal(false);
@@ -1186,7 +921,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
       {/* Add Points Modal */}
       {showPointsModal && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowPointsModal(false);

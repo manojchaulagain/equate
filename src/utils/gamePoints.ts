@@ -2,7 +2,7 @@
  * Utility functions for awarding game-related points
  */
 
-import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, Timestamp, collection, query, where, getDocs, addDoc } from "firebase/firestore";
 
 declare const __app_id: string;
 
@@ -114,5 +114,108 @@ export function getTodayGameDateString(schedule: { [day: number]: string } | nul
     return getDateString(new Date());
   }
   return null;
+}
+
+/**
+ * Process and award MOTM for a game day after midnight
+ * This should be called after midnight on a game day to award MOTM to the player with most votes
+ */
+export async function processMOTMAwards(
+  db: any,
+  gameDate: string
+): Promise<void> {
+  if (!db) return;
+
+  try {
+    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+    
+    // Check if MOTM has already been awarded for this game date
+    const motmAwardsPath = `artifacts/${appId}/public/data/motmAwards`;
+    const motmAwardsRef = collection(db, motmAwardsPath);
+    const existingAwardQuery = query(motmAwardsRef, where("gameDate", "==", gameDate));
+    const existingAwardSnapshot = await getDocs(existingAwardQuery);
+    
+    if (!existingAwardSnapshot.empty) {
+      // MOTM already awarded for this game date
+      return;
+    }
+
+    // Get all nominations for this game date
+    const motmPath = `artifacts/${appId}/public/data/manOfTheMatch`;
+    const motmRef = collection(db, motmPath);
+    const nominationsQuery = query(motmRef, where("gameDate", "==", gameDate));
+    const nominationsSnapshot = await getDocs(nominationsQuery);
+
+    if (nominationsSnapshot.empty) {
+      // No nominations for this game date
+      return;
+    }
+
+    // Count votes for each player
+    const voteCounts: { [playerId: string]: { name: string; count: number } } = {};
+    nominationsSnapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      const playerId = data.nominatedPlayerId;
+      if (!voteCounts[playerId]) {
+        voteCounts[playerId] = {
+          name: data.nominatedPlayerName,
+          count: 0,
+        };
+      }
+      voteCounts[playerId].count++;
+    });
+
+    // Find player(s) with maximum votes
+    const maxVotes = Math.max(...Object.values(voteCounts).map(v => v.count));
+    const winners = Object.entries(voteCounts).filter(([_, data]) => data.count === maxVotes);
+
+    if (winners.length === 0) {
+      return;
+    }
+
+    // If there's a tie, award to all tied players (or just the first one - you can adjust this logic)
+    // For now, we'll award to the first player with max votes
+    const [winnerPlayerId, winnerData] = winners[0];
+
+    // Record the MOTM award
+    await addDoc(motmAwardsRef, {
+      gameDate: gameDate,
+      playerId: winnerPlayerId,
+      playerName: winnerData.name,
+      voteCount: maxVotes,
+      awardedAt: Timestamp.now(),
+    });
+
+    // Update player's MOTM award count in their points document
+    const pointsPath = `artifacts/${appId}/public/data/playerPoints/${winnerPlayerId}`;
+    const pointsRef = doc(db, pointsPath);
+    const existingDoc = await getDoc(pointsRef);
+
+    let existingMotmAwards = 0;
+    let existingHistory: any[] = [];
+
+    if (existingDoc.exists()) {
+      const data = existingDoc.data();
+      existingMotmAwards = data.motmAwards || 0;
+      existingHistory = data.pointsHistory || [];
+    }
+
+    const newMotmAwards = existingMotmAwards + 1;
+
+    await setDoc(
+      pointsRef,
+      {
+        playerId: winnerPlayerId,
+        playerName: winnerData.name,
+        motmAwards: newMotmAwards,
+        totalPoints: existingDoc.exists() ? (existingDoc.data().totalPoints || 0) : 0,
+        pointsHistory: existingHistory,
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.error("Error processing MOTM awards:", err);
+    throw err;
+  }
 }
 

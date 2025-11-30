@@ -46,7 +46,10 @@ import UserNotifications from "./components/notifications/UserNotifications";
 import Leaderboard from "./components/leaderboard/Leaderboard";
 import KudosBoard from "./components/kudos/KudosBoard";
 import ManOfTheMatch from "./components/motm/ManOfTheMatch";
-import { awardGameAttendancePoints, getDateString } from "./utils/gamePoints";
+import GoalsAssistsSubmission from "./components/stats/GoalsAssistsSubmission";
+import GoalsAssistsReview from "./components/admin/GoalsAssistsReview";
+import GameInfoPanel from "./components/games/GameInfoPanel";
+import { awardGameAttendancePoints, getDateString, processMOTMAwards } from "./utils/gamePoints";
 import { GameSchedule as GameScheduleType } from "./utils/gameSchedule";
 
 // --- GLOBAL CANVAS VARIABLES (Mandatory) ---
@@ -130,7 +133,7 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ userEmail, userRole, playerNa
         right = window.innerWidth - leftEdge - popupWidth;
       }
       right = Math.max(8, Math.min(right, window.innerWidth - popupWidth - 8));
-      
+
       // Check if popup would go below viewport
       const estimatedHeight = 200; // Approximate height
       const spaceBelow = window.innerHeight - rect.bottom;
@@ -248,7 +251,7 @@ const InfoTooltip: React.FC = () => {
           let right = rightEdge;
           if (rightEdge < 16) {
             right = window.innerWidth - leftEdge - popupWidth;
-          }
+        }
           right = Math.max(16, Math.min(right, window.innerWidth - popupWidth - 16));
           
           // Check if popup would go below viewport
@@ -407,6 +410,15 @@ export default function App() {
   const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openMOTMModal, setOpenMOTMModal] = useState(false);
+  const [openKudosModal, setOpenKudosModal] = useState(false);
+  const [openPointsModal, setOpenPointsModal] = useState(false);
+
+  const handleModalOpened = (modal: "motm" | "kudos" | "points") => {
+    if (modal === "motm") setOpenMOTMModal(false);
+    if (modal === "kudos") setOpenKudosModal(false);
+    if (modal === "points") setOpenPointsModal(false);
+  };
   
   // Helper to determine slide direction based on tab order
   const getTabOrder = (tab: "poll" | "teams" | "questions" | "admin" | "leaderboard"): number => {
@@ -665,6 +677,40 @@ export default function App() {
 
     return () => unsubscribe();
   }, [db, availability]);
+
+  // Process MOTM awards after midnight on game days
+  useEffect(() => {
+    if (!db || !gameSchedule) return;
+
+    const checkAndProcessMOTM = async () => {
+      try {
+        const now = new Date();
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayDay = yesterday.getDay();
+
+        // Check if yesterday was a game day
+        if (gameSchedule.schedule && gameSchedule.schedule[yesterdayDay]) {
+          // Use toDateString() format to match what's stored in nominations
+          const yesterdayDateStr = yesterday.toDateString();
+          
+          // Process MOTM awards for yesterday's game (after midnight)
+          // This will only process if it hasn't been processed already
+          await processMOTMAwards(db, yesterdayDateStr);
+        }
+      } catch (err) {
+        console.error("Error processing MOTM awards:", err);
+      }
+    };
+
+    // Check immediately
+    checkAndProcessMOTM();
+
+    // Check every hour to catch midnight transitions
+    const interval = setInterval(checkAndProcessMOTM, 60 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [db, gameSchedule]);
 
   // Function to refresh user role (called after role update)
   const refreshUserRole = () => {
@@ -1310,9 +1356,29 @@ export default function App() {
             {/* Notifications Banner - Show critical notifications at top */}
             {db && <NotificationsBanner db={db} />}
             
+            {/* Game Info Panel - Above tabs */}
+            {userId && (
+              <GameInfoPanel
+                db={db}
+                onNavigateToLeaderboard={() => handleViewChange("leaderboard")}
+                onOpenMOTM={() => {
+                  handleViewChange("poll");
+                  setTimeout(() => setOpenMOTMModal(true), 100);
+                }}
+                onOpenKudos={() => {
+                  handleViewChange("poll");
+                  setTimeout(() => setOpenKudosModal(true), 100);
+                }}
+                onOpenPoints={() => {
+                  handleViewChange("poll");
+                  setTimeout(() => setOpenPointsModal(true), 100);
+                }}
+        />
+      )}
+
             {/* Mobile Hamburger Menu Button - Visible only on mobile (below 640px) */}
             <div className="max-w-5xl mx-auto mb-2 px-2 mt-2 relative" style={{ display: 'block', zIndex: 45 }}>
-              <button
+          <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setMobileMenuOpen(!mobileMenuOpen);
@@ -1395,8 +1461,8 @@ export default function App() {
                           view === "poll"
                             ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl scale-[1.02] border-2 border-indigo-500/50"
                             : "bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-indigo-50/80 hover:scale-[1.01] border border-slate-200/60 shadow-md hover:shadow-lg"
-                        }`}
-                      >
+      }`}
+    >
                         <div className={`p-2 rounded-xl ${view === "poll" ? "bg-white/20" : "bg-indigo-100"}`}>
                           <ListChecks className={`w-5 h-5 ${view === "poll" ? "text-white" : "text-indigo-600"}`} />
                         </div>
@@ -1404,7 +1470,7 @@ export default function App() {
                           Availability <span className="ml-1">({availableCount})</span>
         </span>
                       </button>
-                      
+
                       <button
                         onClick={() => {
                           handleViewChange("leaderboard");
@@ -1432,8 +1498,8 @@ export default function App() {
                           view === "teams"
                             ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xl scale-[1.02] border-2 border-amber-500/50"
                             : "bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-amber-50/80 hover:scale-[1.01] border border-slate-200/60 shadow-md hover:shadow-lg"
-                        }`}
-                      >
+              }`}
+            >
                         <div className={`p-2 rounded-xl ${view === "teams" ? "bg-white/20" : "bg-amber-100"}`}>
                           <Trophy className={`w-5 h-5 ${view === "teams" ? "text-white" : "text-amber-600"}`} />
           </div>
@@ -1479,13 +1545,17 @@ export default function App() {
         </div>
                 </div>
               </>
-            )}
+      )}
 
             {/* Desktop Tabs - Hidden on mobile, visible on sm and up */}
-            <nav className="max-w-5xl mx-auto hidden sm:flex flex-row justify-center bg-white/80 backdrop-blur-xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-1 sm:p-1.5 md:p-2 shadow-[0_15px_40px_rgba(15,23,42,0.15)] border border-white/60 border-b-0 gap-1 sm:gap-0 mb-0 relative z-10">
+            <nav className="max-w-5xl mx-auto hidden sm:flex flex-row justify-center bg-white/80 backdrop-blur-xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-1 sm:p-1.5 md:p-2 shadow-[0_15px_40px_rgba(15,23,42,0.15)] border border-white/60 border-b-0 gap-1 sm:gap-0 mb-0 relative z-[100]">
             <button
-              onClick={() => handleViewChange("poll")}
-              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-2xl sm:rounded-l-2xl sm:rounded-r-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewChange("poll");
+              }}
+              type="button"
+              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-2xl sm:rounded-l-2xl sm:rounded-r-none transition-all duration-300 text-xs sm:text-sm md:text-base relative z-[101] ${
                 view === "poll"
                   ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
                   : "bg-transparent text-slate-600 hover:bg-indigo-50/60 hover:text-indigo-700"
@@ -1499,8 +1569,12 @@ export default function App() {
               </span>
             </button>
             <button
-              onClick={() => handleViewChange("leaderboard")}
-              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewChange("leaderboard");
+              }}
+              type="button"
+              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-none transition-all duration-300 text-xs sm:text-sm md:text-base relative z-[101] ${
                 view === "leaderboard"
                   ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
                   : "bg-transparent text-slate-600 hover:bg-amber-50/60 hover:text-amber-700"
@@ -1512,9 +1586,13 @@ export default function App() {
               </span>
             </button>
             <button
-              onClick={() => handleViewChange("teams")}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewChange("teams");
+              }}
+              type="button"
               disabled={!teams || !teams.teams || teams.teams.length === 0}
-              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed text-xs sm:text-sm md:text-base rounded-xl sm:rounded-none ${
+              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed text-xs sm:text-sm md:text-base rounded-xl sm:rounded-none relative z-[101] ${
                 view === "teams"
                   ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
                   : "bg-transparent text-slate-600 hover:bg-amber-50/60 hover:text-amber-700"
@@ -1526,8 +1604,12 @@ export default function App() {
               </span>
             </button>
             <button
-              onClick={() => handleViewChange("questions")}
-              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewChange("questions");
+              }}
+              type="button"
+              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-none transition-all duration-300 text-xs sm:text-sm md:text-base relative z-[101] ${
                 view === "questions"
                   ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
                   : "bg-transparent text-slate-600 hover:bg-blue-50/60 hover:text-blue-700"
@@ -1541,8 +1623,12 @@ export default function App() {
             </button>
             {userRole === "admin" && (
               <button
-                onClick={() => handleViewChange("admin")}
-                className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-r-2xl sm:rounded-l-none transition-all duration-300 text-xs sm:text-sm md:text-base ${
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewChange("admin");
+                }}
+                type="button"
+                className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-r-2xl sm:rounded-l-none transition-all duration-300 text-xs sm:text-sm md:text-base relative z-[101] ${
                   view === "admin"
                     ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
                     : "bg-transparent text-slate-600 hover:bg-purple-50/60 hover:text-purple-700"
@@ -1557,7 +1643,7 @@ export default function App() {
           </nav>
 
           {/* Content Area */}
-          <main className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 -mt-[1px] overflow-hidden relative">
+          <main className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 -mt-[1px] relative">
             <div 
               className={`transition-all duration-500 ease-in-out ${
                 slideDirection === "left"
@@ -1590,8 +1676,12 @@ export default function App() {
                   onNavigateToLeaderboard={() => handleViewChange("leaderboard")}
                   userEmail={userEmail || ""}
                   userRole={userRole}
+                  openMOTMModal={openMOTMModal}
+                  openKudosModal={openKudosModal}
+                  openPointsModal={openPointsModal}
+                  onModalOpened={handleModalOpened}
                 />
-              )}
+            )}
               {view === "teams" && teams && teams.teams?.length > 0 && (
                 <TeamResults
                   teams={teams.teams}
@@ -1619,6 +1709,14 @@ export default function App() {
                     players={availability}
                     isActive={view === "leaderboard"}
                   />
+                  <GoalsAssistsSubmission
+                    db={db}
+                    userId={userId}
+                    userEmail={userEmail || ""}
+                    players={availability}
+                    gameSchedule={gameSchedule}
+                    isActive={view === "leaderboard"}
+                  />
                   <KudosBoard
                     db={db}
                     userId={userId}
@@ -1643,6 +1741,12 @@ export default function App() {
                     db={db}
                     userId={userId}
                     userEmail={userEmail || ""}
+                    isActive={view === "admin"}
+                  />
+                  <GoalsAssistsReview
+                    db={db}
+                    currentUserId={userId}
+                    currentUserEmail={userEmail || ""}
                     isActive={view === "admin"}
                   />
                   <Notifications

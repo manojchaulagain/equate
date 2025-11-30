@@ -496,8 +496,18 @@ const UserManagement: React.FC<UserManagementProps> = ({
 
       {/* Delete Confirmation Modal */}
       {userToDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-red-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto animate-in slide-in-from-bottom-4 duration-300">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setUserToDelete(null);
+            }
+          }}
+        >
+          <div 
+            className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-red-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto animate-in slide-in-from-bottom-4 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Decorative background elements */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
               <div className="absolute -top-16 -right-16 w-32 h-32 bg-red-200/30 rounded-full blur-3xl"></div>
