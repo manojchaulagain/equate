@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { ListChecks, Trophy, Edit2, UserPlus, Trash2, Star, Heart, X, Send, Plus } from "lucide-react";
-import { PlayerAvailability, Player } from "../../types/player";
-import { POSITION_LABELS, SKILL_LABELS } from "../../constants/player";
+import { ListChecks, Trophy, Edit2, UserPlus, Trash2, Star, Heart, X, Send, Plus, Search, Filter, XCircle } from "lucide-react";
+import { PlayerAvailability, Player, Position, SkillLevel } from "../../types/player";
+import { POSITION_LABELS, SKILL_LABELS, POSITIONS } from "../../constants/player";
 import EditPlayerModal from "../players/EditPlayerModal";
 import AddPlayerModal from "../players/AddPlayerModal";
 import { doc, collection, addDoc, Timestamp, getDoc, setDoc } from "firebase/firestore";
@@ -69,6 +69,13 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   const [editingPlayer, setEditingPlayer] = useState<PlayerAvailability | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [playerToDelete, setPlayerToDelete] = useState<PlayerAvailability | null>(null);
+  
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filterPosition, setFilterPosition] = useState<Position | "">("");
+  const [filterSkill, setFilterSkill] = useState<SkillLevel | "">("");
+  const [filterAvailability, setFilterAvailability] = useState<"all" | "available" | "unavailable">("all");
+  const [showFilters, setShowFilters] = useState(false);
   
   // Use shared hook for game schedule
   const gameSchedule = useGameSchedule(db);
@@ -373,6 +380,54 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     return [...(userPlayer ? [userPlayer] : []), ...registeredByUser, ...sortedOtherPlayers];
   }, [availability, currentUserId]);
 
+  // Filter players based on search query and filters
+  const filteredAvailability = useMemo(() => {
+    return sortedAvailability.filter((player) => {
+      // Search filter
+      if (searchQuery.trim() && !player.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+      
+      // Position filter
+      if (filterPosition && player.position !== filterPosition) {
+        return false;
+      }
+      
+      // Skill filter
+      if (filterSkill && player.skillLevel !== filterSkill) {
+        return false;
+      }
+      
+      // Availability filter
+      if (filterAvailability === "available" && !player.isAvailable) {
+        return false;
+      }
+      if (filterAvailability === "unavailable" && player.isAvailable) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [sortedAvailability, searchQuery, filterPosition, filterSkill, filterAvailability]);
+  
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery.trim()) count++;
+    if (filterPosition) count++;
+    if (filterSkill) count++;
+    if (filterAvailability !== "all") count++;
+    return count;
+  }, [searchQuery, filterPosition, filterSkill, filterAvailability]);
+  
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterPosition("");
+    setFilterSkill("");
+    setFilterAvailability("all");
+  };
+
   const handleEditClick = (e: React.MouseEvent, player: PlayerAvailability) => {
     e.stopPropagation(); // Prevent toggling availability when clicking edit
     setEditingPlayer(player);
@@ -444,8 +499,140 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
           </button>
         </div>
       ) : (
-        <div className="space-y-3 max-h-96 overflow-y-auto p-4 custom-scrollbar">
-          {sortedAvailability.map((player) => (
+        <>
+          {/* Search and Filter Section */}
+          <div className="mb-4 space-y-3">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search players by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-2.5 border-2 border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition duration-150 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md text-sm font-medium"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition"
+                  type="button"
+                >
+                  <XCircle className="text-slate-400 hover:text-slate-600" size={18} />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Toggle Button */}
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200 ${
+                  showFilters
+                    ? "bg-indigo-600 text-white shadow-md"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+                type="button"
+              >
+                <Filter size={16} />
+                Filters
+                {activeFiltersCount > 0 && (
+                  <span className="bg-white text-indigo-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </button>
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors flex items-center gap-1"
+                  type="button"
+                >
+                  <XCircle size={14} />
+                  Clear filters
+                </button>
+              )}
+            </div>
+
+            {/* Filter Options */}
+            {showFilters && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200 shadow-sm">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
+                    Position
+                  </label>
+                  <select
+                    value={filterPosition}
+                    onChange={(e) => setFilterPosition(e.target.value as Position | "")}
+                    className="w-full p-2 border-2 border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition duration-150 bg-white text-sm font-medium"
+                  >
+                    <option value="">All Positions</option>
+                    {POSITIONS.map((pos) => (
+                      <option key={pos} value={pos}>
+                        {pos} - {POSITION_LABELS[pos]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
+                    Skill Level
+                  </label>
+                  <select
+                    value={filterSkill}
+                    onChange={(e) => setFilterSkill(e.target.value ? (Number(e.target.value) as SkillLevel) : "")}
+                    className="w-full p-2 border-2 border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition duration-150 bg-white text-sm font-medium"
+                  >
+                    <option value="">All Skills</option>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((skill) => (
+                      <option key={skill} value={skill}>
+                        {skill} - {SKILL_LABELS[skill as SkillLevel]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
+                    Availability
+                  </label>
+                  <select
+                    value={filterAvailability}
+                    onChange={(e) => setFilterAvailability(e.target.value as "all" | "available" | "unavailable")}
+                    className="w-full p-2 border-2 border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition duration-150 bg-white text-sm font-medium"
+                  >
+                    <option value="all">All Players</option>
+                    <option value="available">Available Only</option>
+                    <option value="unavailable">Unavailable Only</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Results Count */}
+          {activeFiltersCount > 0 && filteredAvailability.length > 0 && (
+            <div className="text-xs sm:text-sm text-slate-600 font-medium mb-2 px-1">
+              Showing {filteredAvailability.length} of {sortedAvailability.length} player{filteredAvailability.length !== 1 ? 's' : ''}
+            </div>
+          )}
+
+          {/* Player List */}
+          {filteredAvailability.length === 0 ? (
+            <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-amber-50 rounded-2xl border-2 border-dashed border-amber-200">
+              <p className="text-slate-600 mb-2 font-medium">No players match your filters.</p>
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-indigo-600 hover:text-indigo-700 font-semibold underline"
+                  type="button"
+                >
+                  Clear filters to see all players
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto p-4 custom-scrollbar">
+              {filteredAvailability.map((player) => (
             <div
               key={player.id}
               className={`flex items-center justify-between p-4 rounded-2xl transition-all duration-300 ${
@@ -536,6 +723,8 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
             </div>
           ))}
         </div>
+          )}
+        </>
       )}
 
       <div className="mt-4 sm:mt-6 pt-4 sm:pt-5 border-t-2 border-indigo-200 flex flex-col gap-4 bg-gradient-to-r from-slate-50 to-blue-50 -mx-4 sm:-mx-6 px-4 sm:px-6 pb-3 sm:pb-2 rounded-b-xl sm:rounded-b-2xl">

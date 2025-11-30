@@ -51,6 +51,7 @@ import GoalsAssistsReview from "./components/admin/GoalsAssistsReview";
 import GameInfoPanel from "./components/games/GameInfoPanel";
 import { awardGameAttendancePoints, getDateString, processMOTMAwards } from "./utils/gamePoints";
 import { GameSchedule as GameScheduleType } from "./utils/gameSchedule";
+import { sendGameReminders } from "./utils/gameReminders";
 import { FirestorePaths } from "./utils/firestorePaths";
 
 // --- GLOBAL CANVAS VARIABLES (Mandatory) ---
@@ -711,6 +712,36 @@ export default function App() {
 
     return () => clearInterval(interval);
   }, [db, gameSchedule]);
+
+  // 3-Day Game Reminder System - Check daily and send reminders
+  useEffect(() => {
+    if (!db || !gameSchedule || !userId || userRole !== "admin") return;
+
+    const checkAndSendReminders = async () => {
+      try {
+        // Get all players for sending reminders
+        const playersCollectionPath = FirestorePaths.players();
+        const playersColRef = collection(db, playersCollectionPath);
+        const playersSnapshot = await getDocs(playersColRef);
+        const allPlayers = playersSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          userId: doc.data().userId || undefined,
+        }));
+
+        await sendGameReminders(db, gameSchedule, allPlayers);
+      } catch (err) {
+        console.error("Error sending game reminders:", err);
+      }
+    };
+
+    // Check immediately on mount
+    checkAndSendReminders();
+
+    // Check every 6 hours to ensure reminders are sent on time
+    const interval = setInterval(checkAndSendReminders, 6 * 60 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [db, gameSchedule, userId, userRole]);
 
   // Function to refresh user role (called after role update)
   const refreshUserRole = () => {

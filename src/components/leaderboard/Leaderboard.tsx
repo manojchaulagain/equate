@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { Trophy, Award, Plus, TrendingUp, Star, X, Target, Users, Footprints } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Trophy, Award, Plus, TrendingUp, Star, X, Target, Users, Footprints, Search, Filter, XCircle } from "lucide-react";
 import { collection, onSnapshot, doc, setDoc, Timestamp, getDocs, getDoc } from "firebase/firestore";
 import { GameSchedule } from "../../utils/gameSchedule";
 import { isTodayGameDayPassed } from "../../utils/gamePoints";
+import PlayerProfileModal from "../players/PlayerProfileModal";
+import { Player, Position, SkillLevel } from "../../types/player";
+import { POSITION_LABELS, SKILL_LABELS, POSITIONS } from "../../constants/player";
 
 declare const __app_id: string;
 
@@ -43,6 +46,15 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [gameSchedule, setGameSchedule] = useState<GameSchedule | null>(null);
+  const [selectedPlayerProfile, setSelectedPlayerProfile] = useState<{ player: Player; stats: PlayerPoints } | null>(null);
+  
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filterPosition, setFilterPosition] = useState<Position | "">("");
+  const [filterMinPoints, setFilterMinPoints] = useState<string>("");
+  const [filterMaxPoints, setFilterMaxPoints] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"points" | "goals" | "assists" | "games">("points");
+  const [showFilters, setShowFilters] = useState(false);
 
   const isAdmin = userRole === "admin";
 
@@ -273,6 +285,79 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
     }
   };
 
+  // Get player data for each playerPoints entry
+  const playerPointsWithFullData = useMemo(() => {
+    return playerPoints.map((pp) => {
+      const fullPlayer = players.find((p) => p.id === pp.playerId);
+      return {
+        ...pp,
+        position: fullPlayer?.position || "CM" as Position,
+        skillLevel: fullPlayer?.skillLevel || 5 as SkillLevel,
+      };
+    });
+  }, [playerPoints, players]);
+
+  // Filter and sort players
+  const filteredAndSortedPlayers = useMemo(() => {
+    let filtered = playerPointsWithFullData.filter((pp) => {
+      // Search filter
+      if (searchQuery.trim() && !pp.playerName.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+      
+      // Position filter
+      if (filterPosition && pp.position !== filterPosition) {
+        return false;
+      }
+      
+      // Points range filter
+      const minPoints = filterMinPoints ? parseInt(filterMinPoints) : 0;
+      const maxPoints = filterMaxPoints ? parseInt(filterMaxPoints) : Infinity;
+      if (pp.totalPoints < minPoints || pp.totalPoints > maxPoints) {
+        return false;
+      }
+      
+      return true;
+    });
+
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "goals":
+          return (b.goals || 0) - (a.goals || 0);
+        case "assists":
+          return (b.assists || 0) - (a.assists || 0);
+        case "games":
+          return (b.gamesPlayed || 0) - (a.gamesPlayed || 0);
+        case "points":
+        default:
+          return b.totalPoints - a.totalPoints;
+      }
+    });
+
+    return filtered;
+  }, [playerPointsWithFullData, searchQuery, filterPosition, filterMinPoints, filterMaxPoints, sortBy]);
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery.trim()) count++;
+    if (filterPosition) count++;
+    if (filterMinPoints) count++;
+    if (filterMaxPoints) count++;
+    if (sortBy !== "points") count++;
+    return count;
+  }, [searchQuery, filterPosition, filterMinPoints, filterMaxPoints, sortBy]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterPosition("");
+    setFilterMinPoints("");
+    setFilterMaxPoints("");
+    setSortBy("points");
+  };
+
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Trophy className="text-yellow-500" size={24} />;
     if (rank === 2) return <Trophy className="text-gray-400" size={24} />;
@@ -339,8 +424,150 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
             <p className="text-slate-600 font-medium">No points recorded yet.</p>
           </div>
         ) : (
-          <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
-            {playerPoints.map((player, index) => (
+          <>
+            {/* Search and Filter Section */}
+            <div className="mb-4 space-y-3">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Search players by name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 border-2 border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition duration-150 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md text-sm font-medium"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition"
+                    type="button"
+                  >
+                    <XCircle className="text-slate-400 hover:text-slate-600" size={18} />
+                  </button>
+                )}
+              </div>
+
+              {/* Filter Toggle Button */}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200 ${
+                    showFilters
+                      ? "bg-amber-600 text-white shadow-md"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                  type="button"
+                >
+                  <Filter size={16} />
+                  Filters
+                  {activeFiltersCount > 0 && (
+                    <span className="bg-white text-amber-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </button>
+                {activeFiltersCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs font-semibold text-slate-600 hover:text-amber-600 transition-colors flex items-center gap-1"
+                    type="button"
+                  >
+                    <XCircle size={14} />
+                    Clear filters
+                  </button>
+                )}
+              </div>
+
+              {/* Filter Options */}
+              {showFilters && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl border-2 border-amber-200 shadow-sm">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
+                      Position
+                    </label>
+                    <select
+                      value={filterPosition}
+                      onChange={(e) => setFilterPosition(e.target.value as Position | "")}
+                      className="w-full p-2 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition duration-150 bg-white text-sm font-medium"
+                    >
+                      <option value="">All Positions</option>
+                      {POSITIONS.map((pos) => (
+                        <option key={pos} value={pos}>
+                          {pos} - {POSITION_LABELS[pos]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
+                      Min Points
+                    </label>
+                    <input
+                      type="number"
+                      value={filterMinPoints}
+                      onChange={(e) => setFilterMinPoints(e.target.value)}
+                      placeholder="Min"
+                      min="0"
+                      className="w-full p-2 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition duration-150 bg-white text-sm font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
+                      Max Points
+                    </label>
+                    <input
+                      type="number"
+                      value={filterMaxPoints}
+                      onChange={(e) => setFilterMaxPoints(e.target.value)}
+                      placeholder="Max"
+                      min="0"
+                      className="w-full p-2 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition duration-150 bg-white text-sm font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
+                      Sort By
+                    </label>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as "points" | "goals" | "assists" | "games")}
+                      className="w-full p-2 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition duration-150 bg-white text-sm font-medium"
+                    >
+                      <option value="points">Points</option>
+                      <option value="goals">Goals</option>
+                      <option value="assists">Assists</option>
+                      <option value="games">Games Played</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Results Count */}
+            {activeFiltersCount > 0 && filteredAndSortedPlayers.length > 0 && (
+              <div className="text-xs sm:text-sm text-slate-600 font-medium mb-2 px-1">
+                Showing {filteredAndSortedPlayers.length} of {playerPoints.length} player{filteredAndSortedPlayers.length !== 1 ? 's' : ''}
+              </div>
+            )}
+
+            {/* Player List */}
+            {filteredAndSortedPlayers.length === 0 ? (
+              <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-amber-50 rounded-2xl border-2 border-dashed border-amber-200">
+                <p className="text-slate-600 mb-2 font-medium">No players match your filters.</p>
+                {activeFiltersCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-sm text-amber-600 hover:text-amber-700 font-semibold underline"
+                    type="button"
+                  >
+                    Clear filters to see all players
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
+                {filteredAndSortedPlayers.map((player, index) => (
               <div
                 key={player.playerId}
                 className={`p-4 rounded-2xl border-2 shadow-md ${
@@ -357,7 +584,19 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     {getRankIcon(index + 1)}
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-slate-800 text-base sm:text-lg truncate">
+                      <p 
+                        className="font-bold text-slate-800 text-base sm:text-lg truncate cursor-pointer hover:text-indigo-600 transition-colors"
+                        onClick={() => {
+                          const fullPlayer = players.find(p => p.id === player.playerId);
+                          if (fullPlayer) {
+                            setSelectedPlayerProfile({
+                              player: fullPlayer,
+                              stats: player,
+                            });
+                          }
+                        }}
+                        title="Click to view player profile"
+                      >
                         {player.playerName}
                       </p>
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5">
@@ -401,6 +640,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
               </div>
             ))}
           </div>
+            )}
+          </>
         )}
       </div>
 
@@ -534,6 +775,23 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
             </div>
           </div>
         </div>
+      )}
+
+      {/* Player Profile Modal */}
+      {selectedPlayerProfile && (
+        <PlayerProfileModal
+          player={selectedPlayerProfile.player}
+          playerStats={{
+            totalPoints: selectedPlayerProfile.stats.totalPoints,
+            motmAwards: selectedPlayerProfile.stats.motmAwards || 0,
+            goals: selectedPlayerProfile.stats.goals || 0,
+            assists: selectedPlayerProfile.stats.assists || 0,
+            gamesPlayed: selectedPlayerProfile.stats.gamesPlayed || 0,
+            pointsHistory: selectedPlayerProfile.stats.pointsHistory,
+          }}
+          db={db}
+          onClose={() => setSelectedPlayerProfile(null)}
+        />
       )}
     </div>
   );
