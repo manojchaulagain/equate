@@ -46,6 +46,8 @@ import UserNotifications from "./components/notifications/UserNotifications";
 import Leaderboard from "./components/leaderboard/Leaderboard";
 import KudosBoard from "./components/kudos/KudosBoard";
 import ManOfTheMatch from "./components/motm/ManOfTheMatch";
+import { awardGameAttendancePoints, getDateString } from "./utils/gamePoints";
+import { GameSchedule as GameScheduleType } from "./utils/gameSchedule";
 
 // --- GLOBAL CANVAS VARIABLES (Mandatory) ---
 declare const __app_id: string;
@@ -425,6 +427,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isUserRegistered, setIsUserRegistered] = useState<boolean | null>(null);
   const [checkingRegistration, setCheckingRegistration] = useState(true);
+  const [gameSchedule, setGameSchedule] = useState<GameScheduleType | null>(null);
 
   // Persist preferred team count for admins
   useEffect(() => {
@@ -602,6 +605,66 @@ export default function App() {
 
     fetchUserRole();
   }, [db, userId]);
+
+  // Fetch game schedule and award points for today's game if it has passed
+  useEffect(() => {
+    if (!db) return;
+
+    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+    const schedulePath = `artifacts/${appId}/public/data/gameSchedule/config`;
+    const scheduleRef = doc(db, schedulePath);
+
+    const unsubscribe = onSnapshot(
+      scheduleRef,
+      async (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data() as GameScheduleType;
+          setGameSchedule(data);
+
+          // Check if today was a game day and award points
+          if (data.schedule && availability.length > 0) {
+            const now = new Date();
+            const today = now.getDay();
+            const scheduleMap = data.schedule;
+
+            if (scheduleMap[today]) {
+              const [hours, minutes] = scheduleMap[today].split(':').map(Number);
+              const todayGameTime = new Date(now);
+              todayGameTime.setHours(hours, minutes, 0, 0);
+
+              // If game time has passed today, award points to available players
+              if (now > todayGameTime) {
+                const todayDateStr = getDateString(now);
+
+                // Award 2 points to all players who are available
+                for (const player of availability) {
+                  if (player.isAvailable && player.userId) {
+                    try {
+                      await awardGameAttendancePoints(
+                        db,
+                        player.id,
+                        player.name,
+                        todayDateStr
+                      );
+                    } catch (err) {
+                      console.error(`Error awarding points to ${player.name}:`, err);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          setGameSchedule(null);
+        }
+      },
+      (err) => {
+        console.error("Error fetching game schedule:", err);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [db, availability]);
 
   // Function to refresh user role (called after role update)
   const refreshUserRole = () => {
@@ -1524,6 +1587,9 @@ export default function App() {
                   currentUserId={userId}
                   db={db}
                   isActive={view === "poll"}
+                  onNavigateToLeaderboard={() => handleViewChange("leaderboard")}
+                  userEmail={userEmail || ""}
+                  userRole={userRole}
                 />
               )}
               {view === "teams" && teams && teams.teams?.length > 0 && (

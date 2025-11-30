@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Trophy, Award, Plus, TrendingUp, Star, X } from "lucide-react";
-import { collection, onSnapshot, doc, setDoc, Timestamp, getDocs, getDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, Timestamp, getDocs, getDoc, onSnapshot as onSnapshotDoc } from "firebase/firestore";
+import { GameSchedule } from "../../utils/gameSchedule";
+import { isTodayGameDayPassed } from "../../utils/gamePoints";
 
 declare const __app_id: string;
 
@@ -36,6 +38,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [gameSchedule, setGameSchedule] = useState<GameSchedule | null>(null);
 
   const isAdmin = userRole === "admin";
 
@@ -52,6 +55,32 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
   };
 
   const availablePlayers = getAvailablePlayers();
+
+  // Fetch game schedule
+  useEffect(() => {
+    if (!db) return;
+
+    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+    const schedulePath = `artifacts/${appId}/public/data/gameSchedule/config`;
+    const scheduleRef = doc(db, schedulePath);
+
+    const unsubscribe = onSnapshot(
+      scheduleRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data() as GameSchedule;
+          setGameSchedule(data);
+        } else {
+          setGameSchedule(null);
+        }
+      },
+      (err) => {
+        console.error("Error fetching game schedule:", err);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [db]);
 
   useEffect(() => {
     if (!db || players.length === 0) return;
@@ -142,9 +171,16 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
       return;
     }
 
+    // Must be after a game day
+    const canAddPointsToday = isTodayGameDayPassed(gameSchedule?.schedule || null);
+    if (!canAddPointsToday) {
+      setError("You can only add performance points after a game day.");
+      return;
+    }
+
     const pointsNum = parseInt(points);
-    if (isNaN(pointsNum) || pointsNum <= 0) {
-      setError("Points must be a positive number.");
+    if (isNaN(pointsNum) || pointsNum < 1 || pointsNum > 5) {
+      setError("Points must be between 1 and 5.");
       return;
     }
 

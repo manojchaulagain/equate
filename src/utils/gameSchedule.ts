@@ -8,7 +8,35 @@ export interface GameSchedule {
 }
 
 /**
+ * Get today's game info if today is a game day
+ */
+export function getTodayGame(schedule: GameSchedule | null): { date: Date; formatted: string; dayOfWeek: number } | null {
+  if (!schedule || !schedule.schedule || Object.keys(schedule.schedule).length === 0) {
+    return null;
+  }
+
+  const now = new Date();
+  const scheduleMap = schedule.schedule;
+  const today = now.getDay();
+  
+  if (scheduleMap[today]) {
+    const [hours, minutes] = scheduleMap[today].split(':').map(Number);
+    const todayGameTime = new Date(now);
+    todayGameTime.setHours(hours, minutes, 0, 0);
+    
+    return {
+      date: todayGameTime,
+      formatted: formatGameDateTime(todayGameTime),
+      dayOfWeek: today,
+    };
+  }
+  
+  return null;
+}
+
+/**
  * Calculate the next game date and time based on the schedule
+ * This returns the next game from tomorrow onwards (not today)
  */
 export function calculateNextGame(schedule: GameSchedule | null): { date: Date; formatted: string; dayOfWeek?: number } | null {
   if (!schedule || !schedule.schedule || Object.keys(schedule.schedule).length === 0) {
@@ -21,20 +49,23 @@ export function calculateNextGame(schedule: GameSchedule | null): { date: Date; 
   // Get today's day of week (0 = Sunday, 6 = Saturday)
   const today = now.getDay();
   
-  // Check if there's a game today and the time hasn't passed
+  // Check if there's a game today
   if (scheduleMap[today]) {
     const [hours, minutes] = scheduleMap[today].split(':').map(Number);
     const todayGameTime = new Date(now);
     todayGameTime.setHours(hours, minutes, 0, 0);
     
+    // If game time hasn't passed yet, show it as next game
     if (todayGameTime > now) {
-      // Game is later today
       return {
         date: todayGameTime,
         formatted: formatGameDateTime(todayGameTime),
         dayOfWeek: today,
       };
     }
+    // If game time has passed today, don't show next game until tomorrow
+    // Return null so next game only shows from tomorrow
+    return null;
   }
   
   // Look for the next game day in the current week

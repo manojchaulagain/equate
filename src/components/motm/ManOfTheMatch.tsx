@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Star, Trophy, Calendar, CheckCircle, X } from "lucide-react";
 import { collection, addDoc, query, orderBy, onSnapshot, Timestamp, doc, getDoc, setDoc, where, getDocs } from "firebase/firestore";
 import { calculateNextGame, GameSchedule } from "../../utils/gameSchedule";
+import { isTodayGameDayPassed, getTodayGameDateString } from "../../utils/gamePoints";
 
 declare const __app_id: string;
 
@@ -109,28 +110,40 @@ const ManOfTheMatch: React.FC<ManOfTheMatchProps> = ({ db, userId, userEmail, us
     };
   }, [db]);
 
+  // Check if today was a game day
+  const todayGameDate = gameSchedule ? getTodayGameDateString(gameSchedule.schedule) : null;
+  const canNominateToday = todayGameDate !== null;
+
   // Check current week nominations and if user has already nominated
   useEffect(() => {
-    if (!nextGame || nominations.length === 0) {
+    // Use today's game date if available, otherwise use next game
+    const gameDateStr = todayGameDate || (nextGame ? nextGame.date.toDateString() : null);
+    
+    if (!gameDateStr || nominations.length === 0) {
       setCurrentWeekNominations([]);
       setHasNominated(false);
       return;
     }
 
-    const gameDateStr = nextGame.date.toDateString();
     const weekNominations = nominations.filter((nom) => nom.gameDate === gameDateStr);
     setCurrentWeekNominations(weekNominations);
     setHasNominated(weekNominations.some((nom) => nom.nominatedBy === userId));
-  }, [nextGame, nominations, userId]);
+  }, [nextGame, nominations, userId, todayGameDate]);
 
   const handleNominate = async () => {
-    if (!selectedPlayer || !nextGame) {
-      setError("Please select a player and ensure a game is scheduled.");
+    if (!selectedPlayer) {
+      setError("Please select a player.");
+      return;
+    }
+
+    // Must be after a game day (today's game has passed)
+    if (!canNominateToday) {
+      setError("You can only nominate Man of the Match after a game day.");
       return;
     }
 
     if (hasNominated) {
-      setError("You have already nominated a player for this week's game.");
+      setError("You have already nominated a player for today's game.");
       return;
     }
 
@@ -147,7 +160,7 @@ const ManOfTheMatch: React.FC<ManOfTheMatchProps> = ({ db, userId, userEmail, us
         throw new Error("Player not found");
       }
 
-      const gameDateStr = nextGame.date.toDateString();
+      const gameDateStr = todayGameDate || new Date().toDateString();
 
       await addDoc(motmRef, {
         gameDate: gameDateStr,
@@ -234,12 +247,14 @@ const ManOfTheMatch: React.FC<ManOfTheMatchProps> = ({ db, userId, userEmail, us
               Man of the Match
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
-              {availablePlayers.length > 0
-                ? "Nominate the best performer from this week's game."
-                : "Nominate the best performer from this week's game. (You cannot nominate yourself or players you registered.)"}
+              {canNominateToday
+                ? "Nominate the best performer from today's game."
+                : availablePlayers.length > 0
+                ? "Nominate the best performer after a game day."
+                : "Nominate the best performer after a game day. (You cannot nominate yourself or players you registered.)"}
             </p>
           </div>
-          {nextGame && !hasNominated && availablePlayers.length > 0 && (
+          {canNominateToday && !hasNominated && availablePlayers.length > 0 && (
             <button
               onClick={() => setShowNominateModal(true)}
               className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-semibold py-2.5 px-4 sm:px-6 rounded-2xl hover:from-yellow-600 hover:to-amber-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2 w-full sm:w-auto"
@@ -248,20 +263,25 @@ const ManOfTheMatch: React.FC<ManOfTheMatchProps> = ({ db, userId, userEmail, us
               <span>Nominate</span>
             </button>
           )}
+          {!canNominateToday && (
+            <div className="text-xs sm:text-sm text-slate-500 italic">
+              Available after game day
+            </div>
+          )}
         </div>
 
-        {nextGame && (
+        {canNominateToday && (
           <div className="mb-6 p-4 bg-gradient-to-r from-yellow-100 to-amber-100 border-2 border-yellow-300 rounded-2xl">
             <div className="flex items-center gap-2 mb-2">
               <Calendar className="text-yellow-600" size={18} />
               <p className="text-sm font-semibold text-yellow-800">
-                Game: {nextGame.formatted}
+                Today's Game
               </p>
             </div>
             {hasNominated && (
               <p className="text-xs text-yellow-700 flex items-center gap-1">
                 <CheckCircle className="w-3 h-3" />
-                You have already nominated a player for this game.
+                You have already nominated a player for today's game.
               </p>
             )}
           </div>
@@ -280,10 +300,10 @@ const ManOfTheMatch: React.FC<ManOfTheMatchProps> = ({ db, userId, userEmail, us
           </div>
         )}
 
-        {!nextGame && (
+        {!canNominateToday && !nextGame && (
           <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-yellow-50 rounded-2xl border-2 border-dashed border-yellow-200">
             <Calendar className="mx-auto text-yellow-400 mb-3" size={48} />
-            <p className="text-slate-600 font-medium">No upcoming game scheduled. Please configure the game schedule in the Admin tab.</p>
+            <p className="text-slate-600 font-medium">No game today. Nomination is available after a game day.</p>
           </div>
         )}
 
