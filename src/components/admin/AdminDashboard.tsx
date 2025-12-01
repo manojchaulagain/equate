@@ -1,9 +1,12 @@
 import React, { useState } from "react";
-import { Calendar, Users, Target, Bell, Settings } from "lucide-react";
+import { Calendar, Users, Target, Bell, Settings, BarChart3, Trophy } from "lucide-react";
 import GameSchedule from "./GameSchedule";
 import GoalsAssistsReview from "./GoalsAssistsReview";
 import Notifications from "../notifications/Notifications";
 import UserManagement from "./UserManagement";
+import PlayerStatsEditor from "./PlayerStatsEditor";
+import LeagueTableEditor from "./LeagueTableEditor";
+import { PlayerAvailability } from "../../types/player";
 
 interface AdminDashboardProps {
   db: any;
@@ -11,10 +14,11 @@ interface AdminDashboardProps {
   userEmail: string;
   userRole: string;
   onRoleUpdate: () => void;
+  players: PlayerAvailability[];
   isActive?: boolean;
 }
 
-type AdminTab = "schedule" | "review" | "users" | "notifications";
+type AdminTab = "schedule" | "review" | "users" | "notifications" | "playerStats" | "leagueTable";
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
   db,
@@ -22,6 +26,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   userEmail,
   userRole,
   onRoleUpdate,
+  players,
   isActive = false,
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>("schedule");
@@ -38,6 +43,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       label: "Review Submissions",
       icon: <Target className="w-5 h-5" />,
       description: "Approve goals & assists",
+    },
+    {
+      id: "playerStats",
+      label: "Player Stats",
+      icon: <BarChart3 className="w-5 h-5" />,
+      description: "Edit player statistics",
+    },
+    {
+      id: "leagueTable",
+      label: "League Table",
+      icon: <Trophy className="w-5 h-5" />,
+      description: "Manage game results",
     },
     {
       id: "users",
@@ -140,6 +157,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 db={db}
                 currentUserId={userId}
                 onRoleUpdate={onRoleUpdate}
+                isActive={isActive}
+              />
+            </div>
+          )}
+
+          {activeTab === "playerStats" && (
+            <div className="animate-in fade-in duration-300 -mx-4 sm:-mx-6">
+              <PlayerStatsEditor
+                db={db}
+                players={players}
+                currentUserId={userId}
+                currentUserEmail={userEmail}
+                isActive={isActive}
+              />
+            </div>
+          )}
+
+          {activeTab === "leagueTable" && (
+            <div className="animate-in fade-in duration-300 -mx-4 sm:-mx-6">
+              <LeagueTableEditor
+                db={db}
+                currentUserId={userId}
+                currentUserEmail={userEmail}
                 isActive={isActive}
               />
             </div>

@@ -737,21 +737,12 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
 
       {/* Team Assignment Manager for Admins */}
       {isAdmin && db && (
-        <div className="mb-4 sm:mb-6">
-          {teamCount === 2 ? (
-            <TeamAssignmentManager
-              availablePlayers={filteredAvailability.filter(p => p.isAvailable)}
-              db={db}
-              isAdmin={isAdmin}
-            />
-          ) : (
-            <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200/60 rounded-xl">
-              <p className="text-sm font-semibold text-amber-800">
-                💡 <strong>Tip:</strong> Team assignment feature is only available when generating 2 teams (Red & Blue). Set "Teams to Generate" to 2 above to use this feature.
-              </p>
-            </div>
-          )}
-        </div>
+        <TeamAssignmentManager
+          availablePlayers={filteredAvailability.filter(p => p.isAvailable)}
+          db={db}
+          isAdmin={isAdmin}
+          teamCount={teamCount}
+        />
       )}
       </div>
 

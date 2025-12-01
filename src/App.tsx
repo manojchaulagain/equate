@@ -30,6 +30,7 @@ import {
   SkillLevel,
   Team,
   TeamResultsState,
+  TeamColorKey,
 } from "./types/player";
 import { UserRole } from "./types/user";
 import { POSITIONS } from "./constants/player";
@@ -1238,21 +1239,19 @@ export default function App() {
       return;
     }
 
-    // Load team assignments from Firestore (only for 2 teams)
-    let teamAssignments: Record<string, "red" | "blue"> = {};
-    if (normalizedTeamCount === 2) {
-      try {
-        const assignmentsPath = FirestorePaths.teamAssignments();
-        const assignmentsRef = doc(db, assignmentsPath);
-        const assignmentsDoc = await getDoc(assignmentsRef);
-        if (assignmentsDoc.exists()) {
-          const data = assignmentsDoc.data();
-          teamAssignments = (data.assignments || {}) as Record<string, "red" | "blue">;
-        }
-      } catch (error) {
-        console.error("Error loading team assignments:", error);
-        // Continue without assignments if loading fails
+    // Load team assignments from Firestore (for all team counts)
+    let teamAssignments: Record<string, TeamColorKey> = {};
+    try {
+      const assignmentsPath = FirestorePaths.teamAssignments();
+      const assignmentsRef = doc(db, assignmentsPath);
+      const assignmentsDoc = await getDoc(assignmentsRef);
+      if (assignmentsDoc.exists()) {
+        const data = assignmentsDoc.data();
+        teamAssignments = (data.assignments || {}) as Record<string, TeamColorKey>;
       }
+    } catch (error) {
+      console.error("Error loading team assignments:", error);
+      // Continue without assignments if loading fails
     }
 
     const sortedPlayers = [...availablePlayers].sort((a, b) => b.skillLevel - a.skillLevel);
@@ -1282,16 +1281,29 @@ export default function App() {
       };
     });
 
+    // Create a map of colorKey to team index for quick lookup
+    const colorKeyToTeamIndex = new Map<TeamColorKey, number>();
+    createdTeams.forEach((team, index) => {
+      if (team.colorKey) {
+        colorKeyToTeamIndex.set(team.colorKey, index);
+      }
+    });
+
     // Separate players into pre-assigned and unassigned
     const preAssignedPlayers: { player: PlayerAvailability; teamIndex: number }[] = [];
     const unassignedPlayers: PlayerAvailability[] = [];
 
     sortedPlayers.forEach((player) => {
-      // Only respect assignments for 2 teams
-      if (normalizedTeamCount === 2 && teamAssignments[player.id]) {
-        const assignedTeam = teamAssignments[player.id];
-        const teamIndex = assignedTeam === "red" ? 0 : 1;
-        preAssignedPlayers.push({ player, teamIndex });
+      const assignedColorKey = teamAssignments[player.id];
+      if (assignedColorKey) {
+        const teamIndex = colorKeyToTeamIndex.get(assignedColorKey);
+        // Only add to pre-assigned if the assigned team exists in the current team setup
+        if (teamIndex !== undefined) {
+          preAssignedPlayers.push({ player, teamIndex });
+        } else {
+          // If assignment doesn't match any team, treat as unassigned
+          unassignedPlayers.push(player);
+        }
       } else {
         unassignedPlayers.push(player);
       }
@@ -1918,6 +1930,7 @@ export default function App() {
                   userEmail={userEmail || ""}
                   userRole={userRole}
                   onRoleUpdate={refreshUserRole}
+                  players={availability}
                   isActive={view === "admin"}
                 />
               )}
