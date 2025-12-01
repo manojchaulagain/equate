@@ -4,6 +4,7 @@ import { PlayerAvailability, Player, Position, SkillLevel } from "../../types/pl
 import { POSITION_LABELS, SKILL_LABELS, POSITIONS } from "../../constants/player";
 import EditPlayerModal from "../players/EditPlayerModal";
 import AddPlayerModal from "../players/AddPlayerModal";
+import TeamAssignmentManager from "../teams/TeamAssignmentManager";
 import { doc, collection, addDoc, Timestamp, getDoc, setDoc } from "firebase/firestore";
 import { useGameSchedule } from "../../hooks/useGameSchedule";
 import { getTodayGameDateString } from "../../utils/gamePoints";
@@ -734,6 +735,26 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
         )}
       </div>
 
+      {/* Team Assignment Manager for Admins */}
+      {isAdmin && db && (
+        <div className="mb-4 sm:mb-6">
+          {teamCount === 2 ? (
+            <TeamAssignmentManager
+              availablePlayers={filteredAvailability.filter(p => p.isAvailable)}
+              db={db}
+              isAdmin={isAdmin}
+            />
+          ) : (
+            <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200/60 rounded-xl">
+              <p className="text-sm font-semibold text-amber-800">
+                💡 <strong>Tip:</strong> Team assignment feature is only available when generating 2 teams (Red & Blue). Set "Teams to Generate" to 2 above to use this feature.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+      </div>
+
       <div className="mt-4 sm:mt-6 pt-4 sm:pt-5 border-t-2 border-indigo-200 flex flex-col gap-4 bg-gradient-to-r from-slate-50 to-blue-50 -mx-4 sm:-mx-6 px-4 sm:px-6 pb-3 sm:pb-2 rounded-b-xl sm:rounded-b-2xl">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center space-x-2 sm:space-x-3">
@@ -1236,7 +1257,6 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 };

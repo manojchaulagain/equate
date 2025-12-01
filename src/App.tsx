@@ -880,7 +880,7 @@ export default function App() {
                 ? (index === 0 ? "blue" : "red")
                 : TEAM_COLOR_SEQUENCE[index % TEAM_COLOR_SEQUENCE.length];
 
-            return {
+              return {
               ...team,
               players: team.players || [],
               colorKey: team.colorKey || fallbackColor,
@@ -1176,12 +1176,12 @@ export default function App() {
 
     // Optimistic UI update - update state immediately for better responsiveness
     startTransition(() => {
-      setAvailability((prev) =>
-        prev.map((p) =>
+    setAvailability((prev) =>
+      prev.map((p) =>
           p.id === playerId ? { ...p, isAvailable: newStatus } : p
-        )
-      );
-      setError(null);
+      )
+    );
+    setError(null);
     });
 
     // Firestore operations can happen asynchronously without blocking UI
@@ -1238,6 +1238,23 @@ export default function App() {
       return;
     }
 
+    // Load team assignments from Firestore (only for 2 teams)
+    let teamAssignments: Record<string, "red" | "blue"> = {};
+    if (normalizedTeamCount === 2) {
+      try {
+        const assignmentsPath = FirestorePaths.teamAssignments();
+        const assignmentsRef = doc(db, assignmentsPath);
+        const assignmentsDoc = await getDoc(assignmentsRef);
+        if (assignmentsDoc.exists()) {
+          const data = assignmentsDoc.data();
+          teamAssignments = (data.assignments || {}) as Record<string, "red" | "blue">;
+        }
+      } catch (error) {
+        console.error("Error loading team assignments:", error);
+        // Continue without assignments if loading fails
+      }
+    }
+
     const sortedPlayers = [...availablePlayers].sort((a, b) => b.skillLevel - a.skillLevel);
 
     const resolveColor = (index: number): Team["colorKey"] => {
@@ -1265,7 +1282,29 @@ export default function App() {
       };
     });
 
+    // Separate players into pre-assigned and unassigned
+    const preAssignedPlayers: { player: PlayerAvailability; teamIndex: number }[] = [];
+    const unassignedPlayers: PlayerAvailability[] = [];
+
     sortedPlayers.forEach((player) => {
+      // Only respect assignments for 2 teams
+      if (normalizedTeamCount === 2 && teamAssignments[player.id]) {
+        const assignedTeam = teamAssignments[player.id];
+        const teamIndex = assignedTeam === "red" ? 0 : 1;
+        preAssignedPlayers.push({ player, teamIndex });
+      } else {
+        unassignedPlayers.push(player);
+      }
+    });
+
+    // First, assign pre-assigned players to their designated teams
+    preAssignedPlayers.forEach(({ player, teamIndex }) => {
+      createdTeams[teamIndex].players.push(player);
+      createdTeams[teamIndex].totalSkill += player.skillLevel;
+    });
+
+    // Then, distribute remaining players using balanced algorithm
+    unassignedPlayers.forEach((player) => {
       let targetIndex = 0;
       for (let i = 1; i < createdTeams.length; i++) {
         const contender = createdTeams[i];
@@ -1433,7 +1472,7 @@ export default function App() {
             </div>
         </h1>
         </div>
-        </div>
+          </div>
       </header>
 
       {!isAppReady && (
@@ -1442,16 +1481,16 @@ export default function App() {
             <div className="relative w-20 h-20">
               <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
               <div className="absolute inset-0 border-4 border-transparent border-t-indigo-600 rounded-full animate-spin"></div>
-            </div>
-            <div>
+          </div>
+                <div>
               <p className="font-bold text-xl sm:text-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
                 Initializing application...
               </p>
               <p className="text-sm text-slate-600 font-medium">Please wait while we set everything up</p>
-            </div>
+                </div>
+                  </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Conditional Rendering based on Auth Status */}
       {isAppReady && !userId && auth && (
@@ -1545,20 +1584,20 @@ export default function App() {
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-500 flex items-center justify-center shadow-lg ring-2 ring-indigo-200/50">
                           <Menu className="w-6 h-6 text-white" />
-                        </div>
+        </div>
                         <div>
                           <h2 className="font-bold text-xl bg-gradient-to-r from-slate-800 via-indigo-700 to-slate-800 bg-clip-text text-transparent">Navigation</h2>
                           <p className="text-xs text-slate-500 font-medium">Choose a section</p>
-                        </div>
+        </div>
                       </div>
-                      <button
+          <button
                         onClick={() => setMobileMenuOpen(false)}
                         className="w-10 h-10 flex items-center justify-center hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 group"
                         aria-label="Close menu"
-                      >
+          >
                         <X className="w-5 h-5 text-slate-600 group-hover:text-slate-800 transition-colors" />
-                      </button>
-                    </div>
+          </button>
+        </div>
                     
                     {/* Menu Items */}
                     <div className="space-y-2.5">
