@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, MapPin, CheckCircle2, Trophy, Star, Heart, Award, ArrowRight, Target, X, Send } from "lucide-react";
+import { Calendar, MapPin, CheckCircle2, Trophy, Star, Heart, Award, Target, X, Send } from "lucide-react";
 import { calculateNextGame, getTodayGame } from "../../utils/gameSchedule";
 import { useGameSchedule } from "../../hooks/useGameSchedule";
 import { isOnGameDayOrDayAfter } from "../../utils/dateHelpers";
@@ -622,35 +622,31 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
 
         {/* Game Complete Actions Section - Only show if game is played */}
         {showGameCompletePanel && todayGame && (
-          <div className="relative z-10 px-5 sm:px-6 md:px-8 pb-5 sm:pb-6 md:pb-8 pt-6 border-t-2 border-amber-200/50">
+          <div className="relative z-10 px-5 sm:px-6 md:px-8 pb-5 sm:pb-6 md:pb-6 pt-5 border-t-2 border-amber-200/50">
             {/* Section Header */}
-            <div className="mb-6">
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-                <div className="w-1 h-8 bg-gradient-to-b from-amber-500 to-orange-600 rounded-full"></div>
+            <div className="mb-4">
+              <h3 className="text-base sm:text-lg md:text-xl font-bold text-slate-800 mb-1 flex items-center gap-2">
+                <div className="w-1 h-6 bg-gradient-to-b from-amber-500 to-orange-600 rounded-full"></div>
                 <span>Post-Game Actions</span>
               </h3>
-              <p className="text-sm text-slate-600 ml-4">Celebrate achievements and record game statistics</p>
+              <p className="text-xs sm:text-sm text-slate-600 ml-3">Celebrate achievements and record game statistics</p>
             </div>
 
             {/* Action Buttons Grid */}
-            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-4 lg:gap-6 mb-8`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-3 lg:gap-4 mb-6`}>
               {/* Man of the Match */}
               <button
                 onClick={() => setShowMOTMModal(true)}
-                className="group relative overflow-hidden flex flex-col items-center justify-center p-6 lg:p-8 bg-gradient-to-br from-white via-amber-50/30 to-yellow-50/40 hover:from-white hover:via-amber-50/50 hover:to-yellow-50/60 border-2 border-yellow-200/60 hover:border-yellow-400/80 rounded-3xl shadow-lg hover:shadow-2xl hover:shadow-yellow-500/20 transition-all duration-300 transform hover:scale-[1.03] hover:-translate-y-1 active:scale-[0.98]"
+                className="group relative overflow-hidden flex items-center gap-3 p-3 lg:p-4 bg-gradient-to-br from-white via-amber-50/30 to-yellow-50/40 hover:from-white hover:via-amber-50/50 hover:to-yellow-50/60 border-2 border-yellow-200/60 hover:border-yellow-400/80 rounded-xl shadow-lg hover:shadow-xl hover:shadow-yellow-500/20 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.98]"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-amber-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-3xl"></div>
-                <div className="relative z-10 w-full">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="p-4 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                      <Star className="text-white" size={28} />
-                    </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-amber-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+                <div className="relative z-10 flex items-center gap-3 w-full min-w-0">
+                  <div className="flex-shrink-0 p-2.5 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-lg shadow-md group-hover:scale-110 transition-all duration-300">
+                    <Star className="text-white" size={20} />
                   </div>
-                  <h4 className="text-lg font-bold text-slate-800 mb-2 text-center">Man of the Match</h4>
-                  <p className="text-sm text-slate-600 text-center mb-4">Nominate the best player</p>
-                  <div className="flex items-center justify-center gap-2 text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <span className="text-sm font-semibold">Nominate</span>
-                    <ArrowRight className="w-4 h-4" />
+                  <div className="flex-1 min-w-0 text-left">
+                    <h4 className="text-sm font-bold text-slate-800 mb-0.5">Man of the Match</h4>
+                    <p className="text-xs text-slate-600 truncate">Nominate the best player</p>
                   </div>
                 </div>
               </button>
@@ -658,20 +654,16 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
               {/* Give Kudos */}
               <button
                 onClick={() => setShowKudosModal(true)}
-                className="group relative overflow-hidden flex flex-col items-center justify-center p-6 lg:p-8 bg-gradient-to-br from-white via-pink-50/30 to-rose-50/40 hover:from-white hover:via-pink-50/50 hover:to-rose-50/60 border-2 border-pink-200/60 hover:border-pink-400/80 rounded-3xl shadow-lg hover:shadow-2xl hover:shadow-pink-500/20 transition-all duration-300 transform hover:scale-[1.03] hover:-translate-y-1 active:scale-[0.98]"
+                className="group relative overflow-hidden flex items-center gap-3 p-3 lg:p-4 bg-gradient-to-br from-white via-pink-50/30 to-rose-50/40 hover:from-white hover:via-pink-50/50 hover:to-rose-50/60 border-2 border-pink-200/60 hover:border-pink-400/80 rounded-xl shadow-lg hover:shadow-xl hover:shadow-pink-500/20 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.98]"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-rose-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-3xl"></div>
-                <div className="relative z-10 w-full">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="p-4 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                      <Heart className="text-white" size={28} />
-                    </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-rose-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+                <div className="relative z-10 flex items-center gap-3 w-full min-w-0">
+                  <div className="flex-shrink-0 p-2.5 bg-gradient-to-br from-pink-500 to-rose-600 rounded-lg shadow-md group-hover:scale-110 transition-all duration-300">
+                    <Heart className="text-white" size={20} />
                   </div>
-                  <h4 className="text-lg font-bold text-slate-800 mb-2 text-center">Give Kudos</h4>
-                  <p className="text-sm text-slate-600 text-center mb-4">Appreciate teammates</p>
-                  <div className="flex items-center justify-center gap-2 text-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <span className="text-sm font-semibold">Appreciate</span>
-                    <ArrowRight className="w-4 h-4" />
+                  <div className="flex-1 min-w-0 text-left">
+                    <h4 className="text-sm font-bold text-slate-800 mb-0.5">Give Kudos</h4>
+                    <p className="text-xs text-slate-600 truncate">Appreciate teammates</p>
                   </div>
                 </div>
               </button>
@@ -679,20 +671,16 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
               {/* Rate Players */}
               <button
                 onClick={() => setShowPointsModal(true)}
-                className="group relative overflow-hidden flex flex-col items-center justify-center p-6 lg:p-8 bg-gradient-to-br from-white via-amber-50/30 to-orange-50/40 hover:from-white hover:via-amber-50/50 hover:to-orange-50/60 border-2 border-amber-200/60 hover:border-amber-400/80 rounded-3xl shadow-lg hover:shadow-2xl hover:shadow-amber-500/20 transition-all duration-300 transform hover:scale-[1.03] hover:-translate-y-1 active:scale-[0.98]"
+                className="group relative overflow-hidden flex items-center gap-3 p-3 lg:p-4 bg-gradient-to-br from-white via-amber-50/30 to-orange-50/40 hover:from-white hover:via-amber-50/50 hover:to-orange-50/60 border-2 border-amber-200/60 hover:border-amber-400/80 rounded-xl shadow-lg hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.98]"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-3xl"></div>
-                <div className="relative z-10 w-full">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="p-4 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                      <Award className="text-white" size={28} />
-                    </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+                <div className="relative z-10 flex items-center gap-3 w-full min-w-0">
+                  <div className="flex-shrink-0 p-2.5 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg shadow-md group-hover:scale-110 transition-all duration-300">
+                    <Award className="text-white" size={20} />
                   </div>
-                  <h4 className="text-lg font-bold text-slate-800 mb-2 text-center">Rate Players</h4>
-                  <p className="text-sm text-slate-600 text-center mb-4">Add performance points</p>
-                  <div className="flex items-center justify-center gap-2 text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <span className="text-sm font-semibold">Rate</span>
-                    <ArrowRight className="w-4 h-4" />
+                  <div className="flex-1 min-w-0 text-left">
+                    <h4 className="text-sm font-bold text-slate-800 mb-0.5">Rate Players</h4>
+                    <p className="text-xs text-slate-600 truncate">Add performance points</p>
                   </div>
                 </div>
               </button>
@@ -706,39 +694,33 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
                   setShowGoalsAssistsModal(true);
                 }}
                 disabled={!canSubmitGoalsAssistsToday || availablePlayersForGoalsAssists.length === 0}
-                className={`group relative overflow-hidden flex flex-col items-center justify-center p-6 lg:p-8 border-2 rounded-3xl shadow-lg transition-all duration-300 transform ${
+                className={`group relative overflow-hidden flex items-center gap-3 p-3 lg:p-4 border-2 rounded-xl shadow-lg transition-all duration-300 transform ${
                   canSubmitGoalsAssistsToday && availablePlayersForGoalsAssists.length > 0
-                    ? 'bg-gradient-to-br from-white via-emerald-50/30 to-green-50/40 hover:from-white hover:via-emerald-50/50 hover:to-green-50/60 border-emerald-200/60 hover:border-emerald-400/80 hover:shadow-2xl hover:shadow-emerald-500/20 hover:scale-[1.03] hover:-translate-y-1 active:scale-[0.98] cursor-pointer'
+                    ? 'bg-gradient-to-br from-white via-emerald-50/30 to-green-50/40 hover:from-white hover:via-emerald-50/50 hover:to-green-50/60 border-emerald-200/60 hover:border-emerald-400/80 hover:shadow-xl hover:shadow-emerald-500/20 hover:scale-[1.01] active:scale-[0.98] cursor-pointer'
                     : 'bg-gradient-to-br from-gray-50 to-gray-100/50 border-gray-200/60 opacity-60 cursor-not-allowed'
                 }`}
               >
                 {canSubmitGoalsAssistsToday && availablePlayersForGoalsAssists.length > 0 && (
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-green-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-3xl"></div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-green-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
                 )}
-                <div className="relative z-10 w-full">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className={`p-4 rounded-2xl shadow-xl transition-all duration-300 ${
-                      canSubmitGoalsAssistsToday && availablePlayersForGoalsAssists.length > 0
-                        ? 'bg-gradient-to-br from-green-500 to-emerald-600 group-hover:scale-110 group-hover:rotate-3'
-                        : 'bg-gradient-to-br from-gray-400 to-gray-500'
-                    }`}>
-                      <Target className="text-white" size={28} />
-                    </div>
+                <div className="relative z-10 flex items-center gap-3 w-full min-w-0">
+                  <div className={`flex-shrink-0 p-2.5 rounded-lg shadow-md transition-all duration-300 ${
+                    canSubmitGoalsAssistsToday && availablePlayersForGoalsAssists.length > 0
+                      ? 'bg-gradient-to-br from-green-500 to-emerald-600 group-hover:scale-110'
+                      : 'bg-gradient-to-br from-gray-400 to-gray-500'
+                  }`}>
+                    <Target className="text-white" size={20} />
                   </div>
-                  <h4 className="text-lg font-bold text-slate-800 mb-2 text-center">Goals & Assists</h4>
-                  <p className="text-sm text-slate-600 text-center mb-4">
-                    {!canSubmitGoalsAssistsToday
-                      ? "Available after game"
-                      : availablePlayersForGoalsAssists.length === 0
-                      ? "No players available"
-                      : "Submit player stats"}
-                  </p>
-                  {canSubmitGoalsAssistsToday && availablePlayersForGoalsAssists.length > 0 && (
-                    <div className="flex items-center justify-center gap-2 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="text-sm font-semibold">Submit</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </div>
-                  )}
+                  <div className="flex-1 min-w-0 text-left">
+                    <h4 className="text-sm font-bold text-slate-800 mb-0.5">Goals & Assists</h4>
+                    <p className="text-xs text-slate-600 truncate">
+                      {!canSubmitGoalsAssistsToday
+                        ? "Available after game"
+                        : availablePlayersForGoalsAssists.length === 0
+                        ? "No players available"
+                        : "Submit player stats"}
+                    </p>
+                  </div>
                 </div>
               </button>
 
@@ -753,39 +735,33 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
                     setShowScoreInput(true);
                   }}
                   disabled={!Array.isArray(teams) || teams.length < 2 || !teams.every(t => t?.name)}
-                  className={`group relative overflow-hidden flex flex-col items-center justify-center p-6 lg:p-8 border-2 rounded-3xl shadow-lg transition-all duration-300 transform ${
+                  className={`group relative overflow-hidden flex items-center gap-3 p-3 lg:p-4 border-2 rounded-xl shadow-lg transition-all duration-300 transform ${
                     Array.isArray(teams) && teams.length >= 2 && teams.every(t => t?.name)
-                      ? 'bg-gradient-to-br from-white via-green-50/30 to-emerald-50/40 hover:from-white hover:via-green-50/50 hover:to-emerald-50/60 border-green-200/60 hover:border-green-400/80 hover:shadow-2xl hover:shadow-green-500/20 hover:scale-[1.03] hover:-translate-y-1 active:scale-[0.98] cursor-pointer'
+                      ? 'bg-gradient-to-br from-white via-green-50/30 to-emerald-50/40 hover:from-white hover:via-green-50/50 hover:to-emerald-50/60 border-green-200/60 hover:border-green-400/80 hover:shadow-xl hover:shadow-green-500/20 hover:scale-[1.01] active:scale-[0.98] cursor-pointer'
                       : 'bg-gradient-to-br from-gray-50 to-gray-100/50 border-gray-200/60 opacity-60 cursor-not-allowed'
                   }`}
                 >
                   {Array.isArray(teams) && teams.length >= 2 && teams.every(t => t?.name) && (
-                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-3xl"></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
                   )}
-                  <div className="relative z-10 w-full">
-                    <div className="flex items-center justify-center mb-4">
-                      <div className={`p-4 rounded-2xl shadow-xl transition-all duration-300 ${
-                        Array.isArray(teams) && teams.length >= 2 && teams.every(t => t?.name)
-                          ? 'bg-gradient-to-br from-green-500 to-emerald-600 group-hover:scale-110 group-hover:rotate-3'
-                          : 'bg-gradient-to-br from-gray-400 to-gray-500'
-                      }`}>
-                      <Target className="text-white" size={28} />
-                      </div>
+                  <div className="relative z-10 flex items-center gap-3 w-full min-w-0">
+                    <div className={`flex-shrink-0 p-2.5 rounded-lg shadow-md transition-all duration-300 ${
+                      Array.isArray(teams) && teams.length >= 2 && teams.every(t => t?.name)
+                        ? 'bg-gradient-to-br from-green-500 to-emerald-600 group-hover:scale-110'
+                        : 'bg-gradient-to-br from-gray-400 to-gray-500'
+                    }`}>
+                    <Target className="text-white" size={20} />
                     </div>
-                    <h4 className="text-lg font-bold text-slate-800 mb-2 text-center">Enter Score</h4>
-                    <p className="text-sm text-slate-600 text-center mb-4">
-                      {!Array.isArray(teams) || teams.length < 2
-                        ? "Generate teams first"
-                        : !teams.every(t => t?.name)
-                        ? "Teams need names"
-                        : "Record game result"}
-                    </p>
-                    {Array.isArray(teams) && teams.length >= 2 && teams.every(t => t?.name) && (
-                      <div className="flex items-center justify-center gap-2 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <span className="text-sm font-semibold">Enter</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </div>
-                    )}
+                    <div className="flex-1 min-w-0 text-left">
+                      <h4 className="text-sm font-bold text-slate-800 mb-0.5">Enter Score</h4>
+                      <p className="text-xs text-slate-600 truncate">
+                        {!Array.isArray(teams) || teams.length < 2
+                          ? "Generate teams first"
+                          : !teams.every(t => t?.name)
+                          ? "Teams need names"
+                          : "Record game result"}
+                      </p>
+                    </div>
                   </div>
                 </button>
               )}
@@ -793,12 +769,12 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
             
             {/* View Statistics Button */}
             {onNavigateToLeaderboard && (
-              <div className="pt-6 border-t-2 border-amber-200/50">
+              <div className="pt-4 border-t-2 border-amber-200/50">
                 <button
                   onClick={onNavigateToLeaderboard}
-                  className="w-full md:w-auto md:max-w-md mx-auto md:mx-0 flex items-center justify-center gap-3 px-8 py-4 text-lg font-bold text-white bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 hover:from-amber-700 hover:via-orange-700 hover:to-red-700 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-amber-500/30 transform hover:scale-[1.02] active:scale-[0.98]"
+                  className="w-full md:w-auto md:max-w-md mx-auto md:mx-0 flex items-center justify-center gap-2 px-6 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 hover:from-amber-700 hover:via-orange-700 hover:to-red-700 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-amber-500/30 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  <Trophy className="w-6 h-6" />
+                  <Trophy className="w-5 h-5" />
                   <span>View Statistics</span>
                 </button>
               </div>
@@ -1394,4 +1370,7 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
 };
 
 export default GameInfoPanel;
+
+
+
 

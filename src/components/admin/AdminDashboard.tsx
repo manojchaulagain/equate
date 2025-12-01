@@ -113,7 +113,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Tab Content */}
         <div className="min-h-[600px]">
           {activeTab === "schedule" && (
-            <div className="animate-in fade-in duration-300 -mx-4 sm:-mx-6">
+            <div className="animate-in fade-in duration-300">
               <GameSchedule
                 db={db}
                 userId={userId}

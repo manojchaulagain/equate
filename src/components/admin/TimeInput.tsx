@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Clock } from "lucide-react";
 
 interface TimeInputProps {
   value: string; // HH:MM format (24-hour)
@@ -136,33 +135,32 @@ const TimeInput: React.FC<TimeInputProps> = ({ value, onChange, className = "" }
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <Clock className="text-emerald-600 flex-shrink-0" size={18} />
-      <div className="flex items-center gap-1 bg-white border-2 border-emerald-300 rounded-xl px-3 py-2 shadow-sm">
+      <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-sm border-2 border-slate-300/80 rounded-lg px-3 py-2 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200">
         <input
           type="text"
           value={hours}
           onChange={handleHoursChange}
           onBlur={handleHoursBlur}
           onKeyDown={(e) => handleKeyDown(e, 'hours')}
-          className="w-10 text-center text-base font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded"
+          className="w-8 text-center text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/50 rounded bg-transparent"
           maxLength={2}
           placeholder="6"
         />
-        <span className="text-slate-500 font-bold">:</span>
+        <span className="text-slate-400 font-bold">:</span>
         <input
           type="text"
           value={minutes}
           onChange={handleMinutesChange}
           onBlur={handleMinutesBlur}
           onKeyDown={(e) => handleKeyDown(e, 'minutes')}
-          className="w-12 text-center text-base font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded"
+          className="w-10 text-center text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/50 rounded bg-transparent"
           maxLength={2}
           placeholder="00"
         />
         <button
           type="button"
           onClick={handleAMPMToggle}
-          className={`ml-2 px-3 py-1 rounded-lg font-bold text-sm transition-all duration-200 ${
+          className={`ml-1.5 px-2.5 py-1 rounded-md font-bold text-xs transition-all duration-200 ${
             isPM
               ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md"
               : "bg-slate-200 text-slate-700 hover:bg-slate-300"
