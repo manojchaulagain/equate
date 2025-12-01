@@ -522,9 +522,14 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
     }
   };
 
-  // Don't render if no game scheduled
+  // Always render container to prevent layout shift, even if empty
+  // Reserve space even when no game is scheduled
   if (!todayGame && !nextGame) {
-    return null;
+    return (
+      <div className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 mb-4 min-h-[200px]" aria-hidden="true" style={{ visibility: 'hidden', pointerEvents: 'none' }}>
+        {/* Reserve space for game panel */}
+      </div>
+    );
   }
 
   return (

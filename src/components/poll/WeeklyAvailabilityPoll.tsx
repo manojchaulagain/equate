@@ -481,24 +481,30 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
       </div>
 
 
-      {loading && (
-        <div className="text-center p-8 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-2xl border border-indigo-200">
-          <p className="text-indigo-700 font-semibold text-lg">Loading players from Firestore...</p>
-        </div>
-      )}
-
-      {!loading && availability.length === 0 ? (
-        <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-blue-50 rounded-2xl border-2 border-dashed border-indigo-200">
-          <p className="text-slate-600 mb-4 font-medium">No players registered yet.</p>
-          <button
-            onClick={() => setShowAddModal(true)}
-            disabled={disabled}
-            className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-3 px-6 rounded-2xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:shadow-none flex items-center mx-auto transform hover:scale-105"
-          >
-            <UserPlus className="mr-2" size={18} /> Register Player
-          </button>
-        </div>
-      ) : (
+      {/* Always render container to prevent layout shift */}
+      <div className="min-h-[400px]">
+        {loading ? (
+          <div className="text-center p-8 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-2xl border border-indigo-200 min-h-[400px] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative w-12 h-12">
+                <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-transparent border-t-indigo-600 rounded-full animate-spin"></div>
+              </div>
+              <p className="text-indigo-700 font-semibold text-lg">Loading players from Firestore...</p>
+            </div>
+          </div>
+        ) : availability.length === 0 ? (
+          <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-blue-50 rounded-2xl border-2 border-dashed border-indigo-200 min-h-[400px] flex flex-col items-center justify-center">
+            <p className="text-slate-600 mb-4 font-medium">No players registered yet.</p>
+            <button
+              onClick={() => setShowAddModal(true)}
+              disabled={disabled}
+              className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-3 px-6 rounded-2xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:shadow-none flex items-center mx-auto transform hover:scale-105"
+            >
+              <UserPlus className="mr-2" size={18} /> Register Player
+            </button>
+          </div>
+        ) : (
         <>
           {/* Search and Filter Section */}
           <div className="mb-4 space-y-3">
@@ -725,7 +731,8 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
         </div>
           )}
         </>
-      )}
+        )}
+      </div>
 
       <div className="mt-4 sm:mt-6 pt-4 sm:pt-5 border-t-2 border-indigo-200 flex flex-col gap-4 bg-gradient-to-r from-slate-50 to-blue-50 -mx-4 sm:-mx-6 px-4 sm:px-6 pb-3 sm:pb-2 rounded-b-xl sm:rounded-b-2xl">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

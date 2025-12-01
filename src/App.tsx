@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback, startTransition } from "react";
 import { ListChecks, Trophy, LogOut, Shield, Info, MessageCircle, AlertTriangle, X, Award, Menu } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
@@ -359,10 +359,10 @@ const NotificationsBanner: React.FC<{ db: any }> = ({ db }) => {
     setDismissedIds((prev) => [...prev, id]);
   };
 
-  if (criticalNotifications.length === 0) return null;
-
+  // Always render container to prevent layout shift
+  // Use minHeight to reserve space even when empty
   return (
-    <div className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 mb-4 space-y-2">
+    <div className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 mb-4 space-y-2" style={{ minHeight: criticalNotifications.length === 0 ? '1px' : 'auto' }}>
       {criticalNotifications.map((notification) => (
         <div
           key={notification.id}
@@ -400,6 +400,7 @@ export default function App() {
   // Application State
   const [availability, setAvailability] = useState<PlayerAvailability[]>([]);
   const [teams, setTeams] = useState<TeamResultsState | null>(null);
+  const [teamsLoading, setTeamsLoading] = useState<boolean>(true);
   const [teamCount, setTeamCount] = useState<number>(2);
   const [view, setView] = useState<"poll" | "teams" | "questions" | "admin" | "leaderboard">("poll");
   const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null);
@@ -416,21 +417,25 @@ export default function App() {
   };
   
   // Helper to determine slide direction based on tab order
-  const getTabOrder = (tab: "poll" | "teams" | "questions" | "admin" | "leaderboard"): number => {
+  const getTabOrder = useCallback((tab: "poll" | "teams" | "questions" | "admin" | "leaderboard"): number => {
     return tab === "poll" ? 0 : tab === "leaderboard" ? 1 : tab === "teams" ? 2 : tab === "questions" ? 3 : 4;
-  };
+  }, []);
   
-  const handleViewChange = (newView: "poll" | "teams" | "questions" | "admin" | "leaderboard") => {
+  const handleViewChange = useCallback((newView: "poll" | "teams" | "questions" | "admin" | "leaderboard") => {
     if (view !== newView) {
       const currentOrder = getTabOrder(view);
       const newOrder = getTabOrder(newView);
-      setSlideDirection(newOrder > currentOrder ? "left" : "right");
-      setTimeout(() => {
-        setView(newView);
-        setTimeout(() => setSlideDirection(null), 500);
-      }, 50);
+      startTransition(() => {
+        setSlideDirection(newOrder > currentOrder ? "left" : "right");
+        setTimeout(() => {
+          startTransition(() => {
+            setView(newView);
+            setTimeout(() => setSlideDirection(null), 500);
+          });
+        }, 50);
+      });
     }
-  };
+  }, [view, getTabOrder]);
   const [loading, setLoading] = useState(true);
   const [isUserRegistered, setIsUserRegistered] = useState<boolean | null>(null);
   const [checkingRegistration, setCheckingRegistration] = useState(true);
@@ -577,10 +582,12 @@ export default function App() {
     // Note: The registration check useEffect will run automatically when userId changes
   };
 
-  const handleTeamCountChange = (count: number) => {
-    setTeamCount(count);
-    setError(null);
-  };
+  const handleTeamCountChange = useCallback((count: number) => {
+    startTransition(() => {
+      setTeamCount(count);
+      setError(null);
+    });
+  }, []);
 
   // --- 3. FETCH USER ROLE FROM FIRESTORE ---
   useEffect(() => {
@@ -834,14 +841,26 @@ export default function App() {
   useEffect(() => {
     if (!db) return;
 
+    let isInitialLoad = true;
+    setTeamsLoading(true);
     const teamsDocPath = FirestorePaths.teams();
     const teamsDocRef = doc(db, teamsDocPath);
 
     const unsubscribeTeams = onSnapshot(
       teamsDocRef,
       (snapshot) => {
+        // Only show loading on initial load, not on subsequent updates
+        if (isInitialLoad) {
+          isInitialLoad = false;
+        }
+
         if (!snapshot.exists()) {
-          setTeams(null);
+          setTeams((prev) => {
+            // Only update if state actually changed to prevent unnecessary re-renders
+            if (prev === null) return null;
+            return null;
+          });
+          setTeamsLoading(false);
           return;
         }
 
@@ -850,8 +869,12 @@ export default function App() {
           teamB?: Team;
         };
 
+        let newTeams: Team[] | null = null;
+        let newGeneratedAt: string | undefined = undefined;
+
         if (Array.isArray(data.teams)) {
-          const normalizedTeams = data.teams.map((team, index) => {
+          // Normalize teams only once - use stable references
+          newTeams = data.teams.map((team, index) => {
             const fallbackColor =
               data.teams && data.teams.length === 2
                 ? (index === 0 ? "blue" : "red")
@@ -863,28 +886,63 @@ export default function App() {
               colorKey: team.colorKey || fallbackColor,
             };
           });
-
-          setTeams({
-            teams: normalizedTeams,
-            generatedAt: data.generatedAt,
-          });
-          return;
+          newGeneratedAt = data.generatedAt;
+        } else if (data.teamA && data.teamB) {
+          newTeams = [
+            { ...data.teamA, colorKey: data.teamA.colorKey || "blue" },
+            { ...data.teamB, colorKey: data.teamB.colorKey || "red" },
+          ];
+          newGeneratedAt = data.generatedAt;
         }
 
-        if (data.teamA && data.teamB) {
-          setTeams({
-            teams: [
-              { ...data.teamA, colorKey: data.teamA.colorKey || "blue" },
-              { ...data.teamB, colorKey: data.teamB.colorKey || "red" },
-            ],
-            generatedAt: data.generatedAt,
-          });
-        } else {
-          setTeams(null);
-        }
+        // Only update state if teams data actually changed - use functional update for comparison
+        setTeams((prev) => {
+          if (newTeams === null) {
+            return prev === null ? prev : null;
+          }
+
+          // Deep comparison to prevent unnecessary updates
+          if (prev && prev.teams.length === newTeams.length && prev.generatedAt === newGeneratedAt) {
+            // Check if teams are identical by comparing key properties
+            const teamsUnchanged = prev.teams.every((prevTeam, i) => {
+              const newTeam = newTeams![i];
+              if (
+                prevTeam.name !== newTeam.name ||
+                prevTeam.totalSkill !== newTeam.totalSkill ||
+                prevTeam.colorKey !== newTeam.colorKey ||
+                (prevTeam.players?.length || 0) !== (newTeam.players?.length || 0)
+              ) {
+                return false;
+              }
+              
+              // Compare player IDs if lengths match
+              if (prevTeam.players && newTeam.players) {
+                const prevIds = prevTeam.players.map(p => p?.id).filter(Boolean).sort().join(',');
+                const newIds = newTeam.players.map(p => p?.id).filter(Boolean).sort().join(',');
+                if (prevIds !== newIds) {
+                  return false;
+                }
+              }
+              
+              return true;
+            });
+
+            if (teamsUnchanged) {
+              return prev; // No change, return previous state to prevent re-render
+            }
+          }
+
+          return {
+            teams: newTeams,
+            generatedAt: newGeneratedAt,
+          };
+        });
+
+        setTeamsLoading(false);
       },
       (error) => {
         console.error("Firestore Teams Listener Error:", error);
+        setTeamsLoading(false);
       }
     );
 
@@ -1081,48 +1139,8 @@ export default function App() {
     }
   };
 
-  // Function to update availability (updates local state only - ephemeral for the week)
-  const toggleAvailability = async (playerId: string) => {
-    const player = availability.find((p) => p.id === playerId);
-    if (!player) return;
-
-    // Check if user has permission to toggle this player's availability
-    // Admins can toggle all players
-    // Regular users can only toggle their own player or players they registered
-    if (userRole !== "admin" && userId) {
-      const canToggle = player.userId === userId || player.registeredBy === userId;
-      if (!canToggle) {
-        setError("You can only change availability for your own player or players you registered.");
-        return;
-      }
-    }
-
-    const newStatus = !player.isAvailable;
-
-    setAvailability((prev) =>
-      prev.map((p) =>
-        p.id === playerId ? { ...p, isAvailable: newStatus } : p
-      )
-    );
-    // Clear teams from Firestore when availability changes
-    clearTeamsFromFirestore();
-    setError(null);
-
-    if (!db) return;
-
-    try {
-      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-      const playerDocPath = `artifacts/${appId}/public/data/soccer_players/${playerId}`;
-      const playerDocRef = doc(db, playerDocPath);
-      await updateDoc(playerDocRef, { isAvailable: newStatus });
-    } catch (e) {
-      console.error("Error updating availability: ", e);
-      setError("Failed to update availability.");
-    }
-  };
-
   // Function to clear teams from Firestore
-  const clearTeamsFromFirestore = async () => {
+  const clearTeamsFromFirestore = useCallback(async () => {
     if (!db) return;
 
     try {
@@ -1134,7 +1152,58 @@ export default function App() {
     } catch (error) {
       console.error("Error clearing teams:", error);
     }
-  };
+  }, [db]);
+
+  // Function to update availability (updates local state only - ephemeral for the week)
+  const toggleAvailability = useCallback(async (playerId: string) => {
+    const player = availability.find((p) => p.id === playerId);
+    if (!player) return;
+
+    // Check if user has permission to toggle this player's availability
+    // Admins can toggle all players
+    // Regular users can only toggle their own player or players they registered
+    if (userRole !== "admin" && userId) {
+      const canToggle = player.userId === userId || player.registeredBy === userId;
+      if (!canToggle) {
+        startTransition(() => {
+          setError("You can only change availability for your own player or players you registered.");
+        });
+        return;
+      }
+    }
+
+    const newStatus = !player.isAvailable;
+
+    // Optimistic UI update - update state immediately for better responsiveness
+    startTransition(() => {
+      setAvailability((prev) =>
+        prev.map((p) =>
+          p.id === playerId ? { ...p, isAvailable: newStatus } : p
+        )
+      );
+      setError(null);
+    });
+
+    // Firestore operations can happen asynchronously without blocking UI
+    if (!db) return;
+
+    // Run Firestore updates in background
+    Promise.resolve().then(async () => {
+      try {
+        const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+        const playerDocPath = `artifacts/${appId}/public/data/soccer_players/${playerId}`;
+        const playerDocRef = doc(db, playerDocPath);
+        await updateDoc(playerDocRef, { isAvailable: newStatus });
+        // Clear teams from Firestore when availability changes (non-blocking)
+        await clearTeamsFromFirestore();
+      } catch (e) {
+        console.error("Error updating availability: ", e);
+        startTransition(() => {
+          setError("Failed to update availability.");
+        });
+      }
+    });
+  }, [availability, userRole, userId, db, clearTeamsFromFirestore]);
 
   const availablePlayers = useMemo(
     () => availability.filter((p) => p.isAvailable),
@@ -1332,6 +1401,9 @@ export default function App() {
                   src={`${process.env.PUBLIC_URL || ''}/club-logo.png`}
                   alt="Sagarmatha FC Logo" 
                   className="w-full h-full object-cover rounded-full"
+                  width="144"
+                  height="144"
+                  loading="eager"
                   onError={(e) => {
                     console.error("Failed to load club logo from:", e.currentTarget.src);
                   }}
@@ -1738,15 +1810,24 @@ export default function App() {
                 />
             )}
               {view === "teams" && (
-                teams && teams.teams?.length > 0 ? (
+                teamsLoading ? (
+                  <TeamResults
+                    teams={[]}
+                    generatedAt={undefined}
+                    onBack={() => handleViewChange("poll")}
+                    isActive={view === "teams"}
+                    isLoading={true}
+                  />
+                ) : teams && teams.teams?.length > 0 ? (
                   <TeamResults
                     teams={teams.teams}
                     generatedAt={teams.generatedAt}
                     onBack={() => handleViewChange("poll")}
                     isActive={view === "teams"}
+                    isLoading={false}
                   />
                 ) : (
-                  <div className="relative overflow-hidden backdrop-blur-xl p-8 sm:p-12 rounded-b-3xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.15)] -mt-[1px] bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70">
+                  <div className="relative overflow-hidden backdrop-blur-xl p-8 sm:p-12 rounded-b-3xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.15)] -mt-[1px] bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70 min-h-[400px]">
                     <div className="pointer-events-none absolute inset-0 opacity-60">
                       <div className="absolute -top-10 right-0 w-56 h-56 bg-amber-200/60 blur-[110px]" />
                       <div className="absolute bottom-0 left-4 w-64 h-64 bg-pink-200/50 blur-[120px]" />

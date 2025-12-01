@@ -179,18 +179,25 @@ const QuestionsConcerns: React.FC<QuestionsConcernsProps> = ({ db, userId, userE
         </form>
         )}
 
-        {/* Questions List */}
-        {loading ? (
-          <div className="text-center p-8">
-            <p className="text-slate-600 font-medium">Loading questions...</p>
-          </div>
-        ) : questions.length === 0 ? (
-          <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-blue-50 rounded-2xl border-2 border-dashed border-blue-200">
-            <MessageCircle className="mx-auto text-blue-400 mb-3" size={48} />
-            <p className="text-slate-600 font-medium">No questions yet. Be the first to ask!</p>
-          </div>
-        ) : (
-          <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+        {/* Questions List - Always render container to prevent layout shift */}
+        <div className="min-h-[300px]">
+          {loading ? (
+            <div className="text-center p-8 min-h-[300px] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative w-12 h-12">
+                  <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-transparent border-t-blue-600 rounded-full animate-spin"></div>
+                </div>
+                <p className="text-slate-600 font-medium">Loading questions...</p>
+              </div>
+            </div>
+          ) : questions.length === 0 ? (
+            <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-blue-50 rounded-2xl border-2 border-dashed border-blue-200 min-h-[300px] flex flex-col items-center justify-center">
+              <MessageCircle className="mx-auto text-blue-400 mb-3" size={48} />
+              <p className="text-slate-600 font-medium">No questions yet. Be the first to ask!</p>
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
             {questions.map((q) => (
               <div
                 key={q.id}
@@ -297,8 +304,9 @@ const QuestionsConcerns: React.FC<QuestionsConcernsProps> = ({ db, userId, userE
                 )}
               </div>
             ))}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

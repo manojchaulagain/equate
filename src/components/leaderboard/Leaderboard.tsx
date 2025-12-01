@@ -474,17 +474,25 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
           </div>
         )}
 
-        {loading ? (
-          <div className="text-center p-8">
-            <p className="text-slate-600 font-medium">Loading leaderboard...</p>
-          </div>
-        ) : playerPoints.length === 0 ? (
-          <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-amber-50 rounded-2xl border-2 border-dashed border-amber-200">
-            <Trophy className="mx-auto text-amber-400 mb-3" size={48} />
-            <p className="text-slate-600 font-medium">No points recorded yet.</p>
-          </div>
-        ) : (
-          <>
+        {/* Always render container to prevent layout shift */}
+        <div className="min-h-[400px]">
+          {loading ? (
+            <div className="text-center p-8 min-h-[400px] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative w-12 h-12">
+                  <div className="absolute inset-0 border-4 border-amber-200 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-transparent border-t-amber-600 rounded-full animate-spin"></div>
+                </div>
+                <p className="text-slate-600 font-medium">Loading leaderboard...</p>
+              </div>
+            </div>
+          ) : playerPoints.length === 0 ? (
+            <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-amber-50 rounded-2xl border-2 border-dashed border-amber-200 min-h-[400px] flex flex-col items-center justify-center">
+              <Trophy className="mx-auto text-amber-400 mb-3" size={48} />
+              <p className="text-slate-600 font-medium">No points recorded yet.</p>
+            </div>
+          ) : (
+            <>
             {/* Search and Filter Section */}
             <div className="mb-4 space-y-3">
               {/* Search Bar */}
@@ -702,7 +710,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
           </div>
             )}
           </>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Add Points Modal */}

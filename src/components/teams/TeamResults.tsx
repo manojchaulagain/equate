@@ -1,5 +1,5 @@
-import React from "react";
-import { Trophy, Users } from "lucide-react";
+import React, { useMemo } from "react";
+import { Trophy, Users, Clock, TrendingUp, ArrowLeft } from "lucide-react";
 import TeamCard from "./TeamCard";
 import { PlayerAvailability, Position, Team } from "../../types/player";
 
@@ -8,38 +8,90 @@ interface TeamResultsProps {
   generatedAt?: string;
   onBack: () => void;
   isActive?: boolean;
+  isLoading?: boolean;
 }
 
-const countPositions = (players: PlayerAvailability[]) =>
-  players.reduce((acc, player) => {
-    acc[player.position] = (acc[player.position] || 0) + 1;
+const countPositions = (players: PlayerAvailability[] = []): Record<Position, number> =>
+  (players || []).reduce((acc, player) => {
+    if (player && player.position) {
+      acc[player.position] = (acc[player.position] || 0) + 1;
+    }
     return acc;
   }, {} as Record<Position, number>);
 
-const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, isActive = false }) => {
-  if (!teams.length) {
-    return null;
+const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, isActive = false, isLoading = false }) => {
+  // ALL HOOKS MUST BE CALLED UNCONDITIONALLY - before any early returns
+  // Memoize filtered teams to avoid recalculation
+  const validTeams = useMemo(() => {
+    if (!teams || !Array.isArray(teams)) return [];
+    return teams.filter(team => team && team.name);
+  }, [teams]);
+
+  // Memoize expensive computations - called unconditionally
+  const totalPlayers = useMemo(() => {
+    if (!validTeams || validTeams.length === 0) return 0;
+    return validTeams.reduce((sum, team) => sum + (team.players?.length || 0), 0);
+  }, [validTeams]);
+
+  const sortedBySkill = useMemo(() => {
+    if (!validTeams || validTeams.length === 0) return [];
+    return [...validTeams].sort((a, b) => (b.totalSkill || 0) - (a.totalSkill || 0));
+  }, [validTeams]);
+
+  const skillRange = useMemo(() => {
+    if (!sortedBySkill || sortedBySkill.length <= 1) return 0;
+    return sortedBySkill[0].totalSkill - sortedBySkill[sortedBySkill.length - 1].totalSkill;
+  }, [sortedBySkill]);
+
+  const gridCols = useMemo(() => {
+    if (!validTeams || validTeams.length === 0) return "grid-cols-1";
+    if (validTeams.length <= 2) {
+      return "grid-cols-1 md:grid-cols-2";
+    }
+    return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+  }, [validTeams]);
+
+  // Memoize position counts for each team to avoid recalculation
+  const teamsWithPositions = useMemo(() => {
+    if (!validTeams || validTeams.length === 0) return [];
+    return validTeams.map(team => ({
+      team,
+      positions: countPositions(team.players || [])
+    }));
+  }, [validTeams]);
+
+  // NOW handle conditional returns AFTER all hooks
+  // Show loading state while teams are being loaded
+  if (isLoading) {
+    return (
+      <div className={`relative overflow-hidden backdrop-blur-xl p-5 sm:p-6 md:p-8 rounded-b-2xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.18)] -mt-[1px] bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70 min-h-[400px] will-change-contents`}>
+        <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative w-12 h-12 will-change-transform">
+              <div className="absolute inset-0 border-4 border-amber-200 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-transparent border-t-amber-600 rounded-full animate-spin"></div>
+            </div>
+            <p className="text-sm font-semibold text-amber-700">Loading teams...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  const totalPlayers = teams.reduce((sum, team) => sum + team.players.length, 0);
-  const sortedBySkill = [...teams].sort((a, b) => b.totalSkill - a.totalSkill);
-  const skillRange =
-    sortedBySkill.length > 1
-      ? sortedBySkill[0].totalSkill - sortedBySkill[sortedBySkill.length - 1].totalSkill
-      : 0;
-
-  const skillBannerClass =
-    skillRange === 0
-      ? "bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border-2 border-emerald-300"
-      : "bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-2 border-amber-300";
-
-  const gridCols =
-    teams.length <= 2
-      ? "grid-cols-1 md:grid-cols-2"
-      : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+  // Always render container to prevent layout shift, even when empty
+  if (validTeams.length === 0) {
+    return (
+      <div className={`relative overflow-hidden backdrop-blur-xl rounded-b-2xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.18)] -mt-[1px] ${
+        isActive 
+          ? "bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70" 
+          : "bg-white/90 border border-white/70 border-t-0"
+      }`} style={{ minHeight: '1px' }} aria-hidden="true">
+      </div>
+    );
+  }
 
   return (
-    <div className={`relative overflow-hidden backdrop-blur-xl p-6 sm:p-8 rounded-b-2xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.18)] -mt-[1px] ${
+    <div className={`relative overflow-hidden backdrop-blur-xl p-5 sm:p-6 md:p-8 rounded-b-2xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.18)] -mt-[1px] will-change-auto ${
       isActive 
         ? "bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70" 
         : "bg-white/90 border border-white/70 border-t-0"
@@ -49,47 +101,107 @@ const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, i
         <div className="absolute bottom-0 left-4 w-64 h-64 bg-pink-200/50 blur-[120px]" />
       </div>
       <div className="relative z-10">
-      <div className="flex flex-col items-center text-center mb-6">
-        <h2 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 bg-clip-text text-transparent border-b-2 border-amber-200 pb-4 mb-4 flex items-center justify-center gap-3">
-          <Trophy className="text-amber-500" size={32} /> Balanced Teams Generated
-        </h2>
-        <div className="flex flex-wrap items-center justify-center gap-3 text-slate-700 font-semibold text-sm sm:text-base">
-          <span className="flex items-center gap-1 bg-white/70 px-3 py-1.5 rounded-full shadow-sm border border-amber-200">
-            <Users className="w-4 h-4 text-amber-500" /> {totalPlayers} players
-          </span>
-          <span className="bg-white/70 px-3 py-1.5 rounded-full shadow-sm border border-amber-200">
-            {teams.length} teams
-          </span>
+        {/* Header Section */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl shadow-lg">
+              <Trophy className="text-white" size={24} />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 bg-clip-text text-transparent">
+                Balanced Teams Generated
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
+                Teams have been balanced based on skill levels
+              </p>
+            </div>
+          </div>
+
+          {/* Stats Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="group p-4 bg-white/80 backdrop-blur-sm border-2 border-amber-200/60 rounded-xl shadow-md hover:shadow-lg hover:border-amber-300 transition-all duration-300">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                  <Users className="w-4 h-4 text-amber-600" />
+                </div>
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Total Players</p>
+              </div>
+              <p className="text-2xl font-black text-amber-700">{totalPlayers}</p>
+            </div>
+
+            <div className="group p-4 bg-white/80 backdrop-blur-sm border-2 border-amber-200/60 rounded-xl shadow-md hover:shadow-lg hover:border-amber-300 transition-all duration-300">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                  <Trophy className="w-4 h-4 text-amber-600" />
+                </div>
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Teams</p>
+              </div>
+              <p className="text-2xl font-black text-amber-700">{validTeams.length}</p>
+            </div>
+
+            <div className={`group p-4 backdrop-blur-sm border-2 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 ${
+              skillRange === 0
+                ? "bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-300/60 hover:border-emerald-400"
+                : "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300/60 hover:border-amber-400"
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`p-2 rounded-lg group-hover:scale-110 transition-transform duration-300 ${
+                  skillRange === 0
+                    ? "bg-gradient-to-br from-emerald-100 to-teal-100"
+                    : "bg-gradient-to-br from-amber-100 to-orange-100"
+                }`}>
+                  <TrendingUp className={`w-4 h-4 ${
+                    skillRange === 0 ? "text-emerald-600" : "text-amber-600"
+                  }`} />
+                </div>
+                <p className={`text-xs font-semibold uppercase tracking-wide ${
+                  skillRange === 0 ? "text-emerald-700" : "text-amber-700"
+                }`}>Skill Spread</p>
+              </div>
+              <p className={`text-2xl font-black ${
+                skillRange === 0 ? "text-emerald-700" : "text-amber-700"
+              }`}>
+                {skillRange}
+                <span className="text-xs font-normal ml-1">
+                  {skillRange === 0 ? "✨ Perfect!" : "points"}
+                </span>
+              </p>
+            </div>
+          </div>
+
           {generatedAt && (
-            <span className="bg-white/70 px-3 py-1.5 rounded-full shadow-sm border border-amber-200 text-xs sm:text-sm">
-              Generated {new Date(generatedAt).toLocaleString()}
-            </span>
+            <div className="flex items-center justify-center gap-2 text-xs text-slate-500 mb-6">
+              <Clock className="w-4 h-4" />
+              <span>Generated {new Date(generatedAt).toLocaleString()}</span>
+            </div>
           )}
         </div>
-      </div>
 
-      <div className={`p-4 text-center mb-6 rounded-xl font-bold text-lg shadow-md ${skillBannerClass}`}>
-        Skill spread across teams: <span className="text-2xl">{skillRange}</span> (lower is better)
-      </div>
+        {/* Teams Grid */}
+        <div className={`grid ${gridCols} gap-4 sm:gap-5 lg:gap-6 mb-6 contain-layout`}>
+          {teamsWithPositions.map(({ team, positions }, index) => (
+            <TeamCard 
+              key={team.name || `team-${index}`} 
+              team={team} 
+              positions={positions} 
+            />
+          ))}
+        </div>
 
-      <div className={`grid ${gridCols} gap-6`}>
-        {teams.map((team) => (
-          <TeamCard key={team.name} team={team} positions={countPositions(team.players)} />
-        ))}
-      </div>
-
-      <div className="mt-8 pt-6 border-t-2 border-amber-200 text-center">
-        <button
-          onClick={onBack}
-          className="bg-gradient-to-r from-slate-500 to-slate-600 text-white font-bold py-3 px-8 rounded-xl hover:from-slate-600 hover:to-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-        >
-          Back to Poll
-        </button>
-      </div>
+        {/* Back Button */}
+        <div className="pt-5 border-t-2 border-amber-200/60">
+          <button
+            onClick={onBack}
+            className="w-full sm:w-auto sm:min-w-[180px] flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white font-bold rounded-xl hover:from-slate-700 hover:to-slate-800 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-slate-500/30 transform hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back to Availability</span>
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
-export default TeamResults;
+export default React.memo(TeamResults);
 
