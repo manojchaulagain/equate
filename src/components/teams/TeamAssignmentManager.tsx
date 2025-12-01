@@ -201,15 +201,15 @@ const TeamAssignmentManager: React.FC<TeamAssignmentManagerProps> = ({
                 return (
                   <div
                     key={player.id}
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200 hover:border-indigo-300 transition-colors"
+                    className="flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 hover:border-indigo-300 transition-colors"
                   >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="flex items-center gap-3 flex-1 min-w-0 flex-wrap">
                       <Users className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                      <span className="font-semibold text-slate-800 truncate">{player.name}</span>
-                      <span className="text-xs text-slate-500 px-2 py-0.5 bg-slate-200 rounded">
+                      <span className="font-semibold text-slate-800 break-words leading-tight">{player.name}</span>
+                      <span className="text-xs text-slate-500 px-2 py-0.5 bg-slate-200 rounded whitespace-nowrap">
                         {player.position}
                       </span>
-                      <span className="text-xs text-slate-500 px-2 py-0.5 bg-slate-200 rounded">
+                      <span className="text-xs text-slate-500 px-2 py-0.5 bg-slate-200 rounded whitespace-nowrap">
                         S{player.skillLevel}
                       </span>
                     </div>

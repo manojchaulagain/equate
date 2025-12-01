@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Trophy, Award, Plus, TrendingUp, Star, X, Target, Users, Footprints, Search, Filter, XCircle } from "lucide-react";
+import { useDebounce } from "../../hooks/useDebounce";
 import { collection, onSnapshot, doc, setDoc, Timestamp, getDocs, getDoc } from "firebase/firestore";
 import { GameSchedule } from "../../utils/gameSchedule";
 import { isTodayGameDayPassed } from "../../utils/gamePoints";
@@ -144,76 +145,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
     }
   }, [gameResults]);
 
-  useEffect(() => {
-    if (!db || players.length === 0) return;
-
-    const fetchPoints = async () => {
-      try {
-      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-      const pointsPath = `artifacts/${appId}/public/data/playerPoints`;
-      const pointsRef = collection(db, pointsPath);
-      
-      const snapshot = await getDocs(pointsRef);
-      const pointsData: { [playerId: string]: PlayerPoints } = {};
-
-      snapshot.docs.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data.playerId) {
-          // Calculate games played from points history
-          const gamesPlayed = (data.pointsHistory || []).filter(
-            (entry: any) => entry.reason === "Played in game" && entry.automatic === true
-          ).length;
-
-          pointsData[data.playerId] = {
-            playerId: data.playerId,
-            playerName: data.playerName,
-            totalPoints: data.totalPoints || 0,
-            motmAwards: data.motmAwards || 0,
-            goals: data.goals || 0,
-            assists: data.assists || 0,
-            gamesPlayed: gamesPlayed,
-            pointsHistory: data.pointsHistory || [],
-          };
-        }
-      });
-
-        // Initialize points for players that don't have any yet
-        players.forEach((player) => {
-          if (!pointsData[player.id]) {
-            pointsData[player.id] = {
-              playerId: player.id,
-              playerName: player.name,
-              totalPoints: 0,
-              motmAwards: 0,
-              goals: 0,
-              assists: 0,
-              gamesPlayed: 0,
-              pointsHistory: [],
-            };
-          }
-        });
-
-        const sortedPoints = Object.values(pointsData).sort((a, b) => b.totalPoints - a.totalPoints);
-        setPlayerPoints(sortedPoints);
-        setLoading(false);
-      } catch (err: any) {
-        console.error("Error fetching points:", err);
-        setError("Failed to load leaderboard.");
-        setLoading(false);
-      }
-    };
-
-    fetchPoints();
-
-    // Set up real-time listener
-    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-    const pointsPath = `artifacts/${appId}/public/data/playerPoints`;
-    const pointsRef = collection(db, pointsPath);
-
-    const unsubscribe = onSnapshot(pointsRef, (snapshot) => {
-      const pointsData: { [playerId: string]: PlayerPoints } = {};
-      snapshot.docs.forEach((doc) => {
-        const data = doc.data();
+  // Helper function to process points data - extracted to avoid duplication
+  const processPointsData = useCallback((docs: any[], playersList: any[]) => {
+    const pointsData: { [playerId: string]: PlayerPoints } = {};
+    
+    docs.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data.playerId) {
         // Calculate games played from points history
         const gamesPlayed = (data.pointsHistory || []).filter(
           (entry: any) => entry.reason === "Played in game" && entry.automatic === true
@@ -229,29 +167,57 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
           gamesPlayed: gamesPlayed,
           pointsHistory: data.pointsHistory || [],
         };
-      });
-
-      players.forEach((player) => {
-        if (!pointsData[player.id]) {
-          pointsData[player.id] = {
-            playerId: player.id,
-            playerName: player.name,
-            totalPoints: 0,
-            motmAwards: 0,
-            goals: 0,
-            assists: 0,
-            gamesPlayed: 0,
-            pointsHistory: [],
-          };
-        }
-      });
-
-      const sortedPoints = Object.values(pointsData).sort((a, b) => b.totalPoints - a.totalPoints);
-      setPlayerPoints(sortedPoints);
+      }
     });
 
+    // Initialize points for players that don't have any yet
+    playersList.forEach((player) => {
+      if (!pointsData[player.id]) {
+        pointsData[player.id] = {
+          playerId: player.id,
+          playerName: player.name,
+          totalPoints: 0,
+          motmAwards: 0,
+          goals: 0,
+          assists: 0,
+          gamesPlayed: 0,
+          pointsHistory: [],
+        };
+      }
+    });
+
+    return Object.values(pointsData).sort((a, b) => b.totalPoints - a.totalPoints);
+  }, []);
+
+  // Single optimized Firestore listener - removes duplicate initial fetch
+  useEffect(() => {
+    if (!db || players.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+    const pointsPath = `artifacts/${appId}/public/data/playerPoints`;
+    const pointsRef = collection(db, pointsPath);
+
+    // Use onSnapshot only - it handles both initial load and real-time updates
+    const unsubscribe = onSnapshot(
+      pointsRef,
+      (snapshot) => {
+        const processedPoints = processPointsData(snapshot.docs, players);
+        setPlayerPoints(processedPoints);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Error fetching points:", err);
+        setError("Failed to load leaderboard.");
+        setLoading(false);
+      }
+    );
+
     return () => unsubscribe();
-  }, [db, players]);
+  }, [db, players, processPointsData]);
 
   const handleAddPoints = async () => {
     if (!selectedPlayer || !points || !reason.trim()) {
@@ -343,11 +309,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
     });
   }, [playerPoints, players]);
 
-  // Filter and sort players
+  // Debounce search query to reduce filtering operations
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // Filter and sort players - Optimized with debounced search
   const filteredAndSortedPlayers = useMemo(() => {
     let filtered = playerPointsWithFullData.filter((pp) => {
-      // Search filter
-      if (searchQuery.trim() && !pp.playerName.toLowerCase().includes(searchQuery.toLowerCase())) {
+      // Search filter (using debounced query)
+      if (debouncedSearchQuery.trim() && !pp.playerName.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) {
         return false;
       }
       
@@ -382,7 +351,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
     });
 
     return filtered;
-  }, [playerPointsWithFullData, searchQuery, filterPosition, filterMinPoints, filterMaxPoints, sortBy]);
+  }, [playerPointsWithFullData, debouncedSearchQuery, filterPosition, filterMinPoints, filterMaxPoints, sortBy]);
 
   // Count active filters
   const activeFiltersCount = useMemo(() => {
@@ -395,14 +364,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
     return count;
   }, [searchQuery, filterPosition, filterMinPoints, filterMaxPoints, sortBy]);
 
-  // Clear all filters
-  const clearFilters = () => {
+  // Clear all filters - Memoized callback
+  const clearFilters = useCallback(() => {
     setSearchQuery("");
     setFilterPosition("");
     setFilterMinPoints("");
     setFilterMaxPoints("");
     setSortBy("points");
-  };
+  }, []);
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Trophy className="text-yellow-500" size={24} />;

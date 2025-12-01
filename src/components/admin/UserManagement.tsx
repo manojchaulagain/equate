@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Users, Shield, User, Search, CheckCircle, Trash2, Edit2, X, Save } from "lucide-react";
 import { doc, setDoc, collection, onSnapshot, deleteDoc, query, where, getDocs } from "firebase/firestore";
 import { UserRole } from "../../types/user";
+import { useDebounce } from "../../hooks/useDebounce";
 
 declare const __app_id: string;
 
@@ -244,9 +245,15 @@ const UserManagement: React.FC<UserManagementProps> = ({
     }
   };
 
-  const filteredUsers = users.filter((user) =>
-    user.email.toLowerCase().includes(searchEmail.toLowerCase())
-  );
+  // Debounce search query to reduce filtering operations
+  const debouncedSearchEmail = useDebounce(searchEmail, 300);
+
+  // Memoized filtered users
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) =>
+      user.email.toLowerCase().includes(debouncedSearchEmail.toLowerCase())
+    );
+  }, [users, debouncedSearchEmail]);
 
   return (
     <div className={`relative overflow-hidden backdrop-blur-xl p-6 sm:p-8 rounded-b-2xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.18)] -mt-[1px] ${

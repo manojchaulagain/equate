@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Performance optimizations to prevent CLS */
+@layer base {
+  /* Ensure images don't cause layout shifts */
+  img {
+    height: auto;
+    max-width: 100%;
+  }
+}
+
 /* Custom scrollbar styling */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;

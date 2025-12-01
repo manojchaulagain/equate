@@ -326,9 +326,15 @@ const InfoTooltip: React.FC = () => {
 };
 
 // Notifications Banner Component - Shows critical notifications at top
-const NotificationsBanner: React.FC<{ db: any }> = ({ db }) => {
+const NotificationsBanner: React.FC<{ db: any }> = React.memo(({ db }) => {
   const [criticalNotifications, setCriticalNotifications] = useState<any[]>([]);
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  const dismissedIdsRef = useRef<string[]>([]);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    dismissedIdsRef.current = dismissedIds;
+  }, [dismissedIds]);
 
   useEffect(() => {
     if (!db) return;
@@ -345,7 +351,7 @@ const NotificationsBanner: React.FC<{ db: any }> = ({ db }) => {
             id: docSnapshot.id,
             ...docSnapshot.data(),
           }))
-          .filter((n: any) => n.isCritical && !dismissedIds.includes(n.id));
+          .filter((n: any) => n.isCritical && !dismissedIdsRef.current.includes(n.id));
         setCriticalNotifications(notifications.slice(0, 3)); // Show max 3
       },
       (err) => {
@@ -354,16 +360,25 @@ const NotificationsBanner: React.FC<{ db: any }> = ({ db }) => {
     );
 
     return () => unsubscribe();
-  }, [db, dismissedIds]);
+  }, [db]); // Removed dismissedIds from deps - using ref instead
 
-  const handleDismiss = (id: string) => {
-    setDismissedIds((prev) => [...prev, id]);
-  };
+  const handleDismiss = useCallback((id: string) => {
+    setDismissedIds((prev) => {
+      if (prev.includes(id)) return prev; // Prevent duplicates
+      return [...prev, id];
+    });
+  }, []);
 
   // Always render container to prevent layout shift
-  // Use minHeight to reserve space even when empty
+  // Reserve consistent space - use minHeight based on max notifications (3) to prevent CLS
   return (
-    <div className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 mb-4 space-y-2" style={{ minHeight: criticalNotifications.length === 0 ? '1px' : 'auto' }}>
+    <div 
+      className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 mb-4 space-y-2"
+      style={{ 
+        minHeight: criticalNotifications.length === 0 ? '0px' : 'auto',
+        contain: 'layout style paint'
+      }}
+    >
       {criticalNotifications.map((notification) => (
         <div
           key={notification.id}
@@ -387,7 +402,9 @@ const NotificationsBanner: React.FC<{ db: any }> = ({ db }) => {
       ))}
     </div>
   );
-};
+});
+
+NotificationsBanner.displayName = "NotificationsBanner";
 
 export default function App() {
   // Firebase State
@@ -1390,14 +1407,26 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 font-sans">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-24 -right-16 w-72 sm:w-96 h-72 sm:h-96 bg-pink-500/30 blur-[130px] opacity-70" />
-        <div className="absolute top-1/3 -left-24 w-80 h-80 bg-indigo-500/20 blur-[140px]" />
-        <div className="absolute bottom-0 right-1/3 w-96 h-96 bg-blue-500/10 blur-[160px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.02)_25%,transparent_25%)]" />
-          </div>
+      <div 
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{ 
+          contain: 'layout style paint',
+          willChange: 'auto'
+        }}
+        aria-hidden="true"
+      >
+        <div className="absolute -top-24 -right-16 w-72 sm:w-96 h-72 sm:h-96 bg-pink-500/30 blur-[130px] opacity-70" style={{ contain: 'layout style paint' }} />
+        <div className="absolute top-1/3 -left-24 w-80 h-80 bg-indigo-500/20 blur-[140px]" style={{ contain: 'layout style paint' }} />
+        <div className="absolute bottom-0 right-1/3 w-96 h-96 bg-blue-500/10 blur-[160px]" style={{ contain: 'layout style paint' }} />
+        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.02)_25%,transparent_25%)]" style={{ contain: 'layout style paint' }} />
+      </div>
 
-      <div className="relative z-10 px-2 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <div 
+        className="relative z-10 px-2 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-6 space-y-4 sm:space-y-6"
+        style={{ 
+          contain: 'layout style paint'
+        }}
+      >
         <header className="max-w-5xl mx-auto relative bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-3xl sm:rounded-[2rem] p-5 sm:p-6 md:p-8 lg:p-10 shadow-2xl border-2 border-slate-700/60 z-20">
           {/* Elegant Background with Mountains */}
           <div className="absolute inset-0">
@@ -1447,7 +1476,7 @@ export default function App() {
             {/* Club Logo - Centered */}
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-full blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-300"></div>
-              <div className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-full bg-white/10 backdrop-blur-sm shadow-2xl border-[3px] border-amber-300/70 flex items-center justify-center transform hover:scale-110 hover:rotate-3 transition-all duration-300 overflow-hidden ring-4 ring-amber-500/20">
+              <div className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-full bg-white/10 backdrop-blur-sm shadow-2xl border-[3px] border-amber-300/70 flex items-center justify-center transform hover:scale-110 hover:rotate-3 transition-all duration-300 overflow-hidden ring-4 ring-amber-500/20" style={{ aspectRatio: '1 / 1' }}>
                 <img 
                   src={`${process.env.PUBLIC_URL || ''}/club-logo.png`}
                   alt="Sagarmatha FC Logo" 
@@ -1455,6 +1484,7 @@ export default function App() {
                   width="144"
                   height="144"
                   loading="eager"
+                  style={{ aspectRatio: '1 / 1', objectFit: 'cover' }}
                   onError={(e) => {
                     console.error("Failed to load club logo from:", e.currentTarget.src);
                   }}
@@ -1709,7 +1739,14 @@ export default function App() {
       )}
 
             {/* Desktop Tabs - Hidden on mobile, visible on sm and up */}
-            <nav className="max-w-5xl mx-auto hidden sm:flex flex-row justify-center items-stretch bg-white/90 backdrop-blur-xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-2 sm:p-2.5 md:p-3 shadow-[0_15px_50px_rgba(15,23,42,0.2)] border-2 border-white/80 border-b-0 gap-2 sm:gap-2.5 mb-0 relative z-[100]">
+            <nav 
+              className="max-w-5xl mx-auto hidden sm:flex flex-row justify-center items-stretch bg-white/90 backdrop-blur-xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-2 sm:p-2.5 md:p-3 shadow-[0_15px_50px_rgba(15,23,42,0.2)] border-2 border-white/80 border-b-0 gap-2 sm:gap-2.5 mb-0 relative z-[100]"
+              style={{ 
+                height: '72px',
+                contain: 'layout style paint',
+                boxSizing: 'border-box'
+              }}
+            >
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -1796,32 +1833,42 @@ export default function App() {
                 <span className="sm:hidden">Q&A</span>
               </span>
             </button>
-            {userRole === "admin" && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleViewChange("admin");
-                }}
-                type="button"
-                className={`group relative px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-bold rounded-xl sm:rounded-r-2xl sm:rounded-l-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
-                  view === "admin"
+            {/* Admin button - Always render to prevent layout shift, hide when not admin */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewChange("admin");
+              }}
+              type="button"
+              className={`group relative px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-bold rounded-xl sm:rounded-r-2xl sm:rounded-l-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
+                userRole === "admin"
+                  ? view === "admin"
                     ? "bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white shadow-xl shadow-purple-500/30 transform scale-[1.05]"
                     : "bg-white/50 text-slate-600 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-700 hover:shadow-md"
-                }`}
-              >
-                {view === "admin" && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20 animate-pulse"></div>
-                )}
-                <span className="relative flex items-center justify-center gap-2">
-                  <Shield className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${view === "admin" ? "scale-110" : "group-hover:scale-110"}`} /> 
-                  <span>Admin</span>
-                </span>
-              </button>
-            )}
+                  : "opacity-0 pointer-events-none invisible"
+              }`}
+              disabled={userRole !== "admin"}
+              aria-hidden={userRole !== "admin"}
+            >
+              {view === "admin" && userRole === "admin" && (
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20 animate-pulse"></div>
+              )}
+              <span className="relative flex items-center justify-center gap-2">
+                <Shield className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${view === "admin" ? "scale-110" : "group-hover:scale-110"}`} /> 
+                <span>Admin</span>
+              </span>
+            </button>
           </nav>
 
           {/* Content Area */}
-          <main className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 -mt-[1px] relative">
+          <main 
+            className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 -mt-[1px] relative" 
+            style={{ 
+              minHeight: '600px',
+              contain: 'layout style paint',
+              marginTop: '-1px' // Ensure consistent spacing
+            }}
+          >
             <div 
               className={`transition-all duration-500 ease-in-out ${
                 slideDirection === "left"
@@ -1830,6 +1877,10 @@ export default function App() {
                   ? "-translate-x-full opacity-0"
                   : "translate-x-0 opacity-100"
               }`}
+              style={{ 
+                willChange: slideDirection ? 'transform, opacity' : 'auto',
+                contain: 'layout style paint'
+              }}
             >
               {view === "poll" && (
                 <WeeklyAvailabilityPoll

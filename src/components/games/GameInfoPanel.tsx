@@ -523,17 +523,28 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
   };
 
   // Always render container to prevent layout shift, even if empty
-  // Reserve space even when no game is scheduled
+  // Reserve space even when no game is scheduled - use consistent min-height
   if (!todayGame && !nextGame) {
     return (
-      <div className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 mb-4 min-h-[200px]" aria-hidden="true" style={{ visibility: 'hidden', pointerEvents: 'none' }}>
-        {/* Reserve space for game panel */}
+      <div 
+        className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 mb-4" 
+        style={{ 
+          minHeight: '0px', // Minimal space when no game - reduces CLS
+          height: '0px',
+          overflow: 'hidden'
+        }}
+        aria-hidden="true"
+      >
+        {/* Reserve minimal space for game panel */}
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 mb-4">
+    <div className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 mb-4" style={{ 
+      minHeight: showGameCompletePanel ? 'auto' : '180px',
+      contain: 'layout style paint'
+    }}>
       <div className={`w-full rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl backdrop-blur-sm relative overflow-hidden transition-all duration-300 ${
         showGameCompletePanel
           ? "bg-gradient-to-br from-amber-50/95 via-yellow-50/95 to-orange-50/95 border-2 border-amber-300/70 shadow-amber-200/20"

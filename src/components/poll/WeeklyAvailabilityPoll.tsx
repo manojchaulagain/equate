@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { ListChecks, Trophy, Edit2, UserPlus, Trash2, Star, Heart, X, Send, Plus, Search, Filter, XCircle } from "lucide-react";
 import { PlayerAvailability, Player, Position, SkillLevel } from "../../types/player";
 import { POSITION_LABELS, SKILL_LABELS, POSITIONS } from "../../constants/player";
@@ -9,6 +9,7 @@ import { doc, collection, addDoc, Timestamp, getDoc, setDoc } from "firebase/fir
 import { useGameSchedule } from "../../hooks/useGameSchedule";
 import { getTodayGameDateString } from "../../utils/gamePoints";
 import { FirestorePaths } from "../../utils/firestorePaths";
+import { useDebounce } from "../../hooks/useDebounce";
 
 const TEAM_COUNT_OPTIONS = [2, 3, 4, 5, 6];
 
@@ -130,8 +131,8 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   const [pointsSuccess, setPointsSuccess] = useState<string | null>(null);
 
 
-  // Get available players for MOTM, Kudos, and Points
-  const getAvailablePlayers = () => {
+  // Get available players for MOTM, Kudos, and Points - Memoized
+  const availablePlayers = useMemo(() => {
     const isAdmin = userRole === "admin";
     if (isAdmin) {
       return availability;
@@ -139,9 +140,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     return availability.filter(
       (player) => player.userId !== currentUserId && player.registeredBy !== currentUserId
     );
-  };
-
-  const availablePlayers = getAvailablePlayers();
+  }, [availability, userRole, currentUserId]);
 
   // Handle MOTM nomination
   const handleMOTMSubmit = async () => {
@@ -345,8 +344,8 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     }
   };
 
-  // Check if user can toggle availability for a player
-  const canToggleAvailability = (player: PlayerAvailability): boolean => {
+  // Check if user can toggle availability for a player - Memoized callback
+  const canToggleAvailability = useCallback((player: PlayerAvailability): boolean => {
     if (isAdmin) return true; // Admins can toggle all players
     if (!currentUserId) return false; // Must be logged in
     
@@ -354,7 +353,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     // 1. Player is themselves (userId matches)
     // 2. Player was registered by them (registeredBy matches)
     return player.userId === currentUserId || player.registeredBy === currentUserId;
-  };
+  }, [isAdmin, currentUserId]);
 
   // Sort availability: logged-in user's player first, then players registered by them, then others sorted by name
   const sortedAvailability = useMemo(() => {
@@ -381,11 +380,14 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     return [...(userPlayer ? [userPlayer] : []), ...registeredByUser, ...sortedOtherPlayers];
   }, [availability, currentUserId]);
 
-  // Filter players based on search query and filters
+  // Debounce search query to reduce filtering operations
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // Filter players based on search query and filters - Optimized with debounced search
   const filteredAvailability = useMemo(() => {
     return sortedAvailability.filter((player) => {
-      // Search filter
-      if (searchQuery.trim() && !player.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      // Search filter (using debounced query)
+      if (debouncedSearchQuery.trim() && !player.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) {
         return false;
       }
       
@@ -409,7 +411,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
       
       return true;
     });
-  }, [sortedAvailability, searchQuery, filterPosition, filterSkill, filterAvailability]);
+  }, [sortedAvailability, debouncedSearchQuery, filterPosition, filterSkill, filterAvailability]);
   
   // Count active filters
   const activeFiltersCount = useMemo(() => {
@@ -421,35 +423,36 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
     return count;
   }, [searchQuery, filterPosition, filterSkill, filterAvailability]);
   
-  // Clear all filters
-  const clearFilters = () => {
+  // Clear all filters - Memoized callback
+  const clearFilters = useCallback(() => {
     setSearchQuery("");
     setFilterPosition("");
     setFilterSkill("");
     setFilterAvailability("all");
-  };
+  }, []);
 
-  const handleEditClick = (e: React.MouseEvent, player: PlayerAvailability) => {
+  // Memoized event handlers to prevent unnecessary re-renders
+  const handleEditClick = useCallback((e: React.MouseEvent, player: PlayerAvailability) => {
     e.stopPropagation(); // Prevent toggling availability when clicking edit
     setEditingPlayer(player);
-  };
+  }, []);
 
-  const handleDeleteClick = (e: React.MouseEvent, player: PlayerAvailability) => {
+  const handleDeleteClick = useCallback((e: React.MouseEvent, player: PlayerAvailability) => {
     e.stopPropagation(); // Prevent toggling availability when clicking delete
     setPlayerToDelete(player);
-  };
+  }, []);
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = useCallback(async () => {
     if (playerToDelete) {
       await onDeletePlayer(playerToDelete.id);
       setPlayerToDelete(null);
     }
-  };
+  }, [playerToDelete, onDeletePlayer]);
 
-  const handleSaveEdit = async (playerId: string, updates: { position: any; skillLevel: any }) => {
+  const handleSaveEdit = useCallback(async (playerId: string, updates: { position: any; skillLevel: any }) => {
     await onUpdatePlayer(playerId, updates);
     setEditingPlayer(null);
-  };
+  }, [onUpdatePlayer]);
   return (
     <div className={`relative overflow-hidden backdrop-blur-xl p-4 sm:p-6 rounded-b-3xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.15)] -mt-[1px] ${
       isActive 
@@ -658,7 +661,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
               }}
             >
               <div className="flex-1 min-w-0 pr-2">
-                <p className={`font-bold text-base sm:text-lg ${player.isAvailable ? "text-slate-800" : "text-slate-600"} truncate`}>
+                <p className={`font-bold text-base sm:text-lg ${player.isAvailable ? "text-slate-800" : "text-slate-600"} break-words leading-tight`}>
                   {player.name}
                 </p>
                 <p className={`text-xs mt-1 ${player.isAvailable ? "text-slate-600" : "text-slate-500"} break-words`}>
