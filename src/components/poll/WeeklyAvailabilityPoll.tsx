@@ -488,13 +488,31 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
       {/* Always render container to prevent layout shift */}
       <div className="min-h-[400px]">
         {loading ? (
-          <div className="text-center p-8 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-2xl border border-indigo-200 min-h-[400px] flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative w-12 h-12">
-                <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
-                <div className="absolute inset-0 border-4 border-transparent border-t-indigo-600 rounded-full animate-spin"></div>
-              </div>
-              <p className="text-indigo-700 font-semibold text-lg">Loading players from Firestore...</p>
+          <div className="animate-pulse space-y-3">
+            {/* Search Bar Skeleton */}
+            <div className="h-11 bg-gradient-to-r from-slate-200 to-slate-300 rounded-xl"></div>
+            
+            {/* Filter Button Skeleton */}
+            <div className="flex items-center justify-between">
+              <div className="h-9 w-24 bg-gradient-to-r from-slate-200 to-slate-300 rounded-xl"></div>
+            </div>
+
+            {/* Player Card Skeletons */}
+            <div className="space-y-3 max-h-96 overflow-hidden p-4" style={{ minHeight: '300px' }}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-slate-100 to-gray-100 border-2 border-slate-300"
+                >
+                  <div className="flex-1 space-y-2">
+                    <div className="h-5 bg-gradient-to-r from-slate-300 to-slate-400 rounded w-3/4"></div>
+                    <div className="h-4 bg-gradient-to-r from-slate-200 to-slate-300 rounded w-2/3"></div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="h-10 w-24 bg-gradient-to-r from-slate-300 to-slate-400 rounded-xl"></div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ) : availability.length === 0 ? (
@@ -511,7 +529,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
         ) : (
         <>
           {/* Search and Filter Section */}
-          <div className="mb-4 space-y-3">
+          <div className="mb-4 space-y-3 animate-in fade-in duration-300">
             {/* Search Bar */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
@@ -628,7 +646,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
 
           {/* Player List */}
           {filteredAvailability.length === 0 ? (
-            <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-amber-50 rounded-2xl border-2 border-dashed border-amber-200">
+            <div className="text-center p-8 bg-gradient-to-br from-slate-100 to-amber-50 rounded-2xl border-2 border-dashed border-amber-200 min-h-[200px] flex flex-col items-center justify-center">
               <p className="text-slate-600 mb-2 font-medium">No players match your filters.</p>
               {activeFiltersCount > 0 && (
                 <button
@@ -641,27 +659,42 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
               )}
             </div>
           ) : (
-            <div className="space-y-3 max-h-96 overflow-y-auto p-4 custom-scrollbar">
-              {filteredAvailability.map((player) => (
+            <div 
+              className="space-y-3 max-h-96 overflow-y-auto p-4 custom-scrollbar" 
+              style={{ 
+                minHeight: '300px',
+                contain: 'layout style paint',
+                willChange: 'scroll-position'
+              }}
+            >
+              {filteredAvailability.map((player) => {
+                const canToggle = canToggleAvailability(player);
+                return (
             <div
               key={player.id}
-              className={`flex items-center justify-between p-4 rounded-2xl transition-all duration-300 ${
-                canToggleAvailability(player)
-                  ? "cursor-pointer transform hover:scale-[1.02]"
+              className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-2xl transition-colors duration-150 ${
+                canToggle
+                  ? "cursor-pointer"
                   : "cursor-not-allowed opacity-75"
               } ${
                 player.isAvailable
                   ? "bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border-2 border-emerald-300 shadow-md"
                   : "bg-gradient-to-r from-slate-100 to-gray-100 border-2 border-slate-300 shadow-sm"
-              } ${canToggleAvailability(player) && player.isAvailable ? "hover:shadow-lg" : ""} ${canToggleAvailability(player) && !player.isAvailable ? "hover:opacity-90" : ""}`}
+              } ${canToggle && player.isAvailable ? "hover:shadow-lg" : ""} ${canToggle && !player.isAvailable ? "hover:opacity-90" : ""}`}
+              style={{ 
+                contain: 'layout style paint',
+                contentVisibility: 'auto'
+              }}
               onClick={() => {
-                if (canToggleAvailability(player)) {
+                if (canToggle) {
                   onToggleAvailability(player.id);
                 }
               }}
             >
-              <div className="flex-1 min-w-0 pr-2">
-                <p className={`font-bold text-base sm:text-lg ${player.isAvailable ? "text-slate-800" : "text-slate-600"} break-words leading-tight`}>
+              <div className="flex-1 min-w-0">
+                <p 
+                  className={`font-bold text-base sm:text-lg ${player.isAvailable ? "text-slate-800" : "text-slate-600"} break-words leading-tight mb-1`}
+                >
                   {player.name}
                 </p>
                 <p className={`text-xs mt-1 ${player.isAvailable ? "text-slate-600" : "text-slate-500"} break-words`}>
@@ -670,35 +703,35 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                   Skill: {player.skillLevel} ({SKILL_LABELS[player.skillLevel]})
                 </p>
               </div>
-              <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3 flex-shrink-0">
+              <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3 flex-shrink-0 sm:ml-auto">
                 {isAdmin && (
                   <>
                     <button
                       onClick={(e) => handleEditClick(e, player)}
-                      className="p-2 sm:p-2.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
+                      className="p-2 sm:p-2.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 rounded-xl transition-colors duration-150 shadow-md hover:shadow-lg"
                       title="Edit player"
                     >
                       <Edit2 size={14} className="sm:w-4 sm:h-4" />
                     </button>
                     <button
                       onClick={(e) => handleDeleteClick(e, player)}
-                      className="p-2 sm:p-2.5 bg-gradient-to-br from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
+                      className="p-2 sm:p-2.5 bg-gradient-to-br from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700 rounded-xl transition-colors duration-150 shadow-md hover:shadow-lg"
                       title="Delete player"
                     >
                       <Trash2 size={14} className="sm:w-4 sm:h-4" />
                     </button>
                   </>
                 )}
-                {canToggleAvailability(player) ? (
-                  <div className="flex items-center bg-gradient-to-r from-slate-200 to-slate-300 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-inner border-2 border-slate-400">
+                {canToggle ? (
+                  <div className="flex items-center bg-gradient-to-r from-slate-200/80 to-slate-300/80 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-lg border-2 border-slate-400/60">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onToggleAvailability(player.id);
                       }}
-                      className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
+                      className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-colors duration-150 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
                         !player.isAvailable
-                          ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg border-2 border-red-700 transform scale-105"
+                          ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg border-2 border-red-700/50 ring-2 ring-red-400/30"
                           : "text-red-700 hover:bg-red-50 border-2 border-transparent hover:border-red-200"
                       }`}
                     >
@@ -709,9 +742,9 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                         e.stopPropagation();
                         onToggleAvailability(player.id);
                       }}
-                      className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
+                      className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-colors duration-150 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
                         player.isAvailable
-                          ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg border-2 border-emerald-700 transform scale-105"
+                          ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg border-2 border-emerald-700/50 ring-2 ring-emerald-400/30"
                           : "text-emerald-700 hover:bg-emerald-50 border-2 border-transparent hover:border-emerald-200"
                       }`}
                     >
@@ -719,11 +752,11 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center bg-gradient-to-r from-slate-200 to-slate-300 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-inner border-2 border-slate-400 opacity-75">
+                  <div className="flex items-center bg-gradient-to-r from-slate-200/80 to-slate-300/80 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-lg border-2 border-slate-400/60 opacity-75">
                     <div className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold min-w-[55px] sm:min-w-[70px] md:min-w-[75px] text-center ${
                       player.isAvailable
-                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg border-2 border-emerald-700"
-                        : "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg border-2 border-red-700"
+                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg border-2 border-emerald-700/50"
+                        : "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg border-2 border-red-700/50"
                     }`}>
                       {player.isAvailable ? "Playing" : "Out"}
                     </div>
@@ -731,7 +764,8 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                 )}
               </div>
             </div>
-          ))}
+                );
+              })}
         </div>
           )}
         </>

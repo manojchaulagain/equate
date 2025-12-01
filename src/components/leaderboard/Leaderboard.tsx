@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Trophy, Award, Plus, TrendingUp, Star, X, Target, Users, Footprints, Search, Filter, XCircle } from "lucide-react";
 import { useDebounce } from "../../hooks/useDebounce";
-import { collection, onSnapshot, doc, setDoc, Timestamp, getDocs, getDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, Timestamp, getDoc } from "firebase/firestore";
 import { GameSchedule } from "../../utils/gameSchedule";
 import { isTodayGameDayPassed } from "../../utils/gamePoints";
 import PlayerProfileModal from "../players/PlayerProfileModal";
 import { Player, Position, SkillLevel } from "../../types/player";
-import { POSITION_LABELS, SKILL_LABELS, POSITIONS } from "../../constants/player";
+import { POSITION_LABELS, POSITIONS } from "../../constants/player";
 import LeagueTable from "../league/LeagueTable";
 import { GameResult, TeamStanding } from "../../types/league";
 import { calculateStandings } from "../../utils/leagueTable";

@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from "react";
 import { PlayerAvailability } from "../../types/player";
 import { TeamColorKey } from "../../types/player";
 import { Users, X, Shield } from "lucide-react";
-import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { FirestorePaths } from "../../utils/firestorePaths";
-import { TEAM_COLOR_SEQUENCE, getTeamColorTheme, getTeamColorLabel } from "../../constants/teamColors";
+import { TEAM_COLOR_SEQUENCE, getTeamColorLabel } from "../../constants/teamColors";
 
 interface TeamAssignmentManagerProps {
   availablePlayers: PlayerAvailability[];
@@ -34,7 +34,7 @@ const TeamAssignmentManager: React.FC<TeamAssignmentManagerProps> = ({
   // Get available teams based on teamCount
   const availableTeams = useMemo(() => {
     const normalizedTeamCount = Math.min(Math.max(teamCount, 2), 6);
-    const teams: { colorKey: TeamColorKey; label: string; theme: any }[] = [];
+    const teams: { colorKey: TeamColorKey; label: string }[] = [];
     
     for (let i = 0; i < normalizedTeamCount; i++) {
       let colorKey: TeamColorKey;
@@ -43,9 +43,8 @@ const TeamAssignmentManager: React.FC<TeamAssignmentManagerProps> = ({
       } else {
         colorKey = TEAM_COLOR_SEQUENCE[i % TEAM_COLOR_SEQUENCE.length];
       }
-      const theme = getTeamColorTheme(colorKey);
       const label = getTeamColorLabel(colorKey);
-      teams.push({ colorKey, label, theme });
+      teams.push({ colorKey, label });
     }
     
     return teams;
@@ -215,7 +214,6 @@ const TeamAssignmentManager: React.FC<TeamAssignmentManagerProps> = ({
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
                       {availableTeams.map((team) => {
-                        const theme = getTeamColorTheme(team.colorKey);
                         const isSelected = currentAssignment === team.colorKey;
                         
                         // Get color-specific classes

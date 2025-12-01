@@ -29,3 +29,13 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, #4f46e5, #7c3aed);
 }
+
+/* Hide scrollbar for horizontal scrolling names */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
