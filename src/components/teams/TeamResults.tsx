@@ -64,10 +64,10 @@ const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, i
   // Show loading state while teams are being loaded
   if (isLoading) {
     return (
-      <div className={`relative overflow-hidden backdrop-blur-xl p-5 sm:p-6 md:p-8 rounded-b-2xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.18)] -mt-[1px] bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70 min-h-[400px] will-change-contents`}>
+      <div className={`relative overflow-hidden p-5 sm:p-6 md:p-8 rounded-b-2xl rounded-t-none -mt-[1px] bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 border-l-2 border-r-2 border-b-2 border-amber-500/70 min-h-[400px]`}>
         <div className="flex items-center justify-center py-12">
           <div className="flex flex-col items-center gap-4">
-            <div className="relative w-12 h-12 will-change-transform">
+            <div className="relative w-12 h-12">
               <div className="absolute inset-0 border-4 border-amber-200 rounded-full"></div>
               <div className="absolute inset-0 border-4 border-transparent border-t-amber-600 rounded-full animate-spin"></div>
             </div>
@@ -81,9 +81,9 @@ const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, i
   // Always render container to prevent layout shift, even when empty
   if (validTeams.length === 0) {
     return (
-      <div className={`relative overflow-hidden backdrop-blur-xl rounded-b-2xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.18)] -mt-[1px] ${
+      <div className={`relative overflow-hidden rounded-b-2xl rounded-t-none -mt-[1px] ${
         isActive 
-          ? "bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70" 
+          ? "bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 border-l-2 border-r-2 border-b-2 border-amber-500/70" 
           : "bg-white/90 border border-white/70 border-t-0"
       }`} style={{ minHeight: '1px' }} aria-hidden="true">
       </div>
@@ -91,17 +91,13 @@ const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, i
   }
 
   return (
-    <div className={`relative overflow-hidden backdrop-blur-xl p-5 sm:p-6 md:p-8 rounded-b-2xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.18)] -mt-[1px] will-change-auto ${
+    <div className={`relative overflow-hidden p-5 sm:p-6 md:p-8 rounded-b-2xl rounded-t-none -mt-[1px] ${
       isActive 
-        ? "bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70" 
+        ? "bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 border-l-2 border-r-2 border-b-2 border-amber-500/70" 
         : "bg-white/90 border border-white/70 border-t-0"
     }`}>
-      <div className="pointer-events-none absolute inset-0 opacity-60">
-        <div className="absolute -top-10 right-0 w-56 h-56 bg-amber-200/60 blur-[110px]" />
-        <div className="absolute bottom-0 left-4 w-64 h-64 bg-pink-200/50 blur-[120px]" />
-      </div>
       <div className="relative z-10">
-        {/* Header Section */}
+        {/* Header Section - Simplified */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl shadow-lg">
@@ -117,11 +113,11 @@ const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, i
             </div>
           </div>
 
-          {/* Stats Bar */}
+          {/* Stats Bar - Simplified */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-            <div className="group p-4 bg-white/80 backdrop-blur-sm border-2 border-amber-200/60 rounded-xl shadow-md hover:shadow-lg hover:border-amber-300 transition-all duration-300">
+            <div className="p-4 bg-white border-2 border-amber-200/60 rounded-xl shadow-sm">
               <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg">
                   <Users className="w-4 h-4 text-amber-600" />
                 </div>
                 <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Total Players</p>
@@ -129,9 +125,9 @@ const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, i
               <p className="text-2xl font-black text-amber-700">{totalPlayers}</p>
             </div>
 
-            <div className="group p-4 bg-white/80 backdrop-blur-sm border-2 border-amber-200/60 rounded-xl shadow-md hover:shadow-lg hover:border-amber-300 transition-all duration-300">
+            <div className="p-4 bg-white border-2 border-amber-200/60 rounded-xl shadow-sm">
               <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg">
                   <Trophy className="w-4 h-4 text-amber-600" />
                 </div>
                 <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Teams</p>
@@ -139,13 +135,13 @@ const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, i
               <p className="text-2xl font-black text-amber-700">{validTeams.length}</p>
             </div>
 
-            <div className={`group p-4 backdrop-blur-sm border-2 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 ${
+            <div className={`p-4 border-2 rounded-xl shadow-sm ${
               skillRange === 0
-                ? "bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-300/60 hover:border-emerald-400"
-                : "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300/60 hover:border-amber-400"
+                ? "bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-300/60"
+                : "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300/60"
             }`}>
               <div className="flex items-center gap-2 mb-2">
-                <div className={`p-2 rounded-lg group-hover:scale-110 transition-transform duration-300 ${
+                <div className={`p-2 rounded-lg ${
                   skillRange === 0
                     ? "bg-gradient-to-br from-emerald-100 to-teal-100"
                     : "bg-gradient-to-br from-amber-100 to-orange-100"
@@ -177,8 +173,8 @@ const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, i
           )}
         </div>
 
-        {/* Teams Grid */}
-        <div className={`grid ${gridCols} gap-4 sm:gap-5 lg:gap-6 mb-6 contain-layout`}>
+        {/* Teams Grid - Simplified */}
+        <div className={`grid ${gridCols} gap-4 sm:gap-5 lg:gap-6 mb-6`}>
           {teamsWithPositions.map(({ team, positions }, index) => (
             <TeamCard 
               key={team.name || `team-${index}`} 
@@ -192,7 +188,7 @@ const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, i
         <div className="pt-5 border-t-2 border-amber-200/60">
           <button
             onClick={onBack}
-            className="w-full sm:w-auto sm:min-w-[180px] flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white font-bold rounded-xl hover:from-slate-700 hover:to-slate-800 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-slate-500/30 transform hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full sm:w-auto sm:min-w-[180px] flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>Back to Availability</span>
@@ -204,4 +200,3 @@ const TeamResults: React.FC<TeamResultsProps> = ({ teams, generatedAt, onBack, i
 };
 
 export default React.memo(TeamResults);
-

@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import { Team, PlayerAvailability, Position } from "../../types/player";
-import { POSITION_LABELS, POSITIONS } from "../../constants/player";
 import { getTeamColorTheme } from "../../constants/teamColors";
 import { Users, Star } from "lucide-react";
 import FormationView from "./FormationView";
@@ -12,13 +11,12 @@ interface TeamCardProps {
 
 const TeamCard: React.FC<TeamCardProps> = ({ team, positions }) => {
   // Hooks must be called unconditionally and in the same order every render
-  // Extract values for consistent dependency tracking
   const teamColorKey = team?.colorKey;
   const teamPlayers = team?.players;
   
   const theme = useMemo(() => {
     if (!teamColorKey) {
-      return getTeamColorTheme("blue"); // Default fallback
+      return getTeamColorTheme("blue");
     }
     return getTeamColorTheme(teamColorKey);
   }, [teamColorKey]);
@@ -45,11 +43,8 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, positions }) => {
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl shadow-xl transform hover:scale-[1.02] transition-all duration-300 border-2 hover:shadow-2xl will-change-transform ${theme.cardBg} ${theme.cardBorder}`}
+      className={`relative overflow-hidden rounded-2xl shadow-lg border-2 transition-shadow duration-200 hover:shadow-xl ${theme.cardBg} ${theme.cardBorder}`}
     >
-      {/* Decorative background element */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-2xl -mr-16 -mt-16"></div>
-      
       <div className="relative p-5 sm:p-6">
         {/* Header */}
         <div className="mb-5">
@@ -57,14 +52,14 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, positions }) => {
             <h3 className={`text-2xl sm:text-3xl font-extrabold ${theme.headingText} flex items-center gap-2`}>
               <span>{team.name}</span>
             </h3>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/60 backdrop-blur-sm rounded-lg border border-white/80 shadow-sm">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/60 rounded-lg border border-white/80 shadow-sm">
               <Users className="w-4 h-4 text-slate-600" />
               <span className="text-sm font-bold text-slate-700">{playerCount}</span>
             </div>
           </div>
           
           {/* Skill Score */}
-          <div className="p-4 bg-white/70 backdrop-blur-sm rounded-xl border-2 border-white/80 shadow-md">
+          <div className="p-4 bg-white/70 rounded-xl border-2 border-white/80 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Total Skill</p>
@@ -98,7 +93,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, positions }) => {
             {sortedPlayers.map((player: PlayerAvailability, index: number) => (
               <li
                 key={player.id}
-                className={`group/item flex items-center justify-between text-sm p-3 rounded-lg shadow-sm transition-all duration-200 hover:shadow-md ${theme.listBg} border ${theme.listBorder} ${
+                className={`flex items-center justify-between text-sm p-3 rounded-lg shadow-sm transition-shadow duration-150 hover:shadow-md ${theme.listBg} border ${theme.listBorder} ${
                   index === 0 ? 'ring-2 ring-amber-300/50' : ''
                 }`}
               >
@@ -129,7 +124,6 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, positions }) => {
 
 // Custom comparison function for React.memo to optimize re-renders
 const areEqual = (prevProps: TeamCardProps, nextProps: TeamCardProps) => {
-  // Compare team by value (not reference) since objects are recreated
   const prevTeam = prevProps.team;
   const nextTeam = nextProps.team;
   
@@ -137,7 +131,6 @@ const areEqual = (prevProps: TeamCardProps, nextProps: TeamCardProps) => {
     return prevTeam === nextTeam;
   }
   
-  // Compare key team properties
   if (prevTeam.name !== nextTeam.name ||
       prevTeam.totalSkill !== nextTeam.totalSkill ||
       prevTeam.colorKey !== nextTeam.colorKey ||
@@ -145,12 +138,10 @@ const areEqual = (prevProps: TeamCardProps, nextProps: TeamCardProps) => {
     return false;
   }
   
-  // Compare players array by ids and key properties (quick check)
   if (prevTeam.players && nextTeam.players) {
     if (prevTeam.players.length !== nextTeam.players.length) {
       return false;
     }
-    // Quick check: compare first player's id and length
     if (prevTeam.players.length > 0 && nextTeam.players.length > 0) {
       if (prevTeam.players[0]?.id !== nextTeam.players[0]?.id) {
         return false;
@@ -158,10 +149,8 @@ const areEqual = (prevProps: TeamCardProps, nextProps: TeamCardProps) => {
     }
   }
   
-  // Compare positions object - deep comparison
   const prevPositions = prevProps.positions;
   const nextPositions = nextProps.positions;
-  
   const prevKeys = Object.keys(prevPositions);
   const nextKeys = Object.keys(nextPositions);
   
@@ -179,4 +168,3 @@ const areEqual = (prevProps: TeamCardProps, nextProps: TeamCardProps) => {
 };
 
 export default React.memo(TeamCard, areEqual);
-

@@ -1,6 +1,5 @@
 import React from "react";
 import { Position, PlayerAvailability } from "../../types/player";
-import { POSITION_LABELS } from "../../constants/player";
 
 interface FormationViewProps {
   players: PlayerAvailability[];
@@ -11,46 +10,24 @@ interface FormationViewProps {
   };
 }
 
-// Define formation positions (rows from top/forward to bottom/goalkeeper)
-// Each row defines which positions should appear and their order (left to right)
+// Simplified formation layout - faster rendering
 const FORMATION_LAYOUT: { row: number; positions: (Position | null)[] }[] = [
-  { row: 1, positions: ["LW", null, "ST", null, "RW"] }, // Forwards (Top)
-  { row: 2, positions: [null, null, "CAM", null, null] }, // Attacking Midfielder
-  { row: 3, positions: [null, "CM", null, "CDM", null] }, // Midfielders
-  { row: 4, positions: ["LB", null, "CB", null, "RB"] }, // Defenders
-  { row: 5, positions: [null, null, "GK", null, null] }, // Goalkeeper (Bottom)
+  { row: 1, positions: ["LW", null, "ST", null, "RW"] },
+  { row: 2, positions: [null, null, "CAM", null, null] },
+  { row: 3, positions: [null, "CM", null, "CDM", null] },
+  { row: 4, positions: ["LB", null, "CB", null, "RB"] },
+  { row: 5, positions: [null, null, "GK", null, null] },
 ];
 
-// Memoize grass pattern style to avoid creating new object on every render
-const GRASS_PATTERN_STYLE: React.CSSProperties = {
-  backgroundImage: `repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(34, 197, 94, 0.1) 2px,
-    rgba(34, 197, 94, 0.1) 4px
-  )`,
-};
-
 const FormationView: React.FC<FormationViewProps> = ({ players, theme }) => {
-  // Memoize players array reference - use empty array only once
   const stablePlayers = React.useMemo(() => {
     return players && Array.isArray(players) ? players : [];
   }, [players]);
 
-  // Group players by position
+  // Group players by position - simplified
   const playersByPosition = React.useMemo(() => {
     const grouped: Record<Position, PlayerAvailability[]> = {
-      GK: [],
-      LB: [],
-      RB: [],
-      CB: [],
-      CDM: [],
-      CM: [],
-      CAM: [],
-      ST: [],
-      LW: [],
-      RW: [],
+      GK: [], LB: [], RB: [], CB: [], CDM: [], CM: [], CAM: [], ST: [], LW: [], RW: [],
     };
     
     stablePlayers.forEach(player => {
@@ -63,36 +40,23 @@ const FormationView: React.FC<FormationViewProps> = ({ players, theme }) => {
   }, [stablePlayers]);
 
   return (
-    <div className="relative w-full contain-layout">
-      {/* Soccer Field Background */}
-      <div className="relative bg-gradient-to-b from-emerald-100/90 via-green-100/70 to-emerald-100/90 border-2 border-emerald-400/70 rounded-xl p-3 sm:p-5 overflow-hidden shadow-lg min-h-[280px] sm:min-h-[320px] will-change-auto">
-        {/* Field pattern (grass texture effect) */}
-        <div className="absolute inset-0 opacity-30" style={GRASS_PATTERN_STYLE}></div>
-        
-        {/* Field lines */}
-        <div className="absolute inset-0 pointer-events-none">
-          {/* Center circle */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 sm:w-28 sm:h-28 border-2 border-emerald-500/40 rounded-full"></div>
-          {/* Center line */}
-          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-emerald-500/50"></div>
-          {/* Penalty boxes */}
-          <div className="absolute top-0 left-1/4 w-1/2 h-6 sm:h-10 border-l-2 border-r-2 border-b-2 border-emerald-500/40 rounded-b-xl"></div>
-          <div className="absolute bottom-0 left-1/4 w-1/2 h-6 sm:h-10 border-l-2 border-r-2 border-t-2 border-emerald-500/40 rounded-t-xl"></div>
-          {/* Goal areas */}
-          <div className="absolute top-0 left-[35%] w-[30%] h-3 sm:h-5 border-l-2 border-r-2 border-b-2 border-emerald-500/40"></div>
-          <div className="absolute bottom-0 left-[35%] w-[30%] h-3 sm:h-5 border-l-2 border-r-2 border-t-2 border-emerald-500/40"></div>
-        </div>
+    <div className="relative w-full">
+      {/* Simplified Soccer Field - No expensive effects */}
+      <div className="relative bg-gradient-to-b from-emerald-100 via-green-100 to-emerald-100 border-2 border-emerald-400/70 rounded-xl p-3 sm:p-4 overflow-hidden shadow-sm min-h-[240px] sm:min-h-[280px]">
+        {/* Simple center line */}
+        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-emerald-500/40"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 sm:w-20 sm:h-20 border-2 border-emerald-500/30 rounded-full"></div>
 
-        {/* Formation Positions */}
-        <div className="relative space-y-2 sm:space-y-2.5 py-1 contain-layout">
+        {/* Formation Positions - Simplified rendering */}
+        <div className="relative space-y-2 sm:space-y-2.5 py-2">
           {FORMATION_LAYOUT.map(({ row, positions: rowPositions }) => (
             <div
               key={row}
-              className="flex items-center justify-center gap-2 sm:gap-3 will-change-auto"
+              className="flex items-center justify-center gap-2 sm:gap-3"
             >
               {rowPositions.map((pos, idx) => {
                 if (pos === null) {
-                  return <div key={idx} className="w-14 sm:w-20"></div>;
+                  return <div key={idx} className="w-12 sm:w-16"></div>;
                 }
                 const playersAtPosition = playersByPosition[pos] || [];
                 const hasPlayers = playersAtPosition.length > 0;
@@ -100,10 +64,10 @@ const FormationView: React.FC<FormationViewProps> = ({ players, theme }) => {
                 return (
                   <div
                     key={pos}
-                    className="flex flex-col items-center gap-1.5 z-10"
+                    className="flex flex-col items-center gap-1"
                   >
-                    {/* Player cards */}
-                    <div className="flex flex-col gap-0.5 items-center max-h-32 sm:max-h-40 overflow-y-auto custom-scrollbar">
+                    {/* Player cards - Simplified */}
+                    <div className="flex flex-col gap-0.5 items-center max-h-28 sm:max-h-32 overflow-y-auto">
                       {hasPlayers ? (
                         playersAtPosition.map((player) => (
                           <FormationPlayerCard
@@ -113,14 +77,14 @@ const FormationView: React.FC<FormationViewProps> = ({ players, theme }) => {
                           />
                         ))
                       ) : (
-                        <div className="w-16 sm:w-20 h-11 sm:h-12 rounded-md flex items-center justify-center bg-slate-200/40 text-slate-400 border-2 border-dashed border-slate-300/40">
+                        <div className="w-14 sm:w-16 h-10 sm:h-11 rounded-md flex items-center justify-center bg-slate-200/40 text-slate-400 border border-dashed border-slate-300/40">
                           <p className="text-[9px] font-bold">-</p>
                         </div>
                       )}
                     </div>
-                    {/* Position label */}
-                    <div className="text-center bg-white/70 backdrop-blur-sm px-1.5 py-0.5 rounded-md shadow-sm border border-white/80">
-                      <p className={`text-[10px] sm:text-xs font-bold ${
+                    {/* Position label - Simplified */}
+                    <div className="text-center bg-white/80 px-1.5 py-0.5 rounded shadow-sm border border-white/80">
+                      <p className={`text-[9px] sm:text-[10px] font-bold ${
                         hasPlayers ? "text-slate-800" : "text-slate-400"
                       }`}>
                         {pos}
@@ -137,7 +101,7 @@ const FormationView: React.FC<FormationViewProps> = ({ players, theme }) => {
   );
 };
 
-// Player Card Component - memoized for performance
+// Simplified Player Card - No hover effects for faster rendering
 const FormationPlayerCard = React.memo<{
   player: PlayerAvailability;
   theme: FormationViewProps['theme'];
@@ -146,13 +110,13 @@ const FormationPlayerCard = React.memo<{
   
   return (
     <div
-      className={`w-16 sm:w-20 h-11 sm:h-12 rounded-md flex flex-col items-center justify-center p-1 sm:p-1.5 shadow-md transition-all duration-300 transform hover:scale-110 hover:z-20 relative ${theme.badgeBg} ${theme.badgeText} ring-1 ring-white/60`}
+      className={`w-14 sm:w-16 h-10 sm:h-11 rounded-md flex flex-col items-center justify-center p-1 shadow-sm ${theme.badgeBg} ${theme.badgeText} border border-white/60`}
       title={`${player.name} (${player.position}) - Skill: ${player.skillLevel}`}
     >
-      <p className="text-[9px] sm:text-[10px] font-bold truncate w-full text-center leading-tight max-w-[3.5rem]">
+      <p className="text-[8px] sm:text-[9px] font-bold truncate w-full text-center leading-tight">
         {firstName}
       </p>
-      <p className="text-[8px] sm:text-[9px] font-semibold opacity-80">
+      <p className="text-[7px] sm:text-[8px] font-semibold opacity-80">
         S{player.skillLevel}
       </p>
     </div>
@@ -167,31 +131,23 @@ const FormationPlayerCard = React.memo<{
 
 FormationPlayerCard.displayName = 'FormationPlayerCard';
 
-// Custom comparison for FormationView to prevent unnecessary re-renders
+// Simplified comparison
 const areFormationPropsEqual = (prevProps: FormationViewProps, nextProps: FormationViewProps) => {
-  // Quick comparison: check players array length first
   if (prevProps.players.length !== nextProps.players.length) {
     return false;
   }
   
-  // If no players, only compare theme
   if (prevProps.players.length === 0) {
     return prevProps.theme.badgeBg === nextProps.theme.badgeBg &&
            prevProps.theme.badgeText === nextProps.theme.badgeText;
   }
   
-  // Compare all player IDs to ensure they match (quick string comparison)
   const prevIds = prevProps.players.map(p => p?.id || '').filter(Boolean).sort().join(',');
   const nextIds = nextProps.players.map(p => p?.id || '').filter(Boolean).sort().join(',');
-  if (prevIds !== nextIds) {
-    return false;
-  }
   
-  // Compare theme - check all properties
-  return prevProps.theme.badgeBg === nextProps.theme.badgeBg &&
-         prevProps.theme.badgeText === nextProps.theme.badgeText &&
-         prevProps.theme.countText === nextProps.theme.countText;
+  return prevIds === nextIds &&
+         prevProps.theme.badgeBg === nextProps.theme.badgeBg &&
+         prevProps.theme.badgeText === nextProps.theme.badgeText;
 };
 
 export default React.memo(FormationView, areFormationPropsEqual);
-
