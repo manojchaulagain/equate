@@ -138,11 +138,11 @@ const QuestionsConcerns: React.FC<QuestionsConcernsProps> = ({ db, userId, userE
       <div className="relative z-10">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-6">
           <div>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">
               <MessageCircle className="text-blue-600" size={24} />
               Questions & Concerns
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
+            <p className="text-xs sm:text-sm font-medium text-slate-600 mt-2">
               {isAdmin ? "Answer questions from players or ask your own." : "Ask questions or share concerns. Admins will respond."}
             </p>
           </div>

@@ -463,11 +463,11 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div className="flex-1">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">
             <ListChecks className="text-indigo-600 flex-shrink-0" size={20} /> 
             <span className="whitespace-nowrap">Weekly Availability Poll</span>
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
+          <p className="text-xs sm:text-sm font-medium text-slate-600 mt-2">
             Toggle players who are available to play this week.
           </p>
         </div>
@@ -808,13 +808,22 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
 
       {/* Delete Confirmation Modal */}
       {playerToDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-red-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto animate-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999] overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-gradient-to-br from-slate-50/98 via-white/98 to-slate-50/98 backdrop-blur-xl w-[calc(100%-2rem)] max-w-full sm:max-w-md mx-4 my-4 sm:my-8 max-h-[90vh] sm:max-h-[85vh] rounded-3xl shadow-[0_25px_70px_rgba(15,23,42,0.4)] border-2 border-red-200/60 p-5 sm:p-6 md:p-8 relative overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
             {/* Decorative background elements */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
-              <div className="absolute -top-16 -right-16 w-32 h-32 bg-red-200/30 rounded-full blur-3xl"></div>
-              <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-rose-200/30 rounded-full blur-3xl"></div>
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-red-200/40 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-rose-200/40 rounded-full blur-3xl"></div>
             </div>
+            
+            <button
+              onClick={() => setPlayerToDelete(null)}
+              className="absolute top-4 right-4 sm:top-5 sm:right-5 z-30 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center bg-white/95 backdrop-blur-sm border-2 border-slate-200/60 rounded-full shadow-lg hover:shadow-xl hover:bg-white hover:border-slate-300 transition-all duration-200 hover:scale-110 active:scale-95 group"
+              type="button"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5 text-slate-600 group-hover:text-slate-800 transition-colors" />
+            </button>
             
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-4">
@@ -851,7 +860,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
       {/* MOTM Modal */}
       {showMOTMModal && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999] overflow-y-auto animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowMOTMModal(false);
@@ -862,12 +871,12 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
           }}
         >
           <div 
-            className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-slate-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
+            className="bg-gradient-to-br from-slate-50/98 via-white/98 to-slate-50/98 backdrop-blur-xl w-[calc(100%-2rem)] max-w-full sm:max-w-2xl mx-4 my-4 sm:my-8 max-h-[90vh] sm:max-h-[85vh] rounded-3xl shadow-[0_25px_70px_rgba(15,23,42,0.4)] border-2 border-yellow-200/60 p-5 sm:p-6 md:p-8 relative overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
-              <div className="absolute -top-16 -right-16 w-32 h-32 bg-yellow-200/30 rounded-full blur-3xl"></div>
-              <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-amber-200/30 rounded-full blur-3xl"></div>
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-yellow-200/40 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-amber-200/40 rounded-full blur-3xl"></div>
             </div>
             
             <button
@@ -877,11 +886,11 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                 setMotmSelectedPlayer("");
                 setMotmReason("");
               }}
-              className="absolute top-4 right-4 p-2 hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 z-20"
+              className="absolute top-4 right-4 sm:top-5 sm:right-5 z-30 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center bg-white/95 backdrop-blur-sm border-2 border-slate-200/60 rounded-full shadow-lg hover:shadow-xl hover:bg-white hover:border-slate-300 transition-all duration-200 hover:scale-110 active:scale-95 group"
               type="button"
               aria-label="Close modal"
             >
-              <X className="w-5 h-5 text-slate-600" />
+              <X className="w-5 h-5 text-slate-600 group-hover:text-slate-800 transition-colors" />
             </button>
 
             <div className="relative z-10">
@@ -972,7 +981,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
       {/* Kudos Modal */}
       {showKudosModal && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999] overflow-y-auto animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowKudosModal(false);
@@ -983,12 +992,12 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
           }}
         >
           <div 
-            className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-slate-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
+            className="bg-gradient-to-br from-slate-50/98 via-white/98 to-slate-50/98 backdrop-blur-xl w-[calc(100%-2rem)] max-w-full sm:max-w-2xl mx-4 my-4 sm:my-8 max-h-[90vh] sm:max-h-[85vh] rounded-3xl shadow-[0_25px_70px_rgba(15,23,42,0.4)] border-2 border-pink-200/60 p-5 sm:p-6 md:p-8 relative overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
-              <div className="absolute -top-16 -right-16 w-32 h-32 bg-pink-200/30 rounded-full blur-3xl"></div>
-              <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-rose-200/30 rounded-full blur-3xl"></div>
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-pink-200/40 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-rose-200/40 rounded-full blur-3xl"></div>
             </div>
             
             <button
@@ -998,11 +1007,11 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                 setKudosSelectedPlayer("");
                 setKudosMessage("");
               }}
-              className="absolute top-4 right-4 p-2 hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 z-20"
+              className="absolute top-4 right-4 sm:top-5 sm:right-5 z-30 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center bg-white/95 backdrop-blur-sm border-2 border-slate-200/60 rounded-full shadow-lg hover:shadow-xl hover:bg-white hover:border-slate-300 transition-all duration-200 hover:scale-110 active:scale-95 group"
               type="button"
               aria-label="Close modal"
             >
-              <X className="w-5 h-5 text-slate-600" />
+              <X className="w-5 h-5 text-slate-600 group-hover:text-slate-800 transition-colors" />
             </button>
 
             <div className="relative z-10">
@@ -1083,7 +1092,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
       {/* Add Points Modal */}
       {showPointsModal && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999] overflow-y-auto animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowPointsModal(false);
@@ -1095,12 +1104,12 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
           }}
         >
           <div 
-            className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-slate-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
+            className="bg-gradient-to-br from-slate-50/98 via-white/98 to-slate-50/98 backdrop-blur-xl w-[calc(100%-2rem)] max-w-full sm:max-w-2xl mx-4 my-4 sm:my-8 max-h-[90vh] sm:max-h-[85vh] rounded-3xl shadow-[0_25px_70px_rgba(15,23,42,0.4)] border-2 border-amber-200/60 p-5 sm:p-6 md:p-8 relative overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
-              <div className="absolute -top-16 -right-16 w-32 h-32 bg-amber-200/30 rounded-full blur-3xl"></div>
-              <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-orange-200/30 rounded-full blur-3xl"></div>
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-amber-200/40 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-orange-200/40 rounded-full blur-3xl"></div>
             </div>
             
             <button
@@ -1111,11 +1120,11 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                 setPoints("");
                 setPointsReason("");
               }}
-              className="absolute top-4 right-4 p-2 hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 z-20"
+              className="absolute top-4 right-4 sm:top-5 sm:right-5 z-30 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center bg-white/95 backdrop-blur-sm border-2 border-slate-200/60 rounded-full shadow-lg hover:shadow-xl hover:bg-white hover:border-slate-300 transition-all duration-200 hover:scale-110 active:scale-95 group"
               type="button"
               aria-label="Close modal"
             >
-              <X className="w-5 h-5 text-slate-600" />
+              <X className="w-5 h-5 text-slate-600 group-hover:text-slate-800 transition-colors" />
             </button>
 
             <div className="relative z-10">

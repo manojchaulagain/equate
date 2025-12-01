@@ -45,12 +45,12 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-slate-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999] overflow-y-auto animate-in fade-in duration-200">
+      <div className="bg-gradient-to-br from-slate-50/98 via-white/98 to-slate-50/98 backdrop-blur-xl w-[calc(100%-2rem)] max-w-full sm:max-w-2xl mx-4 my-4 sm:my-8 max-h-[90vh] sm:max-h-[85vh] rounded-3xl shadow-[0_25px_70px_rgba(15,23,42,0.4)] border-2 border-amber-200/60 p-5 sm:p-6 md:p-8 relative overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
         {/* Decorative background elements */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
-          <div className="absolute -top-16 -right-16 w-32 h-32 bg-amber-200/30 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-yellow-200/30 rounded-full blur-3xl"></div>
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-amber-200/40 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-yellow-200/40 rounded-full blur-3xl"></div>
         </div>
         
         <div className="relative z-10">

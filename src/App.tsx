@@ -37,17 +37,11 @@ import { TEAM_COLOR_SEQUENCE, getTeamColorLabel } from "./constants/teamColors";
 import AuthUI from "./components/auth/AuthUI";
 import WeeklyAvailabilityPoll from "./components/poll/WeeklyAvailabilityPoll";
 import TeamResults from "./components/teams/TeamResults";
-import UserManagement from "./components/admin/UserManagement";
-import GameSchedule from "./components/admin/GameSchedule";
+import AdminDashboard from "./components/admin/AdminDashboard";
 import SelfRegistrationModal from "./components/players/SelfRegistrationModal";
 import QuestionsConcerns from "./components/questions/QuestionsConcerns";
-import Notifications from "./components/notifications/Notifications";
 import UserNotifications from "./components/notifications/UserNotifications";
-import Leaderboard from "./components/leaderboard/Leaderboard";
-import KudosBoard from "./components/kudos/KudosBoard";
-import ManOfTheMatch from "./components/motm/ManOfTheMatch";
-import GoalsAssistsSubmission from "./components/stats/GoalsAssistsSubmission";
-import GoalsAssistsReview from "./components/admin/GoalsAssistsReview";
+import StatisticsDashboard from "./components/statistics/StatisticsDashboard";
 import GameInfoPanel from "./components/games/GameInfoPanel";
 import { awardGameAttendancePoints, getDateString, processMOTMAwards } from "./utils/gamePoints";
 import { GameSchedule as GameScheduleType } from "./utils/gameSchedule";
@@ -1284,7 +1278,7 @@ export default function App() {
           </div>
 
       <div className="relative z-10 px-2 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        <header className="max-w-5xl mx-auto relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl sm:rounded-[2rem] p-4 sm:p-6 md:p-8 shadow-2xl border border-slate-700/50 z-20">
+        <header className="max-w-5xl mx-auto relative bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-3xl sm:rounded-[2rem] p-5 sm:p-6 md:p-8 lg:p-10 shadow-2xl border-2 border-slate-700/60 z-20">
           {/* Elegant Background with Mountains */}
           <div className="absolute inset-0">
             {/* Subtle gradient overlay */}
@@ -1333,7 +1327,7 @@ export default function App() {
             {/* Club Logo - Centered */}
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-full blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-300"></div>
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full bg-white/10 backdrop-blur-sm shadow-2xl border-[3px] border-amber-300/60 flex items-center justify-center transform hover:scale-105 transition-all duration-300 overflow-hidden">
+              <div className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-full bg-white/10 backdrop-blur-sm shadow-2xl border-[3px] border-amber-300/70 flex items-center justify-center transform hover:scale-110 hover:rotate-3 transition-all duration-300 overflow-hidden ring-4 ring-amber-500/20">
                 <img 
                   src={`${process.env.PUBLIC_URL || ''}/club-logo.png`}
                   alt="Sagarmatha FC Logo" 
@@ -1343,7 +1337,9 @@ export default function App() {
                   }}
                 />
                 {/* Shine effect */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none"></div>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/30 via-transparent to-transparent pointer-events-none"></div>
+                {/* Animated ring */}
+                <div className="absolute inset-0 rounded-full border-2 border-amber-400/40 animate-pulse"></div>
           </div>
         </div>
 
@@ -1369,12 +1365,21 @@ export default function App() {
       </header>
 
       {!isAppReady && (
-          <div className="max-w-4xl mx-auto text-center p-10 bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 shadow-[0_20px_50px_rgba(15,23,42,0.2)]">
-            <p className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-          Initializing application...
-            </p>
+        <div className="max-w-4xl mx-auto mt-12 text-center">
+          <div className="inline-flex flex-col items-center gap-6 p-12 bg-white/80 backdrop-blur-xl rounded-3xl border-2 border-white/60 shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
+            <div className="relative w-20 h-20">
+              <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-transparent border-t-indigo-600 rounded-full animate-spin"></div>
+            </div>
+            <div>
+              <p className="font-bold text-xl sm:text-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+                Initializing application...
+              </p>
+              <p className="text-sm text-slate-600 font-medium">Please wait while we set everything up</p>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Conditional Rendering based on Auth Status */}
       {isAppReady && !userId && auth && (
@@ -1398,19 +1403,10 @@ export default function App() {
                 db={db}
                 teams={teams?.teams || []}
                 userRole={userRole}
+                userId={userId}
+                userEmail={userEmail || ""}
+                players={availability}
                 onNavigateToLeaderboard={() => handleViewChange("leaderboard")}
-                onOpenMOTM={() => {
-                  handleViewChange("poll");
-                  setTimeout(() => setOpenMOTMModal(true), 100);
-                }}
-                onOpenKudos={() => {
-                  handleViewChange("poll");
-                  setTimeout(() => setOpenKudosModal(true), 100);
-                }}
-                onOpenPoints={() => {
-                  handleViewChange("poll");
-                  setTimeout(() => setOpenPointsModal(true), 100);
-                }}
         />
       )}
 
@@ -1448,7 +1444,7 @@ export default function App() {
                       Availability <span className="ml-1">({availableCount})</span>
                     </>
                   )}
-                  {view === "leaderboard" && "Leaderboard"}
+                  {view === "leaderboard" && "Statistics"}
                   {view === "teams" && "Teams"}
                   {view === "questions" && "Questions"}
                   {view === "admin" && "Admin"}
@@ -1473,20 +1469,24 @@ export default function App() {
                   
                   <div className="relative p-5 sm:p-6 space-y-3">
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-2 pb-4 border-b-2 border-gradient-to-r from-slate-200 to-slate-300">
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                          <Menu className="w-5 h-5 text-white" />
-        </div>
-                        <h2 className="font-bold text-xl bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Navigation</h2>
-        </div>
-          <button
+                    <div className="flex items-center justify-between mb-4 pb-4 border-b-2 border-slate-200/60">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-500 flex items-center justify-center shadow-lg ring-2 ring-indigo-200/50">
+                          <Menu className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="font-bold text-xl bg-gradient-to-r from-slate-800 via-indigo-700 to-slate-800 bg-clip-text text-transparent">Navigation</h2>
+                          <p className="text-xs text-slate-500 font-medium">Choose a section</p>
+                        </div>
+                      </div>
+                      <button
                         onClick={() => setMobileMenuOpen(false)}
-                        className="p-2 hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95"
-          >
-                        <X className="w-5 h-5 text-slate-600" />
-          </button>
-        </div>
+                        className="w-10 h-10 flex items-center justify-center hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 group"
+                        aria-label="Close menu"
+                      >
+                        <X className="w-5 h-5 text-slate-600 group-hover:text-slate-800 transition-colors" />
+                      </button>
+                    </div>
                     
                     {/* Menu Items */}
                     <div className="space-y-2.5">
@@ -1523,7 +1523,7 @@ export default function App() {
                         <div className={`p-2 rounded-xl ${view === "leaderboard" ? "bg-white/20" : "bg-amber-100"}`}>
                           <Award className={`w-5 h-5 ${view === "leaderboard" ? "text-white" : "text-amber-600"}`} />
                         </div>
-                        <span className="font-semibold flex-1 text-left">Leaderboard</span>
+                        <span className="font-semibold flex-1 text-left">Statistics</span>
                       </button>
                       
                       <button
@@ -1586,24 +1586,29 @@ export default function App() {
       )}
 
             {/* Desktop Tabs - Hidden on mobile, visible on sm and up */}
-            <nav className="max-w-5xl mx-auto hidden sm:flex flex-row justify-center bg-white/80 backdrop-blur-xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-1 sm:p-1.5 md:p-2 shadow-[0_15px_40px_rgba(15,23,42,0.15)] border border-white/60 border-b-0 gap-1 sm:gap-0 mb-0 relative z-[100]">
+            <nav className="max-w-5xl mx-auto hidden sm:flex flex-row justify-center items-stretch bg-white/90 backdrop-blur-xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-2 sm:p-2.5 md:p-3 shadow-[0_15px_50px_rgba(15,23,42,0.2)] border-2 border-white/80 border-b-0 gap-2 sm:gap-2.5 mb-0 relative z-[100]">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleViewChange("poll");
               }}
               type="button"
-              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-2xl sm:rounded-l-2xl sm:rounded-r-none transition-all duration-300 text-xs sm:text-sm md:text-base relative z-[101] ${
+              className={`group relative px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-bold rounded-xl sm:rounded-2xl sm:rounded-l-2xl sm:rounded-r-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
                 view === "poll"
-                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
-                  : "bg-transparent text-slate-600 hover:bg-indigo-50/60 hover:text-indigo-700"
+                  ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-xl shadow-indigo-500/30 transform scale-[1.05]"
+                  : "bg-white/50 text-slate-600 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-700 hover:shadow-md"
               }`}
             >
-              <span className="flex items-center justify-center">
-                <ListChecks className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" /> 
-                <span className="hidden sm:inline">Availability </span>
+              {view === "poll" && (
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20 animate-pulse"></div>
+              )}
+              <span className="relative flex items-center justify-center gap-2">
+                <ListChecks className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${view === "poll" ? "scale-110" : "group-hover:scale-110"}`} /> 
+                <span className="hidden sm:inline">Availability</span>
                 <span className="sm:hidden">Avail</span>
-                <span className="ml-1">({availableCount})</span>
+                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${view === "poll" ? "bg-white/25" : "bg-indigo-100 text-indigo-700"}`}>
+                  {availableCount}
+                </span>
               </span>
             </button>
             <button
@@ -1612,15 +1617,18 @@ export default function App() {
                 handleViewChange("leaderboard");
               }}
               type="button"
-              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-none transition-all duration-300 text-xs sm:text-sm md:text-base relative z-[101] ${
+              className={`group relative px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-bold rounded-xl sm:rounded-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
                 view === "leaderboard"
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
-                  : "bg-transparent text-slate-600 hover:bg-amber-50/60 hover:text-amber-700"
+                  ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white shadow-xl shadow-amber-500/30 transform scale-[1.05]"
+                  : "bg-white/50 text-slate-600 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 hover:text-amber-700 hover:shadow-md"
               }`}
             >
-              <span className="flex items-center justify-center">
-                <Award className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" /> 
-                <span>Leaderboard</span>
+              {view === "leaderboard" && (
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20 animate-pulse"></div>
+              )}
+              <span className="relative flex items-center justify-center gap-2">
+                <Award className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${view === "leaderboard" ? "scale-110" : "group-hover:scale-110"}`} /> 
+                <span>Statistics</span>
               </span>
             </button>
             <button
@@ -1630,14 +1638,17 @@ export default function App() {
               }}
               type="button"
               disabled={!teams || !teams.teams || teams.teams.length === 0}
-              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed text-xs sm:text-sm md:text-base rounded-xl sm:rounded-none relative z-[101] ${
+              className={`group relative px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-bold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed text-sm sm:text-base md:text-lg rounded-xl sm:rounded-none relative z-[101] overflow-hidden ${
                 view === "teams"
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
-                  : "bg-transparent text-slate-600 hover:bg-amber-50/60 hover:text-amber-700"
+                  ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white shadow-xl shadow-amber-500/30 transform scale-[1.05]"
+                  : "bg-white/50 text-slate-600 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 hover:text-amber-700 hover:shadow-md"
               }`}
             >
-              <span className="flex items-center justify-center">
-                <Trophy className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" /> 
+              {view === "teams" && (
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20 animate-pulse"></div>
+              )}
+              <span className="relative flex items-center justify-center gap-2">
+                <Trophy className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${view === "teams" ? "scale-110" : "group-hover:scale-110"}`} /> 
                 <span>Teams</span>
               </span>
             </button>
@@ -1647,14 +1658,17 @@ export default function App() {
                 handleViewChange("questions");
               }}
               type="button"
-              className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-none transition-all duration-300 text-xs sm:text-sm md:text-base relative z-[101] ${
+              className={`group relative px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-bold rounded-xl sm:rounded-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
                 view === "questions"
-                  ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
-                  : "bg-transparent text-slate-600 hover:bg-blue-50/60 hover:text-blue-700"
+                  ? "bg-gradient-to-r from-blue-500 via-cyan-600 to-blue-500 text-white shadow-xl shadow-blue-500/30 transform scale-[1.05]"
+                  : "bg-white/50 text-slate-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
               }`}
             >
-              <span className="flex items-center justify-center">
-                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" /> 
+              {view === "questions" && (
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20 animate-pulse"></div>
+              )}
+              <span className="relative flex items-center justify-center gap-2">
+                <MessageCircle className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${view === "questions" ? "scale-110" : "group-hover:scale-110"}`} /> 
                 <span className="hidden sm:inline">Questions</span>
                 <span className="sm:hidden">Q&A</span>
               </span>
@@ -1666,14 +1680,17 @@ export default function App() {
                   handleViewChange("admin");
                 }}
                 type="button"
-                className={`px-3 sm:px-4 md:px-5 lg:px-6 py-2.5 sm:py-2.5 md:py-3 min-h-[44px] sm:min-h-0 font-semibold rounded-xl sm:rounded-r-2xl sm:rounded-l-none transition-all duration-300 text-xs sm:text-sm md:text-base relative z-[101] ${
+                className={`group relative px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-bold rounded-xl sm:rounded-r-2xl sm:rounded-l-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
                   view === "admin"
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg transform scale-[1.02] sm:scale-[1.03]"
-                    : "bg-transparent text-slate-600 hover:bg-purple-50/60 hover:text-purple-700"
+                    ? "bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white shadow-xl shadow-purple-500/30 transform scale-[1.05]"
+                    : "bg-white/50 text-slate-600 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-700 hover:shadow-md"
                 }`}
               >
-                <span className="flex items-center justify-center">
-                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" /> 
+                {view === "admin" && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20 animate-pulse"></div>
+                )}
+                <span className="relative flex items-center justify-center gap-2">
+                  <Shield className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${view === "admin" ? "scale-110" : "group-hover:scale-110"}`} /> 
                   <span>Admin</span>
                 </span>
               </button>
@@ -1720,13 +1737,40 @@ export default function App() {
                   onModalOpened={handleModalOpened}
                 />
             )}
-              {view === "teams" && teams && teams.teams?.length > 0 && (
-                <TeamResults
-                  teams={teams.teams}
-                  generatedAt={teams.generatedAt}
-                  onBack={() => handleViewChange("poll")}
-                  isActive={view === "teams"}
-                />
+              {view === "teams" && (
+                teams && teams.teams?.length > 0 ? (
+                  <TeamResults
+                    teams={teams.teams}
+                    generatedAt={teams.generatedAt}
+                    onBack={() => handleViewChange("poll")}
+                    isActive={view === "teams"}
+                  />
+                ) : (
+                  <div className="relative overflow-hidden backdrop-blur-xl p-8 sm:p-12 rounded-b-3xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.15)] -mt-[1px] bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70">
+                    <div className="pointer-events-none absolute inset-0 opacity-60">
+                      <div className="absolute -top-10 right-0 w-56 h-56 bg-amber-200/60 blur-[110px]" />
+                      <div className="absolute bottom-0 left-4 w-64 h-64 bg-pink-200/50 blur-[120px]" />
+                    </div>
+                    <div className="relative z-10 text-center py-12 sm:py-16">
+                      <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 mb-6 bg-gradient-to-br from-amber-100 to-orange-100 rounded-3xl shadow-xl">
+                        <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-amber-600" />
+                      </div>
+                      <h3 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-3">
+                        No Teams Generated Yet
+                      </h3>
+                      <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                        Teams will appear here once an admin generates them from the Availability tab.
+                      </p>
+                      <button
+                        onClick={() => handleViewChange("poll")}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                      >
+                        <ListChecks className="w-5 h-5" />
+                        Go to Availability
+                      </button>
+                    </div>
+                  </div>
+                )
               )}
               {view === "questions" && userId && (
                 <QuestionsConcerns
@@ -1738,70 +1782,24 @@ export default function App() {
                 />
               )}
               {view === "leaderboard" && userId && (
-                <div className="space-y-6">
-                  <Leaderboard
-                    db={db}
-                    userId={userId}
-                    userEmail={userEmail || ""}
-                    userRole={userRole}
-                    players={availability}
-                    isActive={view === "leaderboard"}
-                  />
-                  <GoalsAssistsSubmission
-                    db={db}
-                    userId={userId}
-                    userEmail={userEmail || ""}
-                    players={availability}
-                    gameSchedule={gameSchedule}
-                    userRole={userRole}
-                    isActive={view === "leaderboard"}
-                  />
-                  <KudosBoard
-                    db={db}
-                    userId={userId}
-                    userEmail={userEmail || ""}
-                    userRole={userRole}
-                    players={availability}
-                    isActive={view === "leaderboard"}
-                  />
-                  <ManOfTheMatch
-                    db={db}
-                    userId={userId}
-                    userEmail={userEmail || ""}
-                    userRole={userRole}
-                    players={availability}
-                    isActive={view === "leaderboard"}
-                  />
-                </div>
+                <StatisticsDashboard
+                  db={db}
+                  userId={userId}
+                  userEmail={userEmail || ""}
+                  userRole={userRole}
+                  players={availability}
+                  isActive={view === "leaderboard"}
+                />
               )}
               {view === "admin" && userRole === "admin" && userId && (
-                <div className="space-y-6">
-                  <GameSchedule
-                    db={db}
-                    userId={userId}
-                    userEmail={userEmail || ""}
-                    isActive={view === "admin"}
-                  />
-                  <GoalsAssistsReview
-                    db={db}
-                    currentUserId={userId}
-                    currentUserEmail={userEmail || ""}
-                    isActive={view === "admin"}
-                  />
-                  <Notifications
-                    db={db}
-                    userId={userId}
-                    userEmail={userEmail || ""}
-                    userRole={userRole}
-                    isActive={view === "admin"}
-                  />
-                  <UserManagement
-                    db={db}
-                    currentUserId={userId}
-                    onRoleUpdate={refreshUserRole}
-                    isActive={view === "admin"}
-                  />
-                </div>
+                <AdminDashboard
+                  db={db}
+                  userId={userId}
+                  userEmail={userEmail || ""}
+                  userRole={userRole}
+                  onRoleUpdate={refreshUserRole}
+                  isActive={view === "admin"}
+                />
               )}
             </div>
           </main>
@@ -1810,8 +1808,21 @@ export default function App() {
 
       {/* General Error Display */}
       {isAppReady && userId && error && (
-          <div className="max-w-4xl mx-auto mt-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-2xl text-sm font-semibold text-center shadow-lg">
-          {error}
+        <div className="max-w-5xl mx-auto mt-4 px-4">
+          <div className="relative p-4 sm:p-5 bg-gradient-to-r from-red-50 via-rose-50 to-red-50 border-2 border-red-300/80 text-red-800 rounded-2xl text-sm sm:text-base font-semibold text-center shadow-xl shadow-red-500/20 backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-rose-500 to-red-500 rounded-t-2xl"></div>
+            <div className="flex items-center justify-center gap-3">
+              <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 flex-shrink-0" />
+              <span>{error}</span>
+              <button
+                onClick={() => setError(null)}
+                className="absolute top-2 right-2 p-1.5 hover:bg-red-100 rounded-lg transition-colors duration-200"
+                aria-label="Dismiss error"
+              >
+                <X className="w-4 h-4 text-red-600" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1827,8 +1838,16 @@ export default function App() {
 
         {/* Loading state while checking registration */}
         {isAppReady && userId && checkingRegistration && (
-          <div className="text-center p-10 font-semibold text-xl text-gray-200">
-            Checking registration...
+          <div className="max-w-4xl mx-auto mt-8 text-center p-10">
+            <div className="inline-flex flex-col items-center gap-4 p-8 bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-xl">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 border-4 border-white/20 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-transparent border-t-white rounded-full animate-spin"></div>
+              </div>
+              <p className="font-bold text-lg sm:text-xl text-white drop-shadow-lg">
+                Checking registration...
+              </p>
+            </div>
           </div>
         )}
       </div>

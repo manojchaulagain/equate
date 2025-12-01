@@ -183,11 +183,11 @@ const GoalsAssistsReview: React.FC<GoalsAssistsReviewProps> = ({
       <div className="relative z-10">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6">
           <div>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">
               <Target className="text-purple-600" size={24} />
               Review Goals & Assists
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
+            <p className="text-xs sm:text-sm font-medium text-slate-600 mt-2">
               Review and approve or reject player goal and assist submissions.
             </p>
           </div>

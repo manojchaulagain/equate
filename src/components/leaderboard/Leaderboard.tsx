@@ -425,11 +425,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
         {/* League Table Section - At the very top */}
         <div className="mb-8">
           <div className="mb-4">
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-600 via-yellow-600 to-orange-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-amber-600 via-yellow-600 to-orange-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">
               <Trophy className="text-amber-600" size={24} />
               League Table
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
+            <p className="text-xs sm:text-sm font-medium text-slate-600 mt-2">
               Team standings based on game results. Win = 3 pts | Draw = 1 pt | Loss = 0 pts
             </p>
           </div>
@@ -438,11 +438,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-6">
           <div>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-600 via-yellow-600 to-orange-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-amber-600 via-yellow-600 to-orange-600 bg-clip-text text-transparent pb-2 flex items-center gap-2">
               <Trophy className="text-amber-600" size={24} />
               Leaderboard
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
+            <p className="text-xs sm:text-sm font-medium text-slate-600 mt-2">
               {isAdmin 
                 ? "View player rankings and assign points based on performance." 
                 : availablePlayers.length > 0
@@ -708,7 +708,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
       {/* Add Points Modal */}
       {showAddPointsModal && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999] overflow-y-auto animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowAddPointsModal(false);
@@ -720,13 +720,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
           }}
         >
           <div 
-            className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-slate-200/60 max-w-md w-full p-5 sm:p-6 md:p-7 relative my-auto max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
+            className="bg-gradient-to-br from-slate-50/98 via-white/98 to-slate-50/98 backdrop-blur-xl w-[calc(100%-2rem)] max-w-full sm:max-w-2xl mx-4 my-4 sm:my-8 max-h-[90vh] sm:max-h-[85vh] rounded-3xl shadow-[0_25px_70px_rgba(15,23,42,0.4)] border-2 border-amber-200/60 p-5 sm:p-6 md:p-8 relative overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Decorative background elements */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
-              <div className="absolute -top-16 -right-16 w-32 h-32 bg-amber-200/30 rounded-full blur-3xl"></div>
-              <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-orange-200/30 rounded-full blur-3xl"></div>
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-amber-200/40 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-orange-200/40 rounded-full blur-3xl"></div>
             </div>
             
             <button
@@ -737,11 +737,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
                 setPoints("");
                 setReason("");
               }}
-              className="absolute top-4 right-4 p-2 hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 z-20"
+              className="absolute top-4 right-4 sm:top-5 sm:right-5 z-30 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center bg-white/95 backdrop-blur-sm border-2 border-slate-200/60 rounded-full shadow-lg hover:shadow-xl hover:bg-white hover:border-slate-300 transition-all duration-200 hover:scale-110 active:scale-95 group"
               type="button"
               aria-label="Close modal"
             >
-              <X className="w-5 h-5 text-slate-600" />
+              <X className="w-5 h-5 text-slate-600 group-hover:text-slate-800 transition-colors" />
             </button>
 
             <div className="relative z-10">

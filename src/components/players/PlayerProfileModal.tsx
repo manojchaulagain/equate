@@ -115,7 +115,7 @@ const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999] overflow-y-auto animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
@@ -123,22 +123,22 @@ const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
       }}
     >
       <div
-        className="bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.3)] border-2 border-slate-200/60 max-w-4xl w-full p-5 sm:p-6 md:p-7 relative my-auto max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
+        className="bg-gradient-to-br from-slate-50/98 via-white/98 to-slate-50/98 backdrop-blur-xl w-[calc(100%-2rem)] max-w-full sm:max-w-4xl mx-4 my-4 sm:my-8 max-h-[90vh] sm:max-h-[85vh] rounded-3xl shadow-[0_25px_70px_rgba(15,23,42,0.4)] border-2 border-indigo-200/60 p-5 sm:p-6 md:p-8 relative overflow-y-auto animate-in slide-in-from-bottom-4 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Decorative background */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
-          <div className="absolute -top-16 -right-16 w-32 h-32 bg-indigo-200/30 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-purple-200/30 rounded-full blur-3xl"></div>
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-200/40 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-purple-200/40 rounded-full blur-3xl"></div>
         </div>
 
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 hover:bg-slate-200/60 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 z-20"
+          className="absolute top-4 right-4 sm:top-5 sm:right-5 z-30 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center bg-white/95 backdrop-blur-sm border-2 border-slate-200/60 rounded-full shadow-lg hover:shadow-xl hover:bg-white hover:border-slate-300 transition-all duration-200 hover:scale-110 active:scale-95 group"
           type="button"
           aria-label="Close modal"
         >
-          <X className="w-5 h-5 text-slate-600" />
+          <X className="w-5 h-5 text-slate-600 group-hover:text-slate-800 transition-colors" />
         </button>
 
         <div className="relative z-10">
