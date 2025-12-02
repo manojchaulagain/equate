@@ -541,7 +541,7 @@ const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 mb-4" style={{ 
+    <div className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4" style={{ 
       minHeight: showGameCompletePanel ? 'auto' : '180px',
       contain: 'layout style paint'
     }}>

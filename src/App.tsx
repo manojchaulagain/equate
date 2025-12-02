@@ -373,7 +373,7 @@ const NotificationsBanner: React.FC<{ db: any }> = React.memo(({ db }) => {
   // Reserve consistent space - use minHeight based on max notifications (3) to prevent CLS
   return (
     <div 
-      className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 mb-4 space-y-2"
+      className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 space-y-2"
       style={{ 
         minHeight: criticalNotifications.length === 0 ? '0px' : 'auto',
         contain: 'layout style paint'
@@ -1427,7 +1427,7 @@ export default function App() {
           contain: 'layout style paint'
         }}
       >
-        <header className="max-w-5xl mx-auto relative bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-3xl sm:rounded-[2rem] p-5 sm:p-6 md:p-8 lg:p-10 shadow-2xl border-2 border-slate-700/60 z-20">
+        <header className="max-w-5xl mx-auto relative bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-3xl sm:rounded-[2rem] p-5 sm:p-6 md:p-8 lg:p-10 shadow-2xl border-2 border-slate-700/60 z-20 overflow-hidden">
           {/* Elegant Background with Mountains */}
           <div className="absolute inset-0">
             {/* Subtle gradient overlay */}
@@ -1560,11 +1560,11 @@ export default function App() {
                 userEmail={userEmail || ""}
                 players={availability}
                 onNavigateToLeaderboard={() => handleViewChange("leaderboard")}
-        />
-      )}
+              />
+            )}
 
             {/* Mobile Hamburger Menu Button - Visible only on mobile (below 640px) */}
-            <div className="max-w-5xl mx-auto mb-2 px-2 mt-2 relative" style={{ display: 'block', zIndex: 45 }}>
+            <div className="max-w-5xl mx-auto mb-2 px-2 mt-2 sm:mt-0 sm:mb-0 relative" style={{ display: 'block', zIndex: 45 }}>
           <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1740,33 +1740,40 @@ export default function App() {
 
             {/* Desktop Tabs - Hidden on mobile, visible on sm and up */}
             <nav 
-              className="max-w-5xl mx-auto hidden sm:flex flex-row justify-center items-stretch bg-white/90 backdrop-blur-xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-2 sm:p-2.5 md:p-3 shadow-[0_15px_50px_rgba(15,23,42,0.2)] border-2 border-white/80 border-b-0 gap-2 sm:gap-2.5 mb-0 relative z-[100]"
+              className="max-w-5xl mx-auto hidden sm:flex flex-row justify-center items-stretch bg-gradient-to-b from-white/95 via-white/90 to-white/95 backdrop-blur-2xl rounded-t-2xl sm:rounded-t-3xl rounded-b-none p-2.5 sm:p-3 md:p-3.5 shadow-[0_10px_40px_rgba(15,23,42,0.15),0_0_0_1px_rgba(255,255,255,0.5)_inset] gap-1.5 sm:gap-2 mb-0 relative z-[100]"
               style={{ 
                 height: '72px',
                 contain: 'layout style paint',
                 boxSizing: 'border-box'
               }}
             >
+              {/* Decorative gradient line at top */}
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-indigo-400/30 via-purple-400/40 to-indigo-400/30 rounded-t-2xl sm:rounded-t-3xl"></div>
+              {/* Subtle bottom border that connects with content */}
+              <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-300/30 to-transparent"></div>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleViewChange("poll");
               }}
               type="button"
-              className={`group relative px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-bold rounded-xl sm:rounded-2xl sm:rounded-l-2xl sm:rounded-r-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
+              className={`group relative px-5 sm:px-6 md:px-7 lg:px-9 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-semibold rounded-xl sm:rounded-2xl sm:rounded-l-2xl sm:rounded-r-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
                 view === "poll"
-                  ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-xl shadow-indigo-500/30 transform scale-[1.05]"
-                  : "bg-white/50 text-slate-600 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-700 hover:shadow-md"
+                  ? "bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-[0_8px_24px_rgba(99,102,241,0.4),0_0_0_1px_rgba(255,255,255,0.1)_inset] ring-2 ring-indigo-400/50"
+                  : "bg-white/60 text-slate-700 hover:bg-gradient-to-br hover:from-indigo-50/80 hover:via-purple-50/80 hover:to-indigo-50/80 hover:text-indigo-800 hover:shadow-lg hover:ring-1 hover:ring-indigo-200/50 border border-transparent hover:border-indigo-100/50"
               }`}
             >
               {view === "poll" && (
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20 animate-pulse"></div>
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/25 via-white/10 to-transparent"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
+                </>
               )}
-              <span className="relative flex items-center justify-center gap-2">
-                <ListChecks className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${view === "poll" ? "scale-110" : "group-hover:scale-110"}`} /> 
-                <span className="hidden sm:inline">Availability</span>
-                <span className="sm:hidden">Avail</span>
-                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${view === "poll" ? "bg-white/25" : "bg-indigo-100 text-indigo-700"}`}>
+              <span className="relative flex items-center justify-center gap-2.5">
+                <ListChecks className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${view === "poll" ? "scale-110 drop-shadow-lg" : "group-hover:scale-110 text-indigo-600"}`} /> 
+                <span className="hidden sm:inline font-semibold">Availability</span>
+                <span className="sm:hidden font-semibold">Avail</span>
+                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-300 ${view === "poll" ? "bg-white/30 text-white shadow-md backdrop-blur-sm" : "bg-indigo-100/80 text-indigo-700 group-hover:bg-indigo-200/80"}`}>
                   {availableCount}
                 </span>
               </span>
@@ -1777,18 +1784,21 @@ export default function App() {
                 handleViewChange("leaderboard");
               }}
               type="button"
-              className={`group relative px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-bold rounded-xl sm:rounded-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
+              className={`group relative px-5 sm:px-6 md:px-7 lg:px-9 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-semibold rounded-xl sm:rounded-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
                 view === "leaderboard"
-                  ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white shadow-xl shadow-amber-500/30 transform scale-[1.05]"
-                  : "bg-white/50 text-slate-600 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 hover:text-amber-700 hover:shadow-md"
+                  ? "bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white shadow-[0_8px_24px_rgba(245,158,11,0.4),0_0_0_1px_rgba(255,255,255,0.1)_inset] ring-2 ring-amber-400/50"
+                  : "bg-white/60 text-slate-700 hover:bg-gradient-to-br hover:from-amber-50/80 hover:via-orange-50/80 hover:to-amber-50/80 hover:text-amber-800 hover:shadow-lg hover:ring-1 hover:ring-amber-200/50 border border-transparent hover:border-amber-100/50"
               }`}
             >
               {view === "leaderboard" && (
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20 animate-pulse"></div>
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/25 via-white/10 to-transparent"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
+                </>
               )}
-              <span className="relative flex items-center justify-center gap-2">
-                <Award className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${view === "leaderboard" ? "scale-110" : "group-hover:scale-110"}`} /> 
-                <span>Statistics</span>
+              <span className="relative flex items-center justify-center gap-2.5">
+                <Award className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${view === "leaderboard" ? "scale-110 drop-shadow-lg" : "group-hover:scale-110 text-amber-600"}`} /> 
+                <span className="font-semibold">Statistics</span>
               </span>
             </button>
             <button
@@ -1798,18 +1808,21 @@ export default function App() {
               }}
               type="button"
               disabled={!teams || !teams.teams || teams.teams.length === 0}
-              className={`group relative px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-bold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed text-sm sm:text-base md:text-lg rounded-xl sm:rounded-none relative z-[101] overflow-hidden ${
+              className={`group relative px-5 sm:px-6 md:px-7 lg:px-9 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed text-sm sm:text-base md:text-lg rounded-xl sm:rounded-none relative z-[101] overflow-hidden ${
                 view === "teams"
-                  ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white shadow-xl shadow-amber-500/30 transform scale-[1.05]"
-                  : "bg-white/50 text-slate-600 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 hover:text-amber-700 hover:shadow-md"
+                  ? "bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white shadow-[0_8px_24px_rgba(245,158,11,0.4),0_0_0_1px_rgba(255,255,255,0.1)_inset] ring-2 ring-amber-400/50"
+                  : "bg-white/60 text-slate-700 hover:bg-gradient-to-br hover:from-amber-50/80 hover:via-orange-50/80 hover:to-amber-50/80 hover:text-amber-800 hover:shadow-lg hover:ring-1 hover:ring-amber-200/50 border border-transparent hover:border-amber-100/50"
               }`}
             >
               {view === "teams" && (
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20 animate-pulse"></div>
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/25 via-white/10 to-transparent"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
+                </>
               )}
-              <span className="relative flex items-center justify-center gap-2">
-                <Trophy className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${view === "teams" ? "scale-110" : "group-hover:scale-110"}`} /> 
-                <span>Teams</span>
+              <span className="relative flex items-center justify-center gap-2.5">
+                <Trophy className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${view === "teams" ? "scale-110 drop-shadow-lg" : "group-hover:scale-110 text-amber-600"}`} /> 
+                <span className="font-semibold">Teams</span>
               </span>
             </button>
             <button
@@ -1818,19 +1831,22 @@ export default function App() {
                 handleViewChange("questions");
               }}
               type="button"
-              className={`group relative px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-bold rounded-xl sm:rounded-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
+              className={`group relative px-5 sm:px-6 md:px-7 lg:px-9 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-semibold rounded-xl sm:rounded-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
                 view === "questions"
-                  ? "bg-gradient-to-r from-blue-500 via-cyan-600 to-blue-500 text-white shadow-xl shadow-blue-500/30 transform scale-[1.05]"
-                  : "bg-white/50 text-slate-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
+                  ? "bg-gradient-to-br from-blue-500 via-cyan-600 to-blue-600 text-white shadow-[0_8px_24px_rgba(59,130,246,0.4),0_0_0_1px_rgba(255,255,255,0.1)_inset] ring-2 ring-blue-400/50"
+                  : "bg-white/60 text-slate-700 hover:bg-gradient-to-br hover:from-blue-50/80 hover:via-cyan-50/80 hover:to-blue-50/80 hover:text-blue-800 hover:shadow-lg hover:ring-1 hover:ring-blue-200/50 border border-transparent hover:border-blue-100/50"
               }`}
             >
               {view === "questions" && (
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20 animate-pulse"></div>
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/25 via-white/10 to-transparent"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
+                </>
               )}
-              <span className="relative flex items-center justify-center gap-2">
-                <MessageCircle className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${view === "questions" ? "scale-110" : "group-hover:scale-110"}`} /> 
-                <span className="hidden sm:inline">Questions</span>
-                <span className="sm:hidden">Q&A</span>
+              <span className="relative flex items-center justify-center gap-2.5">
+                <MessageCircle className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${view === "questions" ? "scale-110 drop-shadow-lg" : "group-hover:scale-110 text-blue-600"}`} /> 
+                <span className="hidden sm:inline font-semibold">Questions</span>
+                <span className="sm:hidden font-semibold">Q&A</span>
               </span>
             </button>
             {/* Admin button - Always render to prevent layout shift, hide when not admin */}
@@ -1840,41 +1856,45 @@ export default function App() {
                 handleViewChange("admin");
               }}
               type="button"
-              className={`group relative px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-bold rounded-xl sm:rounded-r-2xl sm:rounded-l-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
+              className={`group relative px-5 sm:px-6 md:px-7 lg:px-9 py-3 sm:py-3.5 md:py-4 min-h-[52px] font-semibold rounded-xl sm:rounded-r-2xl sm:rounded-l-none transition-all duration-300 text-sm sm:text-base md:text-lg relative z-[101] overflow-hidden ${
                 userRole === "admin"
                   ? view === "admin"
-                    ? "bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white shadow-xl shadow-purple-500/30 transform scale-[1.05]"
-                    : "bg-white/50 text-slate-600 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-700 hover:shadow-md"
+                    ? "bg-gradient-to-br from-purple-600 via-pink-600 to-purple-700 text-white shadow-[0_8px_24px_rgba(168,85,247,0.4),0_0_0_1px_rgba(255,255,255,0.1)_inset] ring-2 ring-purple-400/50"
+                    : "bg-white/60 text-slate-700 hover:bg-gradient-to-br hover:from-purple-50/80 hover:via-pink-50/80 hover:to-purple-50/80 hover:text-purple-800 hover:shadow-lg hover:ring-1 hover:ring-purple-200/50 border border-transparent hover:border-purple-100/50"
                   : "opacity-0 pointer-events-none invisible"
               }`}
               disabled={userRole !== "admin"}
               aria-hidden={userRole !== "admin"}
             >
               {view === "admin" && userRole === "admin" && (
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20 animate-pulse"></div>
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/25 via-white/10 to-transparent"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
+                </>
               )}
-              <span className="relative flex items-center justify-center gap-2">
-                <Shield className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${view === "admin" ? "scale-110" : "group-hover:scale-110"}`} /> 
-                <span>Admin</span>
+              <span className="relative flex items-center justify-center gap-2.5">
+                <Shield className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${view === "admin" ? "scale-110 drop-shadow-lg" : "group-hover:scale-110 text-purple-600"}`} /> 
+                <span className="font-semibold">Admin</span>
               </span>
             </button>
           </nav>
 
           {/* Content Area */}
           <main 
-            className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 -mt-[1px] relative" 
+            className="max-w-5xl mx-auto px-2 sm:px-3 md:px-4 relative" 
             style={{ 
               minHeight: '600px',
-              contain: 'layout style paint',
-              marginTop: '-1px' // Ensure consistent spacing
+              contain: 'layout style paint'
             }}
           >
+            {/* Decorative connection line between tabs and content */}
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-300/30 to-transparent"></div>
             <div 
               className={`transition-all duration-500 ease-in-out ${
                 slideDirection === "left"
-                  ? "translate-x-full opacity-0"
+                  ? "translate-x-full opacity-0 pointer-events-none"
                   : slideDirection === "right"
-                  ? "-translate-x-full opacity-0"
+                  ? "-translate-x-full opacity-0 pointer-events-none"
                   : "translate-x-0 opacity-100"
               }`}
               style={{ 
