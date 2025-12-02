@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback, startTransition } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback, startTransition, Suspense, lazy } from "react";
 import { ListChecks, Trophy, LogOut, Shield, Info, MessageCircle, AlertTriangle, X, Award, Menu } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
@@ -37,17 +37,19 @@ import { POSITIONS } from "./constants/player";
 import { TEAM_COLOR_SEQUENCE, getTeamColorLabel } from "./constants/teamColors";
 import AuthUI from "./components/auth/AuthUI";
 import WeeklyAvailabilityPoll from "./components/poll/WeeklyAvailabilityPoll";
-import TeamResults from "./components/teams/TeamResults";
-import AdminDashboard from "./components/admin/AdminDashboard";
 import SelfRegistrationModal from "./components/players/SelfRegistrationModal";
-import QuestionsConcerns from "./components/questions/QuestionsConcerns";
-import UserNotifications from "./components/notifications/UserNotifications";
-import StatisticsDashboard from "./components/statistics/StatisticsDashboard";
-import GameInfoPanel from "./components/games/GameInfoPanel";
 import { awardGameAttendancePoints, getDateString, processMOTMAwards } from "./utils/gamePoints";
 import { GameSchedule as GameScheduleType } from "./utils/gameSchedule";
 import { sendGameReminders } from "./utils/gameReminders";
 import { FirestorePaths } from "./utils/firestorePaths";
+
+// Lazy load heavy components for code splitting
+const TeamResults = lazy(() => import("./components/teams/TeamResults"));
+const AdminDashboard = lazy(() => import("./components/admin/AdminDashboard"));
+const QuestionsConcerns = lazy(() => import("./components/questions/QuestionsConcerns"));
+const StatisticsDashboard = lazy(() => import("./components/statistics/StatisticsDashboard"));
+const GameInfoPanel = lazy(() => import("./components/games/GameInfoPanel"));
+const UserNotifications = lazy(() => import("./components/notifications/UserNotifications"));
 
 // --- GLOBAL CANVAS VARIABLES (Mandatory) ---
 declare const __app_id: string;
@@ -484,7 +486,29 @@ export default function App() {
     try {
       const firebaseConfig = __firebase_config;
       const app = initializeApp(firebaseConfig);
-      getAnalytics(app);
+      
+      // Defer Analytics initialization to not block initial render
+      // Initialize analytics asynchronously after initial render
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        requestIdleCallback(() => {
+          try {
+            getAnalytics(app);
+          } catch (e) {
+            // Analytics might fail in some environments, don't block app
+            console.warn("Analytics initialization failed:", e);
+          }
+        });
+      } else {
+        // Fallback for browsers without requestIdleCallback
+        setTimeout(() => {
+          try {
+            getAnalytics(app);
+          } catch (e) {
+            console.warn("Analytics initialization failed:", e);
+          }
+        }, 1000);
+      }
+      
       const firestore = getFirestore(app);
       const authInstance = getAuth(app);
 
@@ -1460,7 +1484,9 @@ export default function App() {
           {/* Top Right Corner - Profile and Info */}
           {userId && userEmail && (
             <div className="absolute top-2 right-2 sm:top-4 sm:right-4 md:top-6 md:right-6 flex items-center gap-1.5 sm:gap-2 md:gap-3 z-30" style={{ overflow: 'visible' }}>
-              <UserNotifications db={db} userId={userId} />
+              <Suspense fallback={<div className="w-8 h-8 rounded-full bg-white/10 animate-pulse" />}>
+                <UserNotifications db={db} userId={userId} />
+              </Suspense>
               <InfoTooltip />
               <ProfileMenu
                 userEmail={userEmail}
@@ -1518,21 +1544,21 @@ export default function App() {
       </header>
 
       {!isAppReady && (
-        <div className="max-w-4xl mx-auto mt-12 text-center">
-          <div className="inline-flex flex-col items-center gap-6 p-12 bg-white/80 backdrop-blur-xl rounded-3xl border-2 border-white/60 shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
-            <div className="relative w-20 h-20">
-              <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
+        <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 z-50">
+          <div className="text-center px-4">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 border-4 border-indigo-200/30 rounded-full"></div>
               <div className="absolute inset-0 border-4 border-transparent border-t-indigo-600 rounded-full animate-spin"></div>
-          </div>
-                <div>
-              <p className="font-bold text-xl sm:text-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-                Initializing application...
+            </div>
+            <div>
+              <p className="font-bold text-xl sm:text-2xl bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent mb-2">
+                Loading Sagarmatha FC...
               </p>
-              <p className="text-sm text-slate-600 font-medium">Please wait while we set everything up</p>
-                </div>
-                  </div>
+              <p className="text-sm text-slate-400 font-medium">Please wait while we set everything up</p>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Conditional Rendering based on Auth Status */}
       {isAppReady && !userId && auth && (
@@ -1552,15 +1578,24 @@ export default function App() {
             
             {/* Game Info Panel - Above tabs */}
             {userId && (
-              <GameInfoPanel
-                db={db}
-                teams={teams?.teams || []}
-                userRole={userRole}
-                userId={userId}
-                userEmail={userEmail || ""}
-                players={availability}
-                onNavigateToLeaderboard={() => handleViewChange("leaderboard")}
-              />
+              <Suspense fallback={
+                <div className="max-w-5xl mx-auto mb-4 px-2 sm:px-3 md:px-4">
+                  <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 animate-pulse">
+                    <div className="h-6 bg-slate-200 rounded w-1/3 mb-3"></div>
+                    <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              }>
+                <GameInfoPanel
+                  db={db}
+                  teams={teams?.teams || []}
+                  userRole={userRole}
+                  userId={userId}
+                  userEmail={userEmail || ""}
+                  players={availability}
+                  onNavigateToLeaderboard={() => handleViewChange("leaderboard")}
+                />
+              </Suspense>
             )}
 
             {/* Mobile Hamburger Menu Button - Visible only on mobile (below 640px) */}
@@ -1932,23 +1967,34 @@ export default function App() {
                 />
             )}
               {view === "teams" && (
-                teamsLoading ? (
-                  <TeamResults
-                    teams={[]}
-                    generatedAt={undefined}
-                    onBack={() => handleViewChange("poll")}
-                    isActive={view === "teams"}
-                    isLoading={true}
-                  />
-                ) : teams && teams.teams?.length > 0 ? (
-                  <TeamResults
-                    teams={teams.teams}
-                    generatedAt={teams.generatedAt}
-                    onBack={() => handleViewChange("poll")}
-                    isActive={view === "teams"}
-                    isLoading={false}
-                  />
-                ) : (
+                <Suspense fallback={
+                  <div className="relative overflow-hidden backdrop-blur-xl p-8 sm:p-12 rounded-b-3xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.15)] -mt-[1px] bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70 min-h-[400px]">
+                    <div className="relative z-10 text-center py-12 sm:py-16">
+                      <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 mb-6 bg-gradient-to-br from-amber-100 to-orange-100 rounded-3xl shadow-xl animate-pulse">
+                        <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-amber-600" />
+                      </div>
+                      <div className="h-8 bg-amber-200 rounded w-64 mx-auto mb-4 animate-pulse"></div>
+                      <div className="h-4 bg-amber-200 rounded w-96 mx-auto animate-pulse"></div>
+                    </div>
+                  </div>
+                }>
+                  {teamsLoading ? (
+                    <TeamResults
+                      teams={[]}
+                      generatedAt={undefined}
+                      onBack={() => handleViewChange("poll")}
+                      isActive={view === "teams"}
+                      isLoading={true}
+                    />
+                  ) : teams && teams.teams?.length > 0 ? (
+                    <TeamResults
+                      teams={teams.teams}
+                      generatedAt={teams.generatedAt}
+                      onBack={() => handleViewChange("poll")}
+                      isActive={view === "teams"}
+                      isLoading={false}
+                    />
+                  ) : (
                   <div className="relative overflow-hidden backdrop-blur-xl p-8 sm:p-12 rounded-b-3xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.15)] -mt-[1px] bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70 min-h-[400px]">
                     <div className="pointer-events-none absolute inset-0 opacity-60">
                       <div className="absolute -top-10 right-0 w-56 h-56 bg-amber-200/60 blur-[110px]" />
@@ -1973,37 +2019,74 @@ export default function App() {
                       </button>
                     </div>
                   </div>
-                )
+                  )}
+                </Suspense>
               )}
               {view === "questions" && userId && (
-                <QuestionsConcerns
-                  db={db}
-                  userId={userId}
-                  userEmail={userEmail || ""}
-                  userRole={userRole}
-                  isActive={view === "questions"}
-                />
+                <Suspense fallback={
+                  <div className="relative overflow-hidden backdrop-blur-xl p-8 sm:p-12 rounded-b-3xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.15)] -mt-[1px] bg-gradient-to-br from-blue-50/95 via-cyan-50/95 to-blue-50/95 border-l-2 border-r-2 border-b-2 border-blue-500/70 min-h-[400px]">
+                    <div className="relative z-10 text-center py-12 sm:py-16">
+                      <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 mb-6 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-3xl shadow-xl animate-pulse">
+                        <MessageCircle className="w-10 h-10 sm:w-12 sm:h-12 text-blue-600" />
+                      </div>
+                      <div className="h-8 bg-blue-200 rounded w-64 mx-auto mb-4 animate-pulse"></div>
+                      <div className="h-4 bg-blue-200 rounded w-96 mx-auto animate-pulse"></div>
+                    </div>
+                  </div>
+                }>
+                  <QuestionsConcerns
+                    db={db}
+                    userId={userId}
+                    userEmail={userEmail || ""}
+                    userRole={userRole}
+                    isActive={view === "questions"}
+                  />
+                </Suspense>
               )}
               {view === "leaderboard" && userId && (
-                <StatisticsDashboard
-                  db={db}
-                  userId={userId}
-                  userEmail={userEmail || ""}
-                  userRole={userRole}
-                  players={availability}
-                  isActive={view === "leaderboard"}
-                />
+                <Suspense fallback={
+                  <div className="relative overflow-hidden backdrop-blur-xl p-8 sm:p-12 rounded-b-3xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.15)] -mt-[1px] bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-amber-50/95 border-l-2 border-r-2 border-b-2 border-amber-500/70 min-h-[400px]">
+                    <div className="relative z-10 text-center py-12 sm:py-16">
+                      <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 mb-6 bg-gradient-to-br from-amber-100 to-orange-100 rounded-3xl shadow-xl animate-pulse">
+                        <Award className="w-10 h-10 sm:w-12 sm:h-12 text-amber-600" />
+                      </div>
+                      <div className="h-8 bg-amber-200 rounded w-64 mx-auto mb-4 animate-pulse"></div>
+                      <div className="h-4 bg-amber-200 rounded w-96 mx-auto animate-pulse"></div>
+                    </div>
+                  </div>
+                }>
+                  <StatisticsDashboard
+                    db={db}
+                    userId={userId}
+                    userEmail={userEmail || ""}
+                    userRole={userRole}
+                    players={availability}
+                    isActive={view === "leaderboard"}
+                  />
+                </Suspense>
               )}
               {view === "admin" && userRole === "admin" && userId && (
-                <AdminDashboard
-                  db={db}
-                  userId={userId}
-                  userEmail={userEmail || ""}
-                  userRole={userRole}
-                  onRoleUpdate={refreshUserRole}
-                  players={availability}
-                  isActive={view === "admin"}
-                />
+                <Suspense fallback={
+                  <div className="relative overflow-hidden backdrop-blur-xl p-8 sm:p-12 rounded-b-3xl rounded-t-none shadow-[0_20px_60px_rgba(15,23,42,0.15)] -mt-[1px] bg-gradient-to-br from-purple-50/95 via-pink-50/95 to-purple-50/95 border-l-2 border-r-2 border-b-2 border-purple-500/70 min-h-[400px]">
+                    <div className="relative z-10 text-center py-12 sm:py-16">
+                      <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 mb-6 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl shadow-xl animate-pulse">
+                        <Shield className="w-10 h-10 sm:w-12 sm:h-12 text-purple-600" />
+                      </div>
+                      <div className="h-8 bg-purple-200 rounded w-64 mx-auto mb-4 animate-pulse"></div>
+                      <div className="h-4 bg-purple-200 rounded w-96 mx-auto animate-pulse"></div>
+                    </div>
+                  </div>
+                }>
+                  <AdminDashboard
+                    db={db}
+                    userId={userId}
+                    userEmail={userEmail || ""}
+                    userRole={userRole}
+                    onRoleUpdate={refreshUserRole}
+                    players={availability}
+                    isActive={view === "admin"}
+                  />
+                </Suspense>
               )}
             </div>
           </main>
