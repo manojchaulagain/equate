@@ -31,8 +31,8 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
     // Validate jersey number if provided
     if (jerseyNumber !== undefined && jerseyNumber !== null) {
       const num = Number(jerseyNumber);
-      if (isNaN(num) || num < 1 || num > 99 || !Number.isInteger(num)) {
-        setError("Jersey number must be between 1 and 99.");
+      if (isNaN(num) || num < 0 || num > 99 || !Number.isInteger(num)) {
+        setError("Jersey number must be between 0 and 99.");
         return;
       }
     }
@@ -134,7 +134,7 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
             </label>
             <input
               type="number"
-              placeholder="Enter jersey number (1-99)"
+              placeholder="Enter jersey number (0-99)"
               value={jerseyNumber ?? ""}
               onChange={(e) => {
                 const value = e.target.value;
@@ -148,7 +148,7 @@ const SelfRegistrationModal: React.FC<SelfRegistrationModalProps> = ({
                 }
                 setError(null);
               }}
-              min="1"
+              min="0"
               max="99"
               className="w-full p-3 border-2 border-slate-300 rounded-xl bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition duration-150 shadow-sm hover:shadow-md placeholder:text-gray-400"
               disabled={isSaving}

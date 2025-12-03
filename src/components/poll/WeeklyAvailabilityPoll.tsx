@@ -698,7 +698,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                   >
                     {player.name}
                   </p>
-                  {player.jerseyNumber && (
+                  {player.jerseyNumber !== undefined && player.jerseyNumber !== null && (
                     <span className={`flex-shrink-0 px-2.5 py-1 rounded-xl text-xs font-black shadow-md border-2 border-white/30 ${
                       player.isAvailable 
                         ? "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700 text-white" 

@@ -639,7 +639,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
                         </p>
                         {(() => {
                           const fullPlayer = players.find(p => p.id === player.playerId);
-                          return fullPlayer?.jerseyNumber ? (
+                          return fullPlayer?.jerseyNumber !== undefined && fullPlayer?.jerseyNumber !== null ? (
                             <span className="flex-shrink-0 px-2.5 py-1 rounded-xl text-xs font-black bg-gradient-to-br from-amber-500 via-orange-600 to-amber-700 text-white shadow-md border-2 border-white/30">
                               #{fullPlayer.jerseyNumber}
                             </span>

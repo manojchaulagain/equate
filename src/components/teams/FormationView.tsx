@@ -111,9 +111,9 @@ const FormationPlayerCard = React.memo<{
   return (
     <div
       className={`w-14 sm:w-16 h-10 sm:h-11 rounded-md flex flex-col items-center justify-center p-1 shadow-sm ${theme.badgeBg} ${theme.badgeText} border border-white/60 relative`}
-      title={`${player.name} (${player.position}) - Skill: ${player.skillLevel}${player.jerseyNumber ? ` - #${player.jerseyNumber}` : ''}`}
+      title={`${player.name} (${player.position}) - Skill: ${player.skillLevel}${player.jerseyNumber !== undefined && player.jerseyNumber !== null ? ` - #${player.jerseyNumber}` : ''}`}
     >
-      {player.jerseyNumber && (
+      {player.jerseyNumber !== undefined && player.jerseyNumber !== null && (
         <div className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white border-2 border-white shadow-md flex items-center justify-center z-10">
           <span className="text-[8px] sm:text-[9px] font-black text-slate-800">
             {player.jerseyNumber}

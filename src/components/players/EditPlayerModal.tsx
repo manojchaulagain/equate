@@ -33,8 +33,8 @@ const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
     // Validate jersey number if provided
     if (jerseyNumber !== undefined && jerseyNumber !== null) {
       const num = Number(jerseyNumber);
-      if (isNaN(num) || num < 1 || num > 99 || !Number.isInteger(num)) {
-        setError("Jersey number must be between 1 and 99.");
+      if (isNaN(num) || num < 0 || num > 99 || !Number.isInteger(num)) {
+        setError("Jersey number must be between 0 and 99.");
         return;
       }
     }
@@ -129,7 +129,7 @@ const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
             </label>
             <input
               type="number"
-              placeholder="Enter jersey number (1-99)"
+              placeholder="Enter jersey number (0-99)"
               value={jerseyNumber ?? ""}
               onChange={(e) => {
                 const value = e.target.value;
@@ -143,7 +143,7 @@ const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                 }
                 setError(null);
               }}
-              min="1"
+              min="0"
               max="99"
               className="w-full p-3 border-2 border-slate-300 rounded-xl bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition duration-150 shadow-sm hover:shadow-md placeholder:text-gray-400"
               disabled={isSaving}

@@ -105,7 +105,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, positions }) => {
                   )}
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <span className="font-bold text-slate-800 truncate">{player.name}</span>
-                    {player.jerseyNumber && (
+                    {player.jerseyNumber !== undefined && player.jerseyNumber !== null && (
                       <span className={`flex-shrink-0 px-2.5 py-1 rounded-xl text-xs font-black ${theme.badgeBg} ${theme.badgeText} shadow-md border-2 border-white/30`}>
                         #{player.jerseyNumber}
                       </span>
