@@ -17,6 +17,7 @@ export interface Player {
   name: string;
   position: Position;
   skillLevel: SkillLevel;
+  jerseyNumber?: number; // Jersey number for the player (1-99)
   isAvailable?: boolean;
   userId?: string; // User ID of the user who registered this player (for self-registration)
   registeredBy?: string; // User ID of the user who registered this player (for admin-added players)

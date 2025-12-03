@@ -6,7 +6,7 @@ import { POSITIONS, POSITION_LABELS, SKILL_LABELS } from "../../constants/player
 interface EditPlayerModalProps {
   player: Player;
   onClose: () => void;
-  onSave: (playerId: string, updates: { position: Position; skillLevel: SkillLevel }) => Promise<void>;
+  onSave: (playerId: string, updates: { position: Position; skillLevel: SkillLevel; jerseyNumber?: number }) => Promise<void>;
 }
 
 const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
@@ -16,20 +16,31 @@ const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
 }) => {
   const [position, setPosition] = useState<Position>(player.position);
   const [skillLevel, setSkillLevel] = useState<SkillLevel>(player.skillLevel);
+  const [jerseyNumber, setJerseyNumber] = useState<number | undefined>(player.jerseyNumber);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setPosition(player.position);
     setSkillLevel(player.skillLevel);
+    setJerseyNumber(player.jerseyNumber);
   }, [player]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
+    // Validate jersey number if provided
+    if (jerseyNumber !== undefined && jerseyNumber !== null) {
+      const num = Number(jerseyNumber);
+      if (isNaN(num) || num < 1 || num > 99 || !Number.isInteger(num)) {
+        setError("Jersey number must be between 1 and 99.");
+        return;
+      }
+    }
+
     // Check if anything changed
-    if (position === player.position && skillLevel === player.skillLevel) {
+    if (position === player.position && skillLevel === player.skillLevel && jerseyNumber === player.jerseyNumber) {
       onClose();
       return;
     }
@@ -37,7 +48,7 @@ const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
     setIsSaving(true);
 
     try {
-      await onSave(player.id, { position, skillLevel });
+      await onSave(player.id, { position, skillLevel, jerseyNumber: jerseyNumber !== undefined && jerseyNumber !== null ? Number(jerseyNumber) : undefined });
       onClose();
     } catch (err: any) {
       setError(err.message || "Failed to update player.");
@@ -110,6 +121,34 @@ const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                 size={18}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Jersey Number <span className="text-xs font-normal text-gray-500">(Optional)</span>
+            </label>
+            <input
+              type="number"
+              placeholder="Enter jersey number (1-99)"
+              value={jerseyNumber ?? ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "") {
+                  setJerseyNumber(undefined);
+                } else {
+                  const num = parseInt(value);
+                  if (!isNaN(num)) {
+                    setJerseyNumber(num);
+                  }
+                }
+                setError(null);
+              }}
+              min="1"
+              max="99"
+              className="w-full p-3 border-2 border-slate-300 rounded-xl bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition duration-150 shadow-sm hover:shadow-md placeholder:text-gray-400"
+              disabled={isSaving}
+            />
+            <p className="text-xs text-gray-500 mt-1">Leave empty if no jersey number assigned</p>
           </div>
 
           <div>

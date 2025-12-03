@@ -19,7 +19,7 @@ interface WeeklyAvailabilityPollProps {
   availableCount: number;
   onToggleAvailability: (playerId: string) => void | Promise<void>;
   onGenerateTeams: () => void;
-  onUpdatePlayer: (playerId: string, updates: { position?: any; skillLevel?: any }) => Promise<void>;
+  onUpdatePlayer: (playerId: string, updates: { position?: any; skillLevel?: any; jerseyNumber?: number }) => Promise<void>;
   onDeletePlayer: (playerId: string) => Promise<void>;
   onAddPlayer: (player: Omit<Player, "id">) => Promise<void>;
   error: string | null;
@@ -692,11 +692,22 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
               }}
             >
               <div className="flex-1 min-w-0">
-                <p 
-                  className={`font-bold text-base sm:text-lg ${player.isAvailable ? "text-slate-800" : "text-slate-600"} break-words leading-tight mb-1`}
-                >
-                  {player.name}
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p 
+                    className={`font-bold text-base sm:text-lg ${player.isAvailable ? "text-slate-800" : "text-slate-600"} break-words leading-tight`}
+                  >
+                    {player.name}
+                  </p>
+                  {player.jerseyNumber && (
+                    <span className={`flex-shrink-0 px-2.5 py-1 rounded-xl text-xs font-black shadow-md border-2 border-white/30 ${
+                      player.isAvailable 
+                        ? "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700 text-white" 
+                        : "bg-gradient-to-br from-slate-300 to-slate-400 text-slate-800"
+                    }`}>
+                      #{player.jerseyNumber}
+                    </span>
+                  )}
+                </div>
                 <p className={`text-xs mt-1 ${player.isAvailable ? "text-slate-600" : "text-slate-500"} break-words`}>
                   <span className="hidden sm:inline">{player.position} ({POSITION_LABELS[player.position]}) • </span>
                   <span className="sm:hidden">{player.position} • </span>

@@ -16,6 +16,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   query,
   where,
   getDocs,
@@ -861,6 +862,7 @@ export default function App() {
             skillLevel: normalizedSkill,
             position: normalizedPosition,
             isAvailable,
+            jerseyNumber: data.jerseyNumber !== undefined && data.jerseyNumber !== null ? Number(data.jerseyNumber) : undefined,
             userId: data.userId || undefined, // Include userId if present
             registeredBy: data.registeredBy || undefined, // Include registeredBy if present
           } as PlayerAvailability;
@@ -1042,19 +1044,24 @@ export default function App() {
     const playersColRef = collection(db, playersCollectionPath);
 
     try {
-      const playerDoc = {
+      const playerDoc: any = {
         name: playerData.name.trim(),
         position: playerData.position,
         skillLevel: playerData.skillLevel,
         isAvailable: true,
       };
 
+      // Add jersey number if provided
+      if (playerData.jerseyNumber !== undefined && playerData.jerseyNumber !== null) {
+        playerDoc.jerseyNumber = playerData.jerseyNumber;
+      }
+
       // If self-registration, add userId to link player to user
       if (isSelfRegistration && userId) {
-        (playerDoc as any).userId = userId;
+        playerDoc.userId = userId;
       } else if (!isSelfRegistration && userId) {
         // If admin/user adds a player, track who registered them
-        (playerDoc as any).registeredBy = userId;
+        playerDoc.registeredBy = userId;
       }
 
       await addDoc(playersColRef, playerDoc);
@@ -1118,8 +1125,8 @@ export default function App() {
     performCheck();
   }, [userId, db]); // Only check when userId or db changes
 
-  // Function to update a player's position and skill level (writes to Firestore)
-  const updatePlayer = async (playerId: string, updates: { position?: Position; skillLevel?: SkillLevel }) => {
+  // Function to update a player's position, skill level, and jersey number (writes to Firestore)
+  const updatePlayer = async (playerId: string, updates: { position?: Position; skillLevel?: SkillLevel; jerseyNumber?: number }) => {
     if (!db) {
       setError("Database connection not ready. Please wait.");
       return;
@@ -1139,6 +1146,15 @@ export default function App() {
       }
       if (updates.skillLevel !== undefined) {
         updateData.skillLevel = updates.skillLevel;
+      }
+      if (updates.jerseyNumber !== undefined) {
+        // If jerseyNumber is null or undefined, we should delete it from Firestore
+        // Firestore doesn't support null, so we use deleteField() to remove it
+        if (updates.jerseyNumber === null || updates.jerseyNumber === undefined) {
+          updateData.jerseyNumber = deleteField();
+        } else {
+          updateData.jerseyNumber = updates.jerseyNumber;
+        }
       }
 
       await updateDoc(playerDocRef, updateData);
@@ -1397,6 +1413,9 @@ export default function App() {
             if (player.registeredBy !== undefined) {
               playerData.registeredBy = player.registeredBy;
             }
+            if (player.jerseyNumber !== undefined && player.jerseyNumber !== null) {
+              playerData.jerseyNumber = player.jerseyNumber;
+            }
             return playerData;
           }),
         };
@@ -1446,7 +1465,7 @@ export default function App() {
       </div>
 
       <div 
-        className="relative z-10 px-2 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-6 space-y-4 sm:space-y-6"
+        className="relative z-10 px-2 sm:px-4 md:px-6 lg:px-10 pb-4 sm:pb-6 space-y-4 sm:space-y-6 safe-area-top"
         style={{ 
           contain: 'layout style paint'
         }}

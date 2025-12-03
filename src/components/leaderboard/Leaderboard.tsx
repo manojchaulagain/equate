@@ -621,21 +621,31 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     {getRankIcon(index + 1)}
                     <div className="flex-1 min-w-0">
-                      <p 
-                        className="font-bold text-slate-800 text-base sm:text-lg truncate cursor-pointer hover:text-indigo-600 transition-colors"
-                        onClick={() => {
+                      <div className="flex items-center gap-2">
+                        <p 
+                          className="font-bold text-slate-800 text-base sm:text-lg truncate cursor-pointer hover:text-indigo-600 transition-colors"
+                          onClick={() => {
+                            const fullPlayer = players.find(p => p.id === player.playerId);
+                            if (fullPlayer) {
+                              setSelectedPlayerProfile({
+                                player: fullPlayer,
+                                stats: player,
+                              });
+                            }
+                          }}
+                          title="Click to view player profile"
+                        >
+                          {player.playerName}
+                        </p>
+                        {(() => {
                           const fullPlayer = players.find(p => p.id === player.playerId);
-                          if (fullPlayer) {
-                            setSelectedPlayerProfile({
-                              player: fullPlayer,
-                              stats: player,
-                            });
-                          }
-                        }}
-                        title="Click to view player profile"
-                      >
-                        {player.playerName}
-                      </p>
+                          return fullPlayer?.jerseyNumber ? (
+                            <span className="flex-shrink-0 px-2.5 py-1 rounded-xl text-xs font-black bg-gradient-to-br from-amber-500 via-orange-600 to-amber-700 text-white shadow-md border-2 border-white/30">
+                              #{fullPlayer.jerseyNumber}
+                            </span>
+                          ) : null;
+                        })()}
+                      </div>
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5">
                         {(player.motmAwards || 0) > 0 && (
                           <div className="flex items-center gap-1">

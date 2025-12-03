@@ -5,7 +5,7 @@ import { POSITIONS, POSITION_LABELS, SKILL_LABELS } from "../../constants/player
 
 interface AddPlayerModalProps {
   onClose: () => void;
-  onAddPlayer: (player: { name: string; position: Position; skillLevel: SkillLevel }) => Promise<void>;
+  onAddPlayer: (player: { name: string; position: Position; skillLevel: SkillLevel; jerseyNumber?: number }) => Promise<void>;
 }
 
 const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
@@ -15,6 +15,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
   const [name, setName] = useState("");
   const [position, setPosition] = useState<Position>("CM");
   const [skillLevel, setSkillLevel] = useState<SkillLevel>(5);
+  const [jerseyNumber, setJerseyNumber] = useState<number | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,16 +31,27 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
     setIsSaving(true);
     setError(null); // Clear error when starting new submission
 
+    // Validate jersey number if provided
+    if (jerseyNumber !== undefined && jerseyNumber !== null) {
+      const num = Number(jerseyNumber);
+      if (isNaN(num) || num < 1 || num > 99 || !Number.isInteger(num)) {
+        setError("Jersey number must be between 1 and 99.");
+        return;
+      }
+    }
+
     try {
       await onAddPlayer({
         name: name.trim(),
         position,
         skillLevel,
+        jerseyNumber: jerseyNumber !== undefined && jerseyNumber !== null ? Number(jerseyNumber) : undefined,
       });
       // Reset form and close
       setName("");
       setPosition("CM");
       setSkillLevel(5);
+      setJerseyNumber(undefined);
       setError(null); // Clear error on success
       onClose();
     } catch (err: any) {
@@ -134,6 +146,35 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
                 size={20}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Jersey Number <span className="text-xs font-normal text-slate-500">(Optional)</span>
+            </label>
+            <input
+              type="number"
+              placeholder="Enter jersey number (1-99)"
+              value={jerseyNumber ?? ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "") {
+                  setJerseyNumber(undefined);
+                } else {
+                  const num = parseInt(value);
+                  if (!isNaN(num)) {
+                    setJerseyNumber(num);
+                  }
+                }
+                setError(null);
+              }}
+              min="1"
+              max="99"
+              className="w-full p-4 text-base border-2 border-slate-300/80 rounded-xl bg-white/90 backdrop-blur-sm focus:ring-4 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all duration-200 shadow-md hover:shadow-lg hover:border-emerald-300 placeholder:text-slate-400"
+              disabled={isSaving}
+            />
+            <p className="text-xs text-slate-500 mt-1.5 font-medium">Leave empty if no jersey number assigned</p>
           </div>
 
           <div>
