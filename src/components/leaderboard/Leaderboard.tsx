@@ -845,5 +845,15 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ db, userId, userEmail, userRo
   );
 };
 
-export default Leaderboard;
+// Memoize component to prevent unnecessary re-renders
+export default React.memo(Leaderboard, (prevProps, nextProps) => {
+  return (
+    prevProps.db === nextProps.db &&
+    prevProps.userId === nextProps.userId &&
+    prevProps.userEmail === nextProps.userEmail &&
+    prevProps.userRole === nextProps.userRole &&
+    prevProps.players === nextProps.players &&
+    prevProps.isActive === nextProps.isActive
+  );
+});
 
