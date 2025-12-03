@@ -31,6 +31,9 @@ import {
   Team,
   TeamResultsState,
   TeamColorKey,
+  AvailabilityStatus,
+  booleanToAvailabilityStatus,
+  availabilityStatusToBoolean,
 } from "./types/player";
 import { UserRole } from "./types/user";
 import { POSITIONS } from "./constants/player";
@@ -415,6 +418,71 @@ export default function App() {
     return () => clearInterval(interval);
   }, [db, gameSchedule]);
 
+  // Reset player availability to 'no_response' after midnight the day after game day
+  useEffect(() => {
+    if (!db || !gameSchedule || availability.length === 0) return;
+
+    const checkAndResetAvailability = async () => {
+      try {
+        const now = new Date();
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayDay = yesterday.getDay();
+
+        // Check if yesterday was a game day
+        if (gameSchedule.schedule && gameSchedule.schedule[yesterdayDay]) {
+          const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+          
+          // Check if we've already reset for this date (using localStorage to persist across refreshes)
+          const lastResetKey = `availability_reset_${appId}`;
+          const lastResetDate = localStorage.getItem(lastResetKey);
+          const todayStr = now.toDateString();
+          
+          if (lastResetDate === todayStr) {
+            // Already reset today, skip
+            return;
+          }
+
+          // Find all players with 'available' status and reset them to 'no_response'
+          const playersToReset = availability.filter(
+            (p) => p.availabilityStatus === 'available' || p.isAvailable === true
+          );
+
+          if (playersToReset.length > 0) {
+            console.log(`Resetting ${playersToReset.length} players to 'no_response' after game day`);
+            
+            // Update each player in Firestore
+            const updatePromises = playersToReset.map(async (player) => {
+              const playerDocPath = `artifacts/${appId}/public/data/soccer_players/${player.id}`;
+              const playerDocRef = doc(db, playerDocPath);
+              await updateDoc(playerDocRef, {
+                availabilityStatus: 'no_response',
+                isAvailable: false,
+              });
+            });
+
+            await Promise.all(updatePromises);
+            
+            // Mark as reset for today
+            localStorage.setItem(lastResetKey, todayStr);
+            
+            console.log('Availability reset complete');
+          }
+        }
+      } catch (err) {
+        console.error("Error resetting availability:", err);
+      }
+    };
+
+    // Check immediately on mount
+    checkAndResetAvailability();
+
+    // Check every hour to catch midnight transitions
+    const interval = setInterval(checkAndResetAvailability, 60 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [db, gameSchedule, availability]);
+
   // 3-Day Game Reminder System - Check daily and send reminders
   // Optimized to use existing availability data instead of fetching again
   useEffect(() => {
@@ -509,8 +577,12 @@ export default function App() {
           const normalizedPosition = POSITIONS.includes(data.position as Position)
               ? (data.position as Position)
             : "CM";
-          const isAvailable =
-            typeof data.isAvailable === "boolean" ? data.isAvailable : true;
+          
+          // Support both legacy isAvailable boolean and new availabilityStatus
+          const availabilityStatus: AvailabilityStatus = data.availabilityStatus 
+            ? (data.availabilityStatus as AvailabilityStatus)
+            : booleanToAvailabilityStatus(data.isAvailable);
+          const isAvailable = availabilityStatusToBoolean(availabilityStatus);
 
               return {
             id: doc.id,
@@ -518,6 +590,7 @@ export default function App() {
             skillLevel: normalizedSkill,
             position: normalizedPosition,
             isAvailable,
+            availabilityStatus,
             jerseyNumber: data.jerseyNumber !== undefined && data.jerseyNumber !== null ? Number(data.jerseyNumber) : undefined,
             userId: data.userId || undefined, // Include userId if present
             registeredBy: data.registeredBy || undefined, // Include registeredBy if present
@@ -868,17 +941,75 @@ export default function App() {
     }
   }, [db]);
 
-  // Function to update availability (updates local state only - ephemeral for the week)
-  const toggleAvailability = useCallback(async (playerId: string) => {
+  // Function to reset all players' availability to 'no_response' (admin only)
+  const resetAllAvailability = useCallback(async () => {
+    if (userRole !== "admin" || !db) {
+      setError("Only admins can reset availability.");
+      return { success: false, count: 0 };
+    }
+
+    try {
+      const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+      
+      // Find all players with 'available' status
+      const playersToReset = availability.filter(
+        (p) => p.availabilityStatus === 'available' || p.isAvailable === true
+      );
+
+      if (playersToReset.length === 0) {
+        return { success: true, count: 0, message: "No players with 'Playing' status to reset." };
+      }
+
+      // Optimistic UI update
+      startTransition(() => {
+        setAvailability((prev) =>
+          prev.map((p) =>
+            p.availabilityStatus === 'available' || p.isAvailable === true
+              ? { ...p, isAvailable: false, availabilityStatus: 'no_response' as AvailabilityStatus }
+              : p
+          )
+        );
+      });
+
+      // Update each player in Firestore
+      const updatePromises = playersToReset.map(async (player) => {
+        const playerDocPath = `artifacts/${appId}/public/data/soccer_players/${player.id}`;
+        const playerDocRef = doc(db, playerDocPath);
+        await updateDoc(playerDocRef, {
+          availabilityStatus: 'no_response',
+          isAvailable: false,
+        });
+      });
+
+      await Promise.all(updatePromises);
+      
+      // Clear teams since availability changed
+      await clearTeamsFromFirestore();
+
+      return { 
+        success: true, 
+        count: playersToReset.length, 
+        message: `Reset ${playersToReset.length} player(s) to 'No Vote' status.`,
+        players: playersToReset.map(p => p.name)
+      };
+    } catch (err) {
+      console.error("Error resetting availability:", err);
+      setError("Failed to reset availability.");
+      return { success: false, count: 0, message: "Failed to reset availability." };
+    }
+  }, [availability, userRole, db, clearTeamsFromFirestore]);
+
+  // Function to set availability with three-way status (available, maybe, unavailable)
+  const setPlayerAvailability = useCallback(async (playerId: string, newAvailabilityStatus: AvailabilityStatus) => {
     const player = availability.find((p) => p.id === playerId);
     if (!player) return;
 
-    // Check if user has permission to toggle this player's availability
-    // Admins can toggle all players
-    // Regular users can only toggle their own player or players they registered
+    // Check if user has permission to change this player's availability
+    // Admins can change all players
+    // Regular users can only change their own player or players they registered
     if (userRole !== "admin" && userId) {
-      const canToggle = player.userId === userId || player.registeredBy === userId;
-      if (!canToggle) {
+      const canChange = player.userId === userId || player.registeredBy === userId;
+      if (!canChange) {
         startTransition(() => {
           setError("You can only change availability for your own player or players you registered.");
         });
@@ -886,13 +1017,14 @@ export default function App() {
       }
     }
 
-    const newStatus = !player.isAvailable;
+    // Convert new status to boolean for backwards compatibility
+    const newIsAvailable = availabilityStatusToBoolean(newAvailabilityStatus);
 
     // Optimistic UI update - update state immediately for better responsiveness
     startTransition(() => {
     setAvailability((prev) =>
       prev.map((p) =>
-          p.id === playerId ? { ...p, isAvailable: newStatus } : p
+          p.id === playerId ? { ...p, isAvailable: newIsAvailable, availabilityStatus: newAvailabilityStatus } : p
       )
     );
     setError(null);
@@ -907,7 +1039,11 @@ export default function App() {
         const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
         const playerDocPath = `artifacts/${appId}/public/data/soccer_players/${playerId}`;
         const playerDocRef = doc(db, playerDocPath);
-        await updateDoc(playerDocRef, { isAvailable: newStatus });
+        // Store both the new availabilityStatus and legacy isAvailable for backwards compat
+        await updateDoc(playerDocRef, { 
+          availabilityStatus: newAvailabilityStatus,
+          isAvailable: newIsAvailable 
+        });
         // Clear teams from Firestore when availability changes (non-blocking)
         await clearTeamsFromFirestore();
       } catch (e) {
@@ -1624,7 +1760,7 @@ export default function App() {
                   availability={availability}
                   loading={loading}
                   availableCount={availableCount}
-                  onToggleAvailability={toggleAvailability}
+                  onSetAvailability={setPlayerAvailability}
                   onGenerateTeams={generateBalancedTeams}
                   onUpdatePlayer={updatePlayer}
                   onDeletePlayer={deletePlayer}
@@ -1767,6 +1903,7 @@ export default function App() {
                     onRoleUpdate={refreshUserRole}
                     players={availability}
                     isActive={view === "admin"}
+                    onResetAvailability={resetAllAvailability}
                   />
                 </Suspense>
               )}

@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { ListChecks, Trophy, Edit2, UserPlus, Trash2, Star, Heart, X, Send, Plus, Search, Filter, XCircle } from "lucide-react";
-import { PlayerAvailability, Player, Position, SkillLevel } from "../../types/player";
+import { PlayerAvailability, Player, Position, SkillLevel, AvailabilityStatus } from "../../types/player";
 import { POSITION_LABELS, SKILL_LABELS, POSITIONS } from "../../constants/player";
+import ThreeWayToggle from "../common/ThreeWayToggle";
 import EditPlayerModal from "../players/EditPlayerModal";
 import AddPlayerModal from "../players/AddPlayerModal";
 import TeamAssignmentManager from "../teams/TeamAssignmentManager";
@@ -17,7 +18,7 @@ interface WeeklyAvailabilityPollProps {
   availability: PlayerAvailability[];
   loading: boolean;
   availableCount: number;
-  onToggleAvailability: (playerId: string) => void | Promise<void>;
+  onSetAvailability: (playerId: string, status: AvailabilityStatus) => void | Promise<void>;
   onGenerateTeams: () => void;
   onUpdatePlayer: (playerId: string, updates: { position?: any; skillLevel?: any; jerseyNumber?: number }) => Promise<void>;
   onDeletePlayer: (playerId: string) => Promise<void>;
@@ -45,7 +46,7 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
   availability,
   loading,
   availableCount,
-  onToggleAvailability,
+  onSetAvailability,
   onGenerateTeams,
   onUpdatePlayer,
   onDeletePlayer,
@@ -669,46 +670,70 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
             >
               {filteredAvailability.map((player) => {
                 const canToggle = canToggleAvailability(player);
+                const status = player.availabilityStatus;
+                
+                // Get card styling based on availability status
+                const getCardStyle = () => {
+                  switch (status) {
+                    case 'available':
+                      return "bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border-2 border-emerald-300 shadow-md";
+                    case 'no_response':
+                      return "bg-gradient-to-r from-slate-50 via-gray-50 to-slate-100 border-2 border-slate-300 shadow-sm";
+                    case 'unavailable':
+                    default:
+                      return "bg-gradient-to-r from-rose-50 via-red-50 to-slate-100 border-2 border-rose-200 shadow-sm";
+                  }
+                };
+                
                 return (
             <div
               key={player.id}
-              className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-2xl transition-colors duration-150 ${
+              className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-2xl transition-all duration-200 ${
                 canToggle
                   ? "cursor-pointer"
-                  : "cursor-not-allowed opacity-75"
-              } ${
-                player.isAvailable
-                  ? "bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border-2 border-emerald-300 shadow-md"
-                  : "bg-gradient-to-r from-slate-100 to-gray-100 border-2 border-slate-300 shadow-sm"
-              } ${canToggle && player.isAvailable ? "hover:shadow-lg" : ""} ${canToggle && !player.isAvailable ? "hover:opacity-90" : ""}`}
+                  : "cursor-default"
+              } ${getCardStyle()} ${canToggle ? "hover:shadow-lg hover:scale-[1.01]" : ""}`}
               style={{ 
                 contain: 'layout style paint',
                 contentVisibility: 'auto'
-              }}
-              onClick={() => {
-                if (canToggle) {
-                  onToggleAvailability(player.id);
-                }
               }}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <p 
-                    className={`font-bold text-base sm:text-lg ${player.isAvailable ? "text-slate-800" : "text-slate-600"} break-words leading-tight`}
+                    className={`font-bold text-base sm:text-lg break-words leading-tight ${
+                      status === 'available' ? "text-slate-800" : 
+                      status === 'no_response' ? "text-slate-600" : "text-slate-600"
+                    }`}
                   >
                     {player.name}
                   </p>
+                  {/* Status badge */}
+                  <span className={`flex-shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide ${
+                    status === 'available' 
+                      ? "bg-emerald-500/20 text-emerald-700 border border-emerald-400/50" 
+                      : status === 'no_response'
+                      ? "bg-slate-400/20 text-slate-600 border border-slate-400/50"
+                      : "bg-rose-500/20 text-rose-700 border border-rose-400/50"
+                  }`}>
+                    {status === 'available' ? 'Playing' : status === 'no_response' ? 'No Vote' : 'Out'}
+                  </span>
                   {player.jerseyNumber !== undefined && player.jerseyNumber !== null && (
                     <span className={`flex-shrink-0 px-2.5 py-1 rounded-xl text-xs font-black shadow-md border-2 border-white/30 ${
-                      player.isAvailable 
+                      status === 'available' 
                         ? "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700 text-white" 
+                        : status === 'no_response'
+                        ? "bg-gradient-to-br from-slate-400 via-slate-500 to-slate-600 text-white"
                         : "bg-gradient-to-br from-slate-300 to-slate-400 text-slate-800"
                     }`}>
                       #{player.jerseyNumber}
                     </span>
                   )}
                 </div>
-                <p className={`text-xs mt-1 ${player.isAvailable ? "text-slate-600" : "text-slate-500"} break-words`}>
+                <p className={`text-xs mt-1 break-words ${
+                  status === 'available' ? "text-slate-600" : 
+                  status === 'no_response' ? "text-slate-500" : "text-slate-500"
+                }`}>
                   <span className="hidden sm:inline">{player.position} ({POSITION_LABELS[player.position]}) • </span>
                   <span className="sm:hidden">{player.position} • </span>
                   Skill: {player.skillLevel} ({SKILL_LABELS[player.skillLevel]})
@@ -733,46 +758,13 @@ const WeeklyAvailabilityPoll: React.FC<WeeklyAvailabilityPollProps> = ({
                     </button>
                   </>
                 )}
-                {canToggle ? (
-                  <div className="flex items-center bg-gradient-to-r from-slate-200/80 to-slate-300/80 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-lg border-2 border-slate-400/60">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleAvailability(player.id);
-                      }}
-                      className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-colors duration-150 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
-                        !player.isAvailable
-                          ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg border-2 border-red-700/50 ring-2 ring-red-400/30"
-                          : "text-red-700 hover:bg-red-50 border-2 border-transparent hover:border-red-200"
-                      }`}
-                    >
-                      Out
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleAvailability(player.id);
-                      }}
-                      className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-colors duration-150 min-w-[55px] sm:min-w-[70px] md:min-w-[75px] ${
-                        player.isAvailable
-                          ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg border-2 border-emerald-700/50 ring-2 ring-emerald-400/30"
-                          : "text-emerald-700 hover:bg-emerald-50 border-2 border-transparent hover:border-emerald-200"
-                      }`}
-                    >
-                      Playing
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center bg-gradient-to-r from-slate-200/80 to-slate-300/80 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-lg border-2 border-slate-400/60 opacity-75">
-                    <div className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold min-w-[55px] sm:min-w-[70px] md:min-w-[75px] text-center ${
-                      player.isAvailable
-                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg border-2 border-emerald-700/50"
-                        : "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg border-2 border-red-700/50"
-                    }`}>
-                      {player.isAvailable ? "Playing" : "Out"}
-                    </div>
-                  </div>
-                )}
+                {/* Three-Way Toggle */}
+                <ThreeWayToggle
+                  value={status}
+                  onChange={(newStatus) => onSetAvailability(player.id, newStatus)}
+                  disabled={!canToggle}
+                  size="md"
+                />
               </div>
             </div>
                 );

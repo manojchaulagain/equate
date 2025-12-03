@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Calendar, Users, Target, Bell, Settings, BarChart3, Trophy } from "lucide-react";
+import { Calendar, Users, Target, Bell, Settings, BarChart3, Trophy, RotateCcw, CheckCircle, AlertCircle } from "lucide-react";
 import GameSchedule from "./GameSchedule";
 import GoalsAssistsReview from "./GoalsAssistsReview";
 import Notifications from "../notifications/Notifications";
@@ -7,6 +7,13 @@ import UserManagement from "./UserManagement";
 import PlayerStatsEditor from "./PlayerStatsEditor";
 import LeagueTableEditor from "./LeagueTableEditor";
 import { PlayerAvailability } from "../../types/player";
+
+interface ResetResult {
+  success: boolean;
+  count: number;
+  message?: string;
+  players?: string[];
+}
 
 interface AdminDashboardProps {
   db: any;
@@ -16,6 +23,7 @@ interface AdminDashboardProps {
   onRoleUpdate: () => void;
   players: PlayerAvailability[];
   isActive?: boolean;
+  onResetAvailability?: () => Promise<ResetResult>;
 }
 
 type AdminTab = "schedule" | "review" | "users" | "notifications" | "playerStats" | "leagueTable";
@@ -28,8 +36,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onRoleUpdate,
   players,
   isActive = false,
+  onResetAvailability,
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>("schedule");
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetResult, setResetResult] = useState<ResetResult | null>(null);
+
+  // Get count of players with "Playing" status
+  const playingCount = players.filter(
+    (p) => p.availabilityStatus === 'available' || p.isAvailable === true
+  ).length;
+
+  const handleResetAvailability = async () => {
+    if (!onResetAvailability) return;
+    
+    setIsResetting(true);
+    setResetResult(null);
+    
+    try {
+      const result = await onResetAvailability();
+      setResetResult(result);
+      
+      // Clear result after 5 seconds
+      setTimeout(() => setResetResult(null), 5000);
+    } catch (err) {
+      setResetResult({ success: false, count: 0, message: "An error occurred while resetting." });
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const tabs: { id: AdminTab; label: string; icon: React.ReactNode; description: string }[] = [
     {
@@ -141,13 +176,77 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Tab Content */}
         <div className="min-h-[600px] relative">
           {activeTab === "schedule" && (
-            <div className="animate-in fade-in duration-300">
+            <div className="animate-in fade-in duration-300 space-y-6">
               <GameSchedule
                 db={db}
                 userId={userId}
                 userEmail={userEmail}
                 isActive={isActive}
               />
+              
+              {/* Reset Availability Section */}
+              {onResetAvailability && (
+                <div className="p-5 bg-gradient-to-br from-slate-50 via-white to-slate-50 rounded-2xl border-2 border-slate-200/60 shadow-lg">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2.5 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl shadow-md">
+                        <RotateCcw className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-800 text-base">Reset Player Availability</h3>
+                        <p className="text-sm text-slate-600 mt-0.5">
+                          Reset all players with "Playing" status back to "No Vote"
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          <span className="font-semibold text-emerald-600">{playingCount}</span> player{playingCount !== 1 ? 's' : ''} currently marked as "Playing"
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleResetAvailability}
+                      disabled={isResetting || playingCount === 0}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${
+                        playingCount === 0
+                          ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                          : "bg-gradient-to-r from-slate-600 to-slate-700 text-white hover:from-slate-700 hover:to-slate-800"
+                      }`}
+                    >
+                      {isResetting ? (
+                        <>
+                          <RotateCcw className="w-4 h-4 animate-spin" />
+                          Resetting...
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw className="w-4 h-4" />
+                          Reset to No Vote
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
+                  {/* Reset Result Message */}
+                  {resetResult && (
+                    <div className={`mt-4 p-3 rounded-xl flex items-center gap-2 text-sm font-medium ${
+                      resetResult.success
+                        ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                        : "bg-red-50 border border-red-200 text-red-700"
+                    }`}>
+                      {resetResult.success ? (
+                        <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      )}
+                      <span>{resetResult.message}</span>
+                      {resetResult.players && resetResult.players.length > 0 && (
+                        <span className="text-xs opacity-80 ml-1">
+                          ({resetResult.players.slice(0, 3).join(", ")}{resetResult.players.length > 3 ? `, +${resetResult.players.length - 3} more` : ""})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
